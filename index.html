@@ -288,8 +288,10 @@
       transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
-    .modal button:hover { transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
-    .modal button:active { transform: translateY(0); box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    button:hover { transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); } /* Moved from generic button */
+    button:active { transform: translateY(0); box-shadow: 0 2px 5px rgba(0,0,0,0.1); } /* Moved from generic button */
+
+    /* Specific modal button styles */
     .modal button.confirm-button { background-color: #28a745; color: white; }
     .modal button.confirm-button:hover { background-color: #218838; }
     .modal button.cancel-button { background-color: #dc3545; color: white; }
@@ -302,6 +304,7 @@
     .modal button.light-blue:hover { background-color: #1976D2; }
     .modal button.orange { background-color: #FF9800; color: white; }
     .modal button.orange:hover { background-color: #FB8C00; }
+
     /* Overlay loading */
     .loading-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -613,30 +616,39 @@
 
     .setting-group {
         display: flex;
+        flex-direction: column; /* Ubah ke kolom untuk menempatkan URL di bawah */
+        gap: 8px; /* Kurangi jarak antar elemen di dalam grup */
+        margin-bottom: 15px; /* Jarak antar grup setting */
+    }
+
+    .setting-group > div { /* Wrapper untuk label dan switch */
+        display: flex;
         align-items: center;
-        gap: 10px;
-        margin-bottom: 10px;
+        justify-content: space-between; /* Untuk mendorong switch ke kanan */
     }
 
     .setting-group label {
-        flex-basis: 80px; /* Lebar tetap untuk label kelas */
         flex-shrink: 0;
         font-weight: bold;
+        margin-right: 10px; /* Memberi sedikit jarak antara label dan switch */
     }
 
     .setting-group input[type="url"] {
         flex-grow: 1;
-        margin: 0;
+        margin: 0; /* Hapus margin vertikal default */
+        padding: 8px 12px; /* Sesuaikan padding agar lebih compact */
+        font-size: 14px; /* Sesuaikan font size */
     }
 
     /* Toggle Switch Styles */
     .switch {
         position: relative;
         display: inline-block;
-        width: 40px;
-        height: 24px;
+        /* Ukuran yang lebih ringkas seperti pada gambar */
+        width: 30px; 
+        height: 16px; 
         flex-shrink: 0;
-        margin-left: 10px; /* Space between label and switch */
+        margin-left: 0; /* Hapus margin-left karena sudah di justify-content: space-between */
     }
 
     .switch input {
@@ -655,16 +667,17 @@
         background-color: #ccc;
         -webkit-transition: .4s;
         transition: .4s;
-        border-radius: 24px;
+        border-radius: 16px; /* Sesuai tinggi baru */
     }
 
     .slider:before {
         position: absolute;
         content: "";
-        height: 16px;
-        width: 16px;
-        left: 4px;
-        bottom: 4px;
+        /* Ukuran lingkaran yang proporsional */
+        height: 12px; 
+        width: 12px; 
+        left: 2px; /* Lebih dekat ke kiri */
+        bottom: 2px; /* Lebih dekat ke bawah */
         background-color: white;
         -webkit-transition: .4s;
         transition: .4s;
@@ -680,11 +693,13 @@
     }
 
     input:checked + .slider:before {
-        -webkit-transform: translateX(16px);
-        -ms-transform: translateX(16px);
-        transform: translateX(16px);
+        /* Transformasi yang sesuai dengan lebar baru */
+        -webkit-transform: translateX(14px);
+        -ms-transform: translateX(14px);
+        transform: translateX(14px);
     }
 
+    /* Info List Styles for Active Buttons */
     .info-list {
         list-style: none;
         padding: 0;
@@ -692,26 +707,37 @@
 
     .info-list-item {
         display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 8px 0;
+        flex-direction: column; /* Mengatur konten ke dalam kolom */
+        align-items: flex-start; /* Meratakan konten ke kiri */
+        padding: 10px 0;
         border-bottom: 1px solid #eee;
+        font-size: 0.95em; /* Sedikit lebih besar dari default */
     }
 
     .info-list-item:last-child {
         border-bottom: none;
     }
 
-    .info-list-item span {
+    .info-list-item div:first-child { /* Untuk baris pertama (Nama & Status) */
+        display: flex;
+        align-items: center;
         font-weight: bold;
         color: #333;
+        margin-bottom: 4px; /* Sedikit jarak dengan baris URL */
+    }
+
+    .info-list-item .link-info { /* Untuk baris kedua (Link Info) */
+        font-size: 0.9em;
+        color: #666;
+        margin-left: 18px; /* Menjorok ke dalam sedikit */
+        word-break: break-all;
     }
 
     .info-list-item a {
         color: #3498db;
         text-decoration: none;
         word-break: break-all; /* Allow URL to break line */
-        margin-left: 10px;
+        margin-left: 5px; /* Sesuaikan margin agar lebih dekat dengan teks "Link Terlampir" */
     }
 
     .info-list-item .delete-button {
@@ -719,11 +745,12 @@
         border: none;
         color: #e74c3c;
         cursor: pointer;
-        font-size: 1.1em;
-        margin-left: 10px;
+        font-size: 1em; /* Lebih kecil dari sebelumnya */
+        margin-left: auto; /* Dorong ke kanan untuk tombol delete */
+        padding: 0 5px; /* Kurangi padding */
     }
 
-    .info-list-item .status-indicator {
+    .status-indicator {
         width: 10px;
         height: 10px;
         border-radius: 50%;
@@ -735,6 +762,7 @@
     .status-indicator.on { background-color: #27ae60; } /* Green */
     .status-indicator.off { background-color: #e74c3c; } /* Red */
     .status-indicator.grey { background-color: #9e9e9e; } /* Grey */
+
 
     /* Media query untuk responsivitas */
     @media (max-width: 768px) {
@@ -956,42 +984,53 @@
 
       </div>
       <div id="setSelectClassSection" class="dashboard-section container">
-        <h1 style="text-align: left; color: #34495e;">Pengaturan Tampilan Kelas</h1>
+        <h1 style="text-align: left; color: #34495e;">Pengaturan Tampilan Pilih Kelas</h1>
+        <p style="font-size: 0.9em; color: #555; margin-top: 5px; margin-bottom: 15px;">
+          Apabila ada tombol yang aktif, maka pada tampilan aplikasi siswa akan muncul pilihan kelas yg aktif saja. Sedangkan apabila tidak ada tombol yang aktif, maka pada tampilan aplikasi siswa akan secara default menggunakan ujian berbasis token ini.
+        </p>
         <div class="set-pilih-kelas-grid">
             <div>
                 <!-- Pengaturan Tombol Utama Card -->
                 <div class="card">
                     <h3>Pengaturan Tombol Utama</h3>
                     <div class="setting-group">
-                        <label for="kelas7Toggle">Kelas 7:</label>
-                        <label class="switch">
-                            <input type="checkbox" id="kelas7Toggle">
-                            <span class="slider"></span>
-                        </label>
+                        <div>
+                            <label for="kelas7Toggle">Kelas 7:</label>
+                            <label class="switch">
+                                <input type="checkbox" id="kelas7Toggle">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
                         <input type="url" id="kelas7Url" placeholder="URL tombol Kelas 7">
                     </div>
                     <div class="setting-group">
-                        <label for="kelas8Toggle">Kelas 8:</label>
-                        <label class="switch">
-                            <input type="checkbox" id="kelas8Toggle">
-                            <span class="slider"></span>
-                        </label>
+                        <div>
+                            <label for="kelas8Toggle">Kelas 8:</label>
+                            <label class="switch">
+                                <input type="checkbox" id="kelas8Toggle">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
                         <input type="url" id="kelas8Url" placeholder="URL tombol Kelas 8">
                     </div>
                     <div class="setting-group">
-                        <label for="kelas9Toggle">Kelas 9:</label>
-                        <label class="switch">
-                            <input type="checkbox" id="kelas9Toggle">
-                            <span class="slider"></span>
-                        </label>
+                        <div>
+                            <label for="kelas9Toggle">Kelas 9:</label>
+                            <label class="switch">
+                                <input type="checkbox" id="kelas9Toggle">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
                         <input type="url" id="kelas9Url" placeholder="URL tombol Kelas 9">
                     </div>
                     <div class="setting-group">
-                        <label for="susulanToggle">Susulan:</label>
-                        <label class="switch">
-                            <input type="checkbox" id="susulanToggle">
-                            <span class="slider"></span>
-                        </label>
+                        <div>
+                            <label for="susulanToggle">Susulan:</label>
+                            <label class="switch">
+                                <input type="checkbox" id="susulanToggle">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
                         <!-- Tidak ada input URL di sini untuk susulan -->
                     </div>
                     <button class="text-button green" onclick="savePublicSettings()">
@@ -1386,7 +1425,7 @@
     let publicSettingsCache = { // Initial default structure
         kelas7: { enabled: false, url: '' },
         kelas8: { enabled: false, url: '' },
-        kelas9: { enabled: false, url: 'https://forms.gle/RuSQcVZVdG4E7Mwv8' },
+        kelas9: { enabled: false, url: '' }, // Diubah: kelas 9 url dikosongkan
         susulan: { enabled: false, list: {} }
     };
 
@@ -1979,7 +2018,6 @@
           loadingOverlay.style.display = 'none';
           closeEditModal();
           currentConsolidatedTokenInfo = null;
-          renderTokenTable();
       }
     }
     // Meminta konfirmasi penghapusan token
@@ -2444,10 +2482,10 @@
     
     // Memeriksa dan memperbarui kunci lokasi setiap 15 menit, atau saat halaman dimuat
     setInterval(() => {
-        if (authInstances['SETUP'].currentUser) {
+        if (authInstances['SETUP'].currentUser && isLocationEnabledAdmin) { // Diubah: Hanya update jika status ON
             loadSetlokasiSettings(); 
-            periksaAndUpdateStatusToken(); 
         }
+        periksaAndUpdateStatusToken(); 
     }, 10 * 1000); 
     
     // Membuka modal konfirmasi hapus siswa
@@ -2829,7 +2867,8 @@
                 }).catch(e => console.error("Error inisialisasi setlokasi:", e));
             }
 
-            if (Date.now() - keyLastGeneratedAdmin > FIFTEEN_MINUTES_IN_MS) {
+            // Diubah: Kunci lokasi hanya diupdate jika statusnya ON
+            if (isLocationEnabledAdmin && (Date.now() - keyLastGeneratedAdmin > FIFTEEN_MINUTES_IN_MS)) {
                 const newKey = generateRandomKey(5);
                 const newTimestamp = Date.now();
                 update(ref(setupDbInstance, 'setlokasi'), {
@@ -2866,7 +2905,7 @@
             publicSettingsCache = snapshot.val() || {
                 kelas7: { enabled: false, url: '' },
                 kelas8: { enabled: false, url: '' },
-                kelas9: { enabled: false, url: 'https://forms.gle/RuSQcVZVdG4E7Mwv8' },
+                kelas9: { enabled: false, url: '' }, // Diubah: kelas 9 url dikosongkan
                 susulan: { enabled: false, list: {} }
             };
             renderPublicSettingsControls();
@@ -2985,8 +3024,10 @@
         ['kelas7', 'kelas8', 'kelas9'].forEach(kelas => {
             const info = publicSettingsCache[kelas];
             const statusClass = info.enabled ? 'on' : 'off';
-            const statusText = info.enabled ? 'Aktif' : 'Nonaktif';
-            const urlDisplay = info.url ? `<a href="${info.url}" target="_blank">${info.url}</a>` : 'URL tidak ada';
+            const statusText = info.enabled ? 'Aktif' : 'Tidak Aktif';
+            const urlExists = info.url && info.url.trim() !== '';
+            const linkInfoText = urlExists ? 'Link Terlampir:' : 'Link Tidak Tersedia';
+            const urlDisplay = urlExists ? `<a href="${escapeHtmlAttributeForJsString(info.url)}" target="_blank">${escapeHtmlAttributeForJsString(info.url)}</a>` : '';
 
             const listItem = document.createElement('li');
             listItem.className = 'info-list-item';
@@ -2995,7 +3036,7 @@
                     <span class="status-indicator ${statusClass}"></span>
                     <strong>${kelas.charAt(0).toUpperCase() + kelas.slice(1)}:</strong> ${statusText}
                 </div>
-                ${info.enabled ? `<div>${urlDisplay}</div>` : ''}
+                <div class="link-info">${linkInfoText} ${urlDisplay}</div>
             `;
             activeButtonsInfoList.appendChild(listItem);
         });
@@ -3016,19 +3057,20 @@
         activeButtonsInfoList.appendChild(susulanHeaderItem);
 
         if (susulanInfo.enabled && susulanInfo.list) {
-            const susulanListItems = Object.keys(susulanInfo.list).map(id => {
+            Object.keys(susulanInfo.list).forEach(id => {
                 const item = susulanInfo.list[id];
-                return `
-                    <li class="info-list-item" style="padding-left: 20px;">
-                        <div>
-                            <span>${escapeHtmlAttributeForJsString(item.name)}</span>
-                            <a href="${escapeHtmlAttributeForJsString(item.url)}" target="_blank">${escapeHtmlAttributeForJsString(item.url)}</a>
-                        </div>
+                const listItem = document.createElement('li');
+                listItem.className = 'info-list-item';
+                listItem.style.paddingLeft = '20px'; /* Menjorok ke dalam */
+                listItem.innerHTML = `
+                    <div>
+                        <span>${escapeHtmlAttributeForJsString(item.name)}</span>
                         <button class="icon-button delete-button" onclick="deleteSusulanUjian('${id}')" title="Hapus Ujian Susulan"><i class="fas fa-trash-alt"></i></button>
-                    </li>
+                    </div>
+                    <div class="link-info">Link Terlampir: <a href="${escapeHtmlAttributeForJsString(item.url)}" target="_blank">${escapeHtmlAttributeForJsString(item.url)}</a></div>
                 `;
-            }).join('');
-            activeButtonsInfoList.innerHTML += susulanListItems;
+                activeButtonsInfoList.appendChild(listItem);
+            });
         } else if (susulanInfo.enabled) {
             const noSusulanItem = document.createElement('li');
             noSusulanItem.className = 'info-list-item';
@@ -3497,14 +3539,11 @@
             const addedTokens = new Set(); 
 
             tokensForGrade.forEach(token => {
-                const tokenIdentifier = `${token.token}_${token.kelas}`;
-                if (!addedTokens.has(tokenIdentifier)) {
-                    const option = document.createElement('option');
-                    option.value = tokenIdentifier;
-                    option.innerText = `${token.subject} (Kls ${token.kelas}) - ${token.isActive || token.isForceActive ? '(Aktif)' : ''}`;
-                    dropdown.appendChild(option);
-                    addedTokens.add(tokenIdentifier);
-                }
+                const option = document.createElement('option');
+                option.value = `${token.token}_${token.kelas}`; // Identifier for consolidated token
+                option.innerText = `${token.subject} (Kls ${token.kelas}) - ${token.isActive || token.isForceActive ? '(Aktif)' : ''}`;
+                dropdown.appendChild(option);
+                addedTokens.add(`${token.token}_${token.kelas}`);
             });
 
             if (lastSelectedTokens[grade] && Array.from(dropdown.options).some(opt => opt.value === lastSelectedTokens[grade])) {
