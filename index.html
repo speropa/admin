@@ -304,6 +304,7 @@
     .modal button.light-blue:hover { background-color: #1976D2; }
     .modal button.orange { background-color: #FF9800; color: white; }
     .modal button.orange:hover { background-color: #FB8C00; }
+
     /* Overlay loading */
     .loading-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -828,6 +829,9 @@
       <button id="aturanMenuBtn" data-section-id="rulesSection" onclick="handleMenuClick(this)">
         <i class="fas fa-cog"></i> <span>Aturan</span>
       </button>
+      <button id="setSelectClassMenuBtn" data-section-id="setSelectClassSection" onclick="handleMenuClick(this)">
+        <i class="fas fa-puzzle-piece"></i> <span>Set PilihKelas</span>
+      </button>
       <button data-action="promptLogout" onclick="handleMenuClick(this)">
         <i class="fas fa-sign-out-alt"></i> <span>Keluar</span>
       </button>
@@ -942,7 +946,7 @@
         <div style="margin-top: 30px;">
           <h3>ATUR KUNCI</h3>
           <p style="text-align: left; font-size: 0.9em; color: #555; margin-top: 5px; margin-bottom: 15px;">
-            Aturan kunci digunakan untuk mengatur kunci yang harus dimasukkan siswa ketika mereka sedang terkunci karena keluar dalam mode fullscreen dengan melebihi batas toleransi. (HANYA BERLAKU JIKA MENGGUNAKAN CHROME ATAU BROWSER LAIN)
+            Aturan kunci digunakan untuk mengatur kunci yang harus dimasukkan siswa ketika mereka sedang terkunci karena keluar dalam mode fullscreen dengan melebihi batas toleransi.
           </p>
           <div class="table-responsive">
             <table id="lockSettingsTable">
@@ -1086,7 +1090,7 @@
             </div>
         </div>
         <p id="studentTableDescription">
-          Jika ingin melihat status peserta ujian, klik menu "<span style="color: #3498db; cursor: pointer; text-decoration: underline;" onclick="showSection('examStatusSelectionSection')">Status Ujian</span>" dan pilih token ujian yang ingin ditampilkan.
+          Jika ingin melihat status peserta ujian, klik menu "Status Ujian" dan pilih token ujian yang ingin ditampilkan.
         </p>
         <p id="studentTableMessage" style="text-align: center; color: #555; font-style: italic; margin: 20px 0; display: none;">
             Tidak ada token ujian yang aktif.
@@ -1136,7 +1140,7 @@
       </div>
       <div id="backupRestoreSection" class="dashboard-section container">
         <h1 style="text-align: left; color: #34495e;">Backup & Restore Data</h1>
-        <p style="text-align: left; color: #555; margin-top: 5px; margin-bottom: 15px;">
+        <p style="text-align: left; font-size: 0.9em; color: #555; margin-top: 5px; margin-bottom: 15px;">
           Di sini Anda dapat melakukan backup seluruh data (token, peserta, nilai dan aturan ujian) kemudian dapat memulihkan data jika terjadi masalah.
         </p>
         <p style="text-align: left; font-size: 0.9em; color: red; font-weight: bold; margin-top: 5px; margin-bottom: 15px;">
@@ -1601,7 +1605,7 @@
                 case 'auth/user-not-found':
                 case 'auth/wrong-password':
                 case 'auth/invalid-credential':
-                    loginError.innerText = "Email atau password yang Anda masukkan salah!";
+                    loginError.innerText = "Email atau password salah. Pastikan akun terdaftar di semua proyek Firebase.";
                     break;
                 case 'auth/invalid-email':
                     loginError.innerText = "Format email tidak valid.";
@@ -2027,7 +2031,7 @@
           loadingOverlay.style.display = 'none';
           closeEditModal();
           currentConsolidatedTokenInfo = null;
-        }
+      }
     }
     // Meminta konfirmasi penghapusan token
     window.promptDeleteConsolidated = (baseToken, kelas) => {
@@ -2764,18 +2768,18 @@ window.renderScoreTable = (page = 1) => {
         subjects.forEach(subject => {
             let score = '-';
             const tokenInfo = Array.from(consolidatedTokensMap.values()).find(t => t.subject === subject && getNumericClass(t.kelas) === getNumericClass(student.class));
-            if(tokenInfo){
-                for(const fbKey of Array.from(tokenInfo.firebaseKeys)){
-                     const isSubmitted = submittedExamsCache[fbKey]?.[student.id]?.isSubmitted;
-                     if(isSubmitted) {
-                         const answerData = studentAnswersCache[fbKey]?.[student.id];
-                         if (answerData) {
-                             score = calculateScore(answerData.answers, tokenInfo.answerKey);
-                             break;
+                if(tokenInfo){
+                    for(const fbKey of Array.from(tokenInfo.firebaseKeys)){
+                         const isSubmitted = submittedExamsCache[fbKey]?.[student.id]?.isSubmitted;
+                         if(isSubmitted) {
+                             const answerData = studentAnswersCache[fbKey]?.[student.id];
+                             if (answerData) {
+                                 score = calculateScore(answerData.answers, tokenInfo.answerKey);
+                                 break;
+                             }
                          }
-                     }
+                    }
                 }
-            }
             rowContent += `<td>${score}</td>`;
         });
         row.innerHTML = rowContent;
@@ -3060,7 +3064,7 @@ function renderActiveButtonsInfo() {
     const susulanStatusClass = susulanInfo.enabled ? 'on' : 'off';
     const susulanStatusText = susulanInfo.enabled ? 'Aktif' : 'Nonaktif';
 
-    const susulanHeaderItem = document.createElement('li'); 
+    const susulanHeaderItem = document.createElement('li'); // Corrected variable name
     susulanHeaderItem.className = 'info-list-item';
     susulanHeaderItem.innerHTML = `
         <div>
@@ -3068,7 +3072,7 @@ function renderActiveButtonsInfo() {
             <strong>Ujian Susulan:</strong> ${susulanStatusText}
         </div>
     `;
-    activeButtonsInfoList.appendChild(susulanHeaderItem); 
+    activeButtonsInfoList.appendChild(susulanHeaderItem); // Corrected variable name
 
     if (susulanInfo.enabled && susulanInfo.list) {
         Object.keys(susulanInfo.list).forEach(id => {
