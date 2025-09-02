@@ -170,6 +170,15 @@
     .icon-button.submit i { color: #27ae60; }
     .icon-button.erase i { color: #f39c12; }
     .icon-button.pdf i { color: #c0392b; }
+    .icon-button:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+        background-color: transparent !important;
+        transform: none !important;
+    }
+    .icon-button:disabled i {
+        color: #9e9e9e !important;
+    }
     /* Tabel responsif */
     .table-responsive {
       overflow-x: auto; -webkit-overflow-scrolling: touch;
@@ -1105,9 +1114,9 @@
   <div id="importResultModal" class="modal"><div class="modal-content"><h4>Hasil Impor Data Siswa</h4><p id="importResultSummary"></p><ul id="importResultDetails" style="text-align: left; max-height: 200px; overflow-y: auto; border: 1px solid #eee; padding: 10px; border-radius: 5px;"></ul><button onclick="closeImportResultModal()">Tutup</button></div></div>
   <div id="emptyStudentsModal" class="modal"><div class="modal-content"><h4>Kosongkan Daftar Peserta</h4><p>Anda yakin ingin menghapus <b>SEMUA</b> data peserta? Tindakan ini tidak dapat dibatalkan.</p><div><label for="emptyStudentsPassword">Password Login Admin:</label><div class="password-input-container"><input type="password" id="emptyStudentsPassword"><i class="fas fa-eye toggle-password"></i></div><p id="emptyStudentsPasswordError" class="error"></p></div><div class="modal-buttons"><button onclick="closeEmptyStudentsModal()" class="cancel-button">Batal</button><button onclick="confirmEmptyStudents()" class="confirm-button">Konfirmasi Hapus</button></div></div></div>
   <div id="logoutConfirmModal" class="modal"><div class="modal-content"><h4>Konfirmasi Logout</h4><p>Anda yakin ingin keluar dari panel admin?</p><div class="modal-buttons"><button onclick="closeLogoutModal()" class="cancel-button">Batal</button><button onclick="confirmLogout()" class="confirm-button">Ya, Keluar</button></div></div></div>
-  <div id="resetStudentModal" class="modal"><div class="modal-content"><h4>Reset Status Login Siswa</h4><p>Anda yakin ingin mereset status login siswa <b id="resetStudentNameDisplay"></b> (ID: <b id="resetStudentIdDisplay"></b>)?</p><p style="font-size: 0.9em; color: #555;">Ini akan memaksa siswa untuk login ulang jika mereka sedang dalam sesi.</p><div class="modal-buttons"><button onclick="closeResetStudentModal()" class="cancel-button">Batal</button><button onclick="confirmResetStudent()" class="confirm-button">Reset</button></div></div></div>
-  <div id="submitAnswerModal" class="modal"><div class="modal-content"><h4>Kirim Jawaban Siswa (Manual)</h4><p>Anda yakin ingin menandai semua ujian yang sedang dikerjakan siswa <b id="submitStudentNameDisplay"></b> (ID: <b id="submitStudentIdDisplay"></b>) sebagai 'Sudah submit'?</p><p style="font-size: 0.9em; color: #555;">Tindakan ini akan mengunci jawaban siswa untuk ujian yang relevan.</p><div class="modal-buttons"><button onclick="closeSubmitAnswerModal()" class="cancel-button">Batal</button><button onclick="confirmSubmitAnswer()" class="confirm-button">Kirim</button></div></div></div>
-  <div id="deleteAnswerModal" class="modal"><div class="modal-content"><h4>Hapus Semua Jawaban Siswa</h4><p>Anda yakin ingin menghapus <b>SEMUA</b> jawaban dan status submit untuk siswa <b id="deleteAnswerStudentNameDisplay"></b> (ID: <b id="deleteAnswerStudentIdDisplay"></b>)?</p><p style="font-size: 0.9em; color: #e74c3c; font-weight: bold;">Tindakan ini tidak dapat dibatalkan!</p><div><label for="deleteAnswerPassword">Password Login Admin:</label><div class="password-input-container"><input type="password" id="deleteAnswerPassword"><i class="fas fa-eye toggle-password"></i></div><p id="deleteAnswerPasswordError" class="error"></p></div><div class="modal-buttons"><button onclick="closeDeleteAnswerModal()" class="cancel-button">Batal</button><button onclick="confirmDeleteAnswer()" class="confirm-button">Hapus Jawaban</button></div></div></div>
+  <div id="resetStudentModal" class="modal"><div class="modal-content"><h4>Reset Status Login Siswa</h4><p>Anda yakin ingin mereset status login siswa <b id="resetStudentNameDisplay"></b> (ID: <b id="resetStudentIdDisplay"></b>) untuk ujian yang dipilih?</p><p style="font-size: 0.9em; color: #555;">Ini akan memaksa siswa untuk login ulang jika mereka sedang dalam sesi.</p><div class="modal-buttons"><button onclick="closeResetStudentModal()" class="cancel-button">Batal</button><button onclick="confirmResetStudent()" class="confirm-button">Reset</button></div></div></div>
+  <div id="submitAnswerModal" class="modal"><div class="modal-content"><h4>Kirim Jawaban Siswa (Manual)</h4><p>Anda yakin ingin menandai ujian yang dipilih untuk siswa <b id="submitStudentNameDisplay"></b> (ID: <b id="submitStudentIdDisplay"></b>) sebagai 'Sudah submit'?</p><p style="font-size: 0.9em; color: #555;">Tindakan ini akan mengunci jawaban siswa untuk ujian yang relevan.</p><div class="modal-buttons"><button onclick="closeSubmitAnswerModal()" class="cancel-button">Batal</button><button onclick="confirmSubmitAnswer()" class="confirm-button">Kirim</button></div></div></div>
+  <div id="deleteAnswerModal" class="modal"><div class="modal-content"><h4>Hapus Jawaban Siswa</h4><p>Anda yakin ingin menghapus jawaban dan status submit untuk siswa <b id="deleteAnswerStudentNameDisplay"></b> (ID: <b id="deleteAnswerStudentIdDisplay"></b>) pada ujian yang dipilih?</p><p style="font-size: 0.9em; color: #e74c3c; font-weight: bold;">Tindakan ini tidak dapat dibatalkan!</p><div><label for="deleteAnswerPassword">Password Login Admin:</label><div class="password-input-container"><input type="password" id="deleteAnswerPassword"><i class="fas fa-eye toggle-password"></i></div><p id="deleteAnswerPasswordError" class="error"></p></div><div class="modal-buttons"><button onclick="closeDeleteAnswerModal()" class="cancel-button">Batal</button><button onclick="confirmDeleteAnswer()" class="confirm-button">Hapus Jawaban</button></div></div></div>
   <div id="loadingOverlay" class="loading-overlay" style="display: none;"><div class="spinner"></div></div>
   
   <div id="emptyTokensModal" class="modal">
@@ -1936,10 +1945,18 @@
             const statusColor = {'Sudah submit': '#27ae60', 'Sedang mengerjakan': '#f39c12', 'Belum Login (reset)': '#8e44ad', 'Belum Login': '#e74c3c'}[status] || 'black';
             const statusCellHtml = `<td style="color: ${statusColor}; font-weight: bold;">${status}</td>`;
             
+            // Logika untuk menonaktifkan tombol
+            const isWorking = status === 'Sedang mengerjakan';
+            const isSubmitted = status === 'Sudah submit';
+
+            const resetDisabled = !isWorking && !isSubmitted;
+            const submitDisabled = !isWorking;
+            const deleteDisabled = !isSubmitted;
+
             const actionButtonsHtml = `
-                <button class="icon-button reset" onclick="promptResetStudent('${student.key}', '${student.id}', '${escape(student.name)}', '${student.class}')" title="Reset Status Login"><i class="fas fa-redo"></i></button>
-                <button class="icon-button submit" onclick="promptSubmitAnswer('${student.key}', '${student.id}', '${escape(student.name)}', '${student.class}')" title="Kirim Jawaban Manual"><i class="fas fa-paper-plane"></i></button>
-                <button class="icon-button erase" onclick="promptDeleteAnswer('${student.key}', '${student.id}', '${escape(student.name)}', '${student.class}')" title="Hapus Semua Jawaban"><i class="fas fa-eraser"></i></button>`;
+                <button class="icon-button reset" onclick="promptResetStudent('${student.key}', '${student.id}', '${escape(student.name)}', '${student.class}')" title="Reset Status Login" ${resetDisabled ? 'disabled' : ''}><i class="fas fa-redo"></i></button>
+                <button class="icon-button submit" onclick="promptSubmitAnswer('${student.key}', '${student.id}', '${escape(student.name)}', '${student.class}')" title="Kirim Jawaban Manual" ${submitDisabled ? 'disabled' : ''}><i class="fas fa-paper-plane"></i></button>
+                <button class="icon-button erase" onclick="promptDeleteAnswer('${student.key}', '${student.id}', '${escape(student.name)}', '${student.class}')" title="Hapus Jawaban" ${deleteDisabled ? 'disabled' : ''}><i class="fas fa-eraser"></i></button>`;
 
             row.innerHTML = `
                 <td>${(page - 1) * selectedItemsPerPage + index + 1}</td>
@@ -2348,25 +2365,45 @@
     
     window.confirmResetStudent = async () => {
         if (!studentIdForAction || !studentClassForAction) return;
-        const targetDb = getDbForClass(studentClassForAction);
-        if (!targetDb || Array.isArray(targetDb)) return showNotification("Gagal: DB tidak ditemukan.", true);
 
+        const studentGrade = getNumericClass(studentClassForAction);
+        const selectedTokenId = lastSelectedTokens[studentGrade];
+        if (!selectedTokenId || selectedTokenId === 'DEFAULT') {
+            showNotification(`Silakan pilih ujian di menu 'Status Ujian' untuk kelas ${studentGrade} terlebih dahulu.`, true);
+            closeResetStudentModal();
+            return;
+        }
+
+        const [token, kelas] = selectedTokenId.split('_');
+        const consolidatedToken = Array.from(consolidatedTokensMap.values()).find(t => t.token === token && t.kelas === kelas);
+        if (!consolidatedToken) {
+            showNotification("Token yang dipilih tidak valid atau tidak ditemukan.", true);
+            closeResetStudentModal();
+            return;
+        }
+        
         loadingOverlay.style.display = 'flex';
         try {
             const updates = {};
             const studentIdPadded = padStudentId(studentIdForAction);
-            const relevantTokens = tokenCache.filter(token => getNumericClass(token.kelas) === getNumericClass(studentClassForAction) && token.firebaseGroup === targetDb.app.name);
             
-            for (const token of relevantTokens) {
-                updates[`exam_access_status/${token.key}/${studentIdPadded}/isLoggedIn`] = false; 
+            for (const fbKey of consolidatedToken.firebaseKeys) {
+                const group = tokenCache.find(t=> t.key === fbKey)?.firebaseGroup;
+                if(group) {
+                    updates[`${group}/exam_access_status/${fbKey}/${studentIdPadded}/isLoggedIn`] = false;
+                }
             }
             
-            if(Object.keys(updates).length > 0) {
-                await update(ref(targetDb, '/'), updates);
-                showNotification(`Status login siswa ${studentIdForAction} berhasil direset.`);
-            } else {
-                showNotification(`Tidak ada token aktif untuk direset bagi siswa ${studentIdForAction}.`);
-            }
+            const promises = Object.keys(updates).map(path => {
+                const [group, ...rest] = path.split('/');
+                const db = dbInstances[group];
+                if(db) return update(ref(db), { [rest.join('/')]: updates[path] });
+                return Promise.resolve();
+            });
+
+            await Promise.all(promises);
+            showNotification(`Status login siswa ${studentIdForAction} berhasil direset untuk ujian yang dipilih.`);
+
         } catch (error) { 
             showNotification("Gagal mereset: " + error.message, true); 
         } finally { 
@@ -2378,16 +2415,50 @@
     window.promptSubmitAnswer = (key, id, name, sClass) => { studentKeyForAction = key; studentIdForAction = id; studentNameForAction = unescape(name); studentClassForAction = sClass; document.getElementById('submitStudentNameDisplay').innerText = unescape(name); document.getElementById('submitStudentIdDisplay').innerText = id; document.getElementById('submitAnswerModal').style.display = 'flex'; };
     window.confirmSubmitAnswer = async () => {
         if (!studentIdForAction || !studentClassForAction) return;
-        const targetDb = getDbForClass(studentClassForAction);
-        if (!targetDb || Array.isArray(targetDb)) return showNotification("Gagal: DB tidak ditemukan.", true);
+
+        const studentGrade = getNumericClass(studentClassForAction);
+        const selectedTokenId = lastSelectedTokens[studentGrade];
+        if (!selectedTokenId || selectedTokenId === 'DEFAULT') {
+            showNotification(`Silakan pilih ujian di menu 'Status Ujian' untuk kelas ${studentGrade} terlebih dahulu.`, true);
+            closeSubmitAnswerModal();
+            return;
+        }
+
+        const [token, kelas] = selectedTokenId.split('_');
+        const consolidatedToken = Array.from(consolidatedTokensMap.values()).find(t => t.token === token && t.kelas === kelas);
+        if (!consolidatedToken) {
+            showNotification("Token yang dipilih tidak valid atau tidak ditemukan.", true);
+            closeSubmitAnswerModal();
+            return;
+        }
+
         loadingOverlay.style.display = 'flex';
         try {
             const updates = {};
             const studentIdPadded = padStudentId(studentIdForAction);
-            const relevantTokens = tokenCache.filter(t => getNumericClass(t.kelas) === getNumericClass(studentClassForAction) && t.firebaseGroup === targetDb.app.name && (t.isActive || t.isForceActive));
-            for (const token of relevantTokens) { updates[`submitted_exams/${token.key}/${studentIdPadded}`] = { isSubmitted: true, timestamp: Date.now() }; }
-            if(Object.keys(updates).length > 0) { await update(ref(targetDb, '/'), updates); showNotification(`Jawaban siswa ${studentIdForAction} disubmit.`); }
-        } catch (error) { showNotification("Gagal: " + error.message, true); } finally { loadingOverlay.style.display = 'none'; closeSubmitAnswerModal(); }
+
+            for (const fbKey of consolidatedToken.firebaseKeys) {
+                const group = tokenCache.find(t=> t.key === fbKey)?.firebaseGroup;
+                 if(group) {
+                    updates[`${group}/submitted_exams/${fbKey}/${studentIdPadded}`] = { isSubmitted: true, timestamp: Date.now() };
+                }
+            }
+            
+            const promises = Object.keys(updates).map(path => {
+                const [group, ...rest] = path.split('/');
+                const db = dbInstances[group];
+                if(db) return update(ref(db), { [rest.join('/')]: updates[path] });
+                return Promise.resolve();
+            });
+
+            await Promise.all(promises);
+            showNotification(`Jawaban siswa ${studentIdForAction} untuk ujian yang dipilih berhasil disubmit.`);
+        } catch (error) { 
+            showNotification("Gagal: " + error.message, true); 
+        } finally { 
+            loadingOverlay.style.display = 'none'; 
+            closeSubmitAnswerModal(); 
+        }
     };
     
     window.promptDeleteAnswer = (key, id, name, sClass) => { studentKeyForAction = key; studentIdForAction = id; studentNameForAction = unescape(name); studentClassForAction = sClass; document.getElementById('deleteAnswerStudentNameDisplay').innerText = unescape(name); document.getElementById('deleteAnswerStudentIdDisplay').innerText = id; document.getElementById('deleteAnswerPassword').value = ''; document.getElementById('deleteAnswerPasswordError').innerText = ''; document.getElementById('deleteAnswerModal').style.display = 'flex'; };
@@ -2395,17 +2466,44 @@
         const password = document.getElementById('deleteAnswerPassword').value;
         await reauthenticateAndExecute(password, 'deleteAnswerPasswordError', async () => {
             if (!studentIdForAction || !studentClassForAction) return;
-            const targetDb = getDbForClass(studentClassForAction);
-            if (!targetDb || Array.isArray(targetDb)) return showNotification("Gagal: DB tidak ditemukan.", true);
+
+            const studentGrade = getNumericClass(studentClassForAction);
+            const selectedTokenId = lastSelectedTokens[studentGrade];
+            if (!selectedTokenId || selectedTokenId === 'DEFAULT') {
+                showNotification(`Silakan pilih ujian di menu 'Status Ujian' untuk kelas ${studentGrade} terlebih dahulu.`, true);
+                closeDeleteAnswerModal();
+                return;
+            }
+
+            const [token, kelas] = selectedTokenId.split('_');
+            const consolidatedToken = Array.from(consolidatedTokensMap.values()).find(t => t.token === token && t.kelas === kelas);
+            if (!consolidatedToken) {
+                showNotification("Token yang dipilih tidak valid atau tidak ditemukan.", true);
+                closeDeleteAnswerModal();
+                return;
+            }
+
             const updates = {};
             const studentIdPadded = padStudentId(studentIdForAction);
-            tokenCache.filter(t => getNumericClass(t.kelas) === getNumericClass(studentClassForAction) && t.firebaseGroup === targetDb.app.name).forEach(token => {
-                updates[`submitted_exams/${token.key}/${studentIdPadded}`] = null;
-                updates[`student_answers/${token.key}/${studentIdPadded}`] = null;
-                updates[`exam_access_status/${token.key}/${studentIdPadded}`] = null;
+
+            for (const fbKey of consolidatedToken.firebaseKeys) {
+                const group = tokenCache.find(t => t.key === fbKey)?.firebaseGroup;
+                 if(group) {
+                    updates[`${group}/submitted_exams/${fbKey}/${studentIdPadded}`] = null;
+                    updates[`${group}/student_answers/${fbKey}/${studentIdPadded}`] = null;
+                    updates[`${group}/exam_access_status/${fbKey}/${studentIdPadded}`] = null;
+                 }
+            }
+
+            const promises = Object.keys(updates).map(path => {
+                const [group, ...rest] = path.split('/');
+                const db = dbInstances[group];
+                if(db) return update(ref(db), { [rest.join('/')]: updates[path] });
+                return Promise.resolve();
             });
-            await update(ref(targetDb, '/'), updates);
-            showNotification(`Semua jawaban siswa ${studentIdForAction} dihapus.`);
+
+            await Promise.all(promises);
+            showNotification(`Semua jawaban siswa ${studentIdForAction} untuk ujian yang dipilih telah dihapus.`);
             closeDeleteAnswerModal();
         });
     };
@@ -2719,4 +2817,3 @@
   </script>
 </body>
 </html>
-
