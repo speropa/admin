@@ -1173,7 +1173,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
     import { getDatabase, ref, push, onValue, update, remove, get, set } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
-    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, EmailAuthProvider, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, EmailAuthProvider, reauthenticateWithCredential, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
 
     const allFirebaseConfigs = {
         '7ABC': { apiKey: "AIzaSyBAKwT7JY_HGnvK6h3u30-dfgRPXfef8l8", authDomain: "abc-a13ea.firebaseapp.com", projectId: "abc-a13ea", databaseURL: "https://abc-a13ea-default-rtdb.firebaseio.com", storageBucket: "abc-a13ea.firebasestorage.app", messagingSenderId: "1052966795599", appId: "1:1052966795599:web:d4d331199ca9081321ed3a" },
@@ -1213,11 +1213,9 @@
     const THIRTY_DAYS_IN_MS = 30 * 24 * 60 * 60 * 1000;
     const FIFTEEN_MINUTES_IN_MS = 15 * 60 * 1000;
     const ONE_WEEK_IN_MS = 7 * 24 * 60 * 60 * 1000;
-    const INACTIVITY_TIMEOUT = 60 * 60 * 1000;
     const VALID_ROMBELS = Object.keys(rombelToDbMap);
     const defaultLocationCoordinate = "-7.8589546,110.2655596";
 
-    let inactivityTimer;
     let isImporting = false;
     
     let bankSoalCache = {};
@@ -1340,7 +1338,6 @@
         document.body.style.alignItems = 'flex-start';
         document.body.style.justifyContent = 'flex-start';
         showSection('dashboardSection');
-        resetInactivityTimer();
     }
     
     onAuthStateChanged(authInstances['SETUP'], async (user) => {
@@ -1481,6 +1478,7 @@
         loadingOverlay.style.display = 'flex'; 
 
         try {
+            await setPersistence(authInstances['SETUP'], browserSessionPersistence);
             await Promise.all(Object.values(authInstances).map(auth => signInWithEmailAndPassword(auth, email, password)));
         } catch (error) {
             loginError.innerText = "Email atau password salah.";
@@ -2148,19 +2146,9 @@
       if(adminTimeEl) adminTimeEl.innerText = display;
     }
 
-    function resetInactivityTimer() { 
-        clearTimeout(inactivityTimer); 
-        inactivityTimer = setTimeout(() => { 
-            if (authInstances['SETUP'].currentUser) { 
-                showNotification('Anda telah logout karena tidak ada aktivitas.', true); 
-                confirmLogout(); 
-            } 
-        }, INACTIVITY_TIMEOUT); 
-    }
     
     setInterval(updateTime, 1000);
     updateTime();
-    ['mousemove', 'keypress', 'scroll', 'click'].forEach(evt => window.addEventListener(evt, resetInactivityTimer));
 
     setInterval(() => {
         if (authInstances['SETUP'].currentUser && isLocationEnabledAdmin) loadSetlokasiSettings(); 
