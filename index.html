@@ -1945,11 +1945,12 @@
             const statusColor = {'Sudah submit': '#27ae60', 'Sedang mengerjakan': '#f39c12', 'Belum Login (reset)': '#8e44ad', 'Belum Login': '#e74c3c'}[status] || 'black';
             const statusCellHtml = `<td style="color: ${statusColor}; font-weight: bold;">${status}</td>`;
             
-            // Logika untuk menonaktifkan tombol
             const isWorking = status === 'Sedang mengerjakan';
             const isSubmitted = status === 'Sudah submit';
 
-            const resetDisabled = !isWorking && !isSubmitted;
+            // [PERBAIKAN] Tombol reset hanya aktif jika siswa sedang mengerjakan (isLoggedIn = true)
+            // dan nonaktif jika sudah submit atau belum login.
+            const resetDisabled = !isWorking;
             const submitDisabled = !isWorking;
             const deleteDisabled = !isSubmitted;
 
@@ -2441,6 +2442,8 @@
                 const group = tokenCache.find(t=> t.key === fbKey)?.firebaseGroup;
                  if(group) {
                     updates[`${group}/submitted_exams/${fbKey}/${studentIdPadded}`] = { isSubmitted: true, timestamp: Date.now() };
+                    // [PERBAIKAN] Tambahkan update untuk menonaktifkan status isLoggedIn
+                    updates[`${group}/exam_access_status/${fbKey}/${studentIdPadded}/isLoggedIn`] = false;
                 }
             }
             
@@ -2817,3 +2820,4 @@
   </script>
 </body>
 </html>
+
