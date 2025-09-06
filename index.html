@@ -934,7 +934,7 @@
             <div class="actions-group">
                 <button onclick="openAddStudentModal()" class="text-button green"><i class="fas fa-user-plus"></i> Tambah</button>
                 <button class="text-button blue-gray" onclick="openImportStudentModal()"><i class="fas fa-file-csv"></i> Impor</button>
-                <button class="text-button gray" onclick="showPrintInfoModal()"><i class="fas fa-print"></i> Cetak Kartu</button>
+                <button class="text-button gray" onclick="openPrintCardModal()"><i class="fas fa-print"></i> Cetak Kartu</button>
                 <button class="text-button red" onclick="openEmptyStudentsModal()"><i class="fas fa-trash-alt"></i> Kosongkan</button>
             </div>
         </div>
@@ -1188,6 +1188,16 @@
       </div>
   </div>
 
+  <div id="printCardModal" class="modal">
+    <div class="modal-content" style="max-width: 95%; width: 1200px; height: 90vh; display: flex; flex-direction: column; padding: 15px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-shrink: 0;">
+          <h4 style="margin: 0;">Cetak Kartu Peserta</h4>
+          <button onclick="closePrintCardModal()" class="icon-button" style="background-color: #f1f1f1; border-radius: 50%; width: 32px; height: 32px;" title="Tutup"><i class="fas fa-times"></i></button>
+      </div>
+      <iframe id="printCardFrame" style="width: 100%; flex-grow: 1; border: 1px solid #ddd; border-radius: 5px;"></iframe>
+    </div>
+  </div>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
     import { getDatabase, ref, push, onValue, update, remove, get, set } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
@@ -1362,6 +1372,7 @@
         if (user) {
             loadingOverlay.style.display = 'flex';
             await loadAndSetBankSoalUrl();
+            await loadAndSetPrintCardUrl();
             await loadOneTimeData();
             setupRealtimeListeners();
         } else {
@@ -1386,6 +1397,14 @@
             }
         } catch (error) {
             console.error("Gagal memuat URL Bank Soal:", error);
+        }
+    }
+    
+    async function loadAndSetPrintCardUrl() {
+        const frame = document.getElementById('printCardFrame');
+        const url = 'https://speropa.github.io/cetakkartu';
+        if (frame) {
+            frame.src = url;
         }
     }
     
@@ -2137,8 +2156,14 @@
     window.closeSubmitAnswerModal = () => { document.getElementById('submitAnswerModal').style.display = 'none'; studentKeyForAction = null; };
     window.closeDeleteAnswerModal = () => { document.getElementById('deleteAnswerModal').style.display = 'none'; studentKeyForAction = null; };
     
-    window.showPrintInfoModal = () => window.open('https://speropa.github.io/cetakkartu', '_blank');
+    window.closePrintCardModal = () => {
+        document.getElementById('printCardModal').style.display = 'none';
+    };
 
+    window.openPrintCardModal = () => {
+        document.getElementById('printCardModal').style.display = 'flex';
+    };
+    
     window.openCopyPrintModal = (tableId, modalTitle) => { currentTableIdToCopy = tableId; document.getElementById('copyPrintModalTitle').innerText = modalTitle; document.getElementById('copyPrintModal').style.display = 'flex'; };
     window.closeCopyPrintModal = () => { document.getElementById('copyPrintModal').style.display = 'none'; };
     
@@ -2854,4 +2879,5 @@
   </script>
 </body>
 </html>
+
 
