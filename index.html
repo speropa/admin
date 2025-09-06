@@ -620,6 +620,9 @@
       <button id="dashboardMenuBtn" data-section-id="dashboardSection" onclick="handleMenuClick(this)" title="Dashboard">
           <i class="fas fa-tachometer-alt"></i><span class="menu-text">Dashboard</span>
       </button>
+      <button id="bankSoalMenuBtn" data-section-id="bankSoalSection" onclick="handleMenuClick(this)" title="Bank Soal">
+          <i class="fas fa-book"></i><span class="menu-text">Bank Soal</span>
+      </button>
       <button id="tokenMenuBtn" data-section-id="tokenSection" onclick="handleMenuClick(this)" title="Token">
           <i class="fas fa-key"></i><span class="menu-text">Token</span>
       </button>
@@ -674,6 +677,12 @@
         <div class="dashboard-grid">
             <div class="progress-cards-container" id="progressCardsContainer">
             </div>
+        </div>
+      </div>
+      <div id="bankSoalSection" class="dashboard-section container" style="display: flex; flex-direction: column; height: calc(100vh - 60px);">
+        <h1 id="bankSoalSectionTitle" style="text-align: left; color: #34495e; flex-shrink: 0;">Manajemen Bank Soal</h1>
+        <div style="flex-grow: 1; position: relative;">
+          <iframe id="bankSoalFrame" style="width: 100%; height: 100%; border: none;" title="Bank Soal"></iframe>
         </div>
       </div>
       <div id="tokenSection" class="dashboard-section container">
@@ -1352,6 +1361,7 @@
     onAuthStateChanged(authInstances['SETUP'], async (user) => {
         if (user) {
             loadingOverlay.style.display = 'flex';
+            await loadAndSetBankSoalUrl();
             await loadOneTimeData();
             setupRealtimeListeners();
         } else {
@@ -1362,6 +1372,23 @@
         }
     });
 
+    async function loadAndSetBankSoalUrl() {
+        try {
+            const snapshot = await get(ref(setupDbInstance, 'adminbanksoal/url'));
+            if (snapshot.exists()) {
+                const url = snapshot.val();
+                const iframe = document.getElementById('bankSoalFrame');
+                if (iframe && url) {
+                    iframe.src = url;
+                }
+            } else {
+                console.log("URL Bank Soal tidak ditemukan di Firebase.");
+            }
+        } catch (error) {
+            console.error("Gagal memuat URL Bank Soal:", error);
+        }
+    }
+    
     async function loadOneTimeData() {
         itemsPerPageSelect.value = selectedItemsPerPage;
         const oneTimePromises = [
@@ -1549,12 +1576,19 @@
     window.showSection = (sectionId) => {
         document.querySelectorAll('#dashboardContent > .container, #dashboardContent > div > .container').forEach(s => s.style.display = 'none');
         document.getElementById(sectionId).style.display = 'block';
+
+        // Khusus untuk bankSoalSection yang menggunakan flexbox
+        if (sectionId === 'bankSoalSection') {
+            document.getElementById(sectionId).style.display = 'flex';
+        }
+
         document.querySelectorAll('.sidebar-nav button').forEach(b => b.classList.remove('active'));
         const activeBtn = document.querySelector(`.sidebar-nav button[data-section-id="${sectionId}"]`);
         if (activeBtn) activeBtn.classList.add('active');
         
         const actionMap = {
             'dashboardSection': updateDashboard,
+            'bankSoalSection': () => {},
             'tokenSection': renderTokenTable,
             'rulesSection': () => { updateSetlokasiStatusDisplay(); renderBlockKeySettingsTable(); renderMinDurationSettingsTable(); renderShuffleSettingsTable(); },
             'setSelectClassSection': () => { renderPublicSettingsControls(); renderActiveButtonsInfo(); },
