@@ -1715,6 +1715,28 @@
         document.getElementById('editUjianName').addEventListener('change', (e) => populateTokenModalDropdowns('edit', document.getElementById('editKelas').value, document.getElementById('editTahunAjaran').value, e.target.value));
         document.getElementById('editMapel').addEventListener('change', () => displayBankSoalInfo('edit'));
 
+        // UPDATE: Event listener untuk tombol Enter pada input password di semua modal konfirmasi
+        const confirmationPasswordInputs = [
+            { id: 'bulkActionPassword', action: window.confirmBulkAction }, // Hapus Massal
+            { id: 'deleteAnswerPassword', action: window.confirmDeleteAnswer }, // Hapus Jawaban Satuan
+            { id: 'emptyStudentsPassword', action: window.confirmEmptyStudents }, // Kosongkan Siswa
+            { id: 'adminPasswordConfirmation', action: window.confirmEmptyTokens }, // Kosongkan Token
+            { id: 'forceActivePassword', action: window.confirmForceActive }, // Paksa Aktif
+            { id: 'restoreAdminPassword', action: window.checkRestoreAdminPassword } // Restore Backup
+        ];
+
+        confirmationPasswordInputs.forEach(item => {
+            const input = document.getElementById(item.id);
+            if (input) {
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault(); // Mencegah form submit default jika ada
+                        item.action(); // Jalankan fungsi konfirmasi yang sesuai
+                    }
+                });
+            }
+        });
+
         document.body.addEventListener('click', function(e) {
             if (e.target.classList.contains('toggle-password')) {
                 const input = e.target.previousElementSibling;
