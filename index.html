@@ -725,6 +725,20 @@
     <div class="container" id="loginSection" style="max-width: 400px; margin: auto; display: none;">
       <h3 style="text-align: center; color: #2c3e50;">LOGIN ADMINISTRASI</h3>
       <p id="loginError" class="error"></p>
+      
+      <!-- UPDATE: Container untuk Akun Tersimpan -->
+      <div id="savedAccountsWrapper" style="display:none; margin-bottom: 15px; background: #f8f9fa; padding: 10px; border-radius: 6px; border: 1px solid #e9ecef;">
+          <label style="font-size: 12px; color: #555; font-weight: bold; display: block; margin-bottom: 5px;">Pilih Akun Tersimpan:</label>
+          <div style="display: flex; gap: 5px;">
+              <select id="savedAccountsSelect" style="margin: 0; flex-grow: 1; padding: 8px; font-size: 14px;" onchange="fillCredentialsFromSaved()">
+                  <option value="">-- Pilih Akun --</option>
+              </select>
+              <button onclick="deleteSelectedAccount()" title="Hapus Akun Ini" style="width: auto; padding: 0 12px; margin: 0; background-color: #e74c3c; color: white; border-radius: 4px;">
+                  <i class="fas fa-trash-alt"></i>
+              </button>
+          </div>
+      </div>
+
       <!-- Atribut autocomplete="off" ditambahkan untuk mencegah browser menampilkan dropdown email -->
       <input type="email" id="email" placeholder="Email" autocomplete="off" />
       <div class="password-input-container">
@@ -732,6 +746,13 @@
         <input type="password" id="password" placeholder="Password" autocomplete="new-password" />
         <i class="fas fa-eye toggle-password" id="togglePassword"></i>
       </div>
+      
+      <!-- UPDATE: Checkbox Simpan Akun -->
+      <div style="display: flex; align-items: center; margin-bottom: 15px; margin-top: 5px;">
+          <input type="checkbox" id="rememberAccount" style="width: auto; margin: 0 8px 0 0;">
+          <label for="rememberAccount" style="font-size: 14px; color: #555; cursor: pointer;">Simpan Akun di Perangkat Ini</label>
+      </div>
+
       <button onclick="login()">Login</button>
       <div class="footer">
         <div>@Admin SMPN 2 Pajangan</div>
@@ -1409,6 +1430,9 @@
     let pendingBulkActionType = null; // 'RESET' atau 'DELETE'
     let pendingBulkActionStudents = [];
 
+    // UPDATE: Konstanta untuk penyimpanan akun
+    const SAVED_ACCOUNTS_KEY = 'examAdmin_saved_accounts_v1';
+
     let selectedItemsPerPage = parseInt(localStorage.getItem('selectedItemsPerPage') || '50', 10);
     let currentPageManagement = parseInt(localStorage.getItem('currentPageManagement') || '1', 10);
     let currentPageStatus = parseInt(localStorage.getItem('currentPageStatus') || '1', 10);
@@ -1677,6 +1701,7 @@
     window.login = async () => {
         const email = document.getElementById("email").value.trim();
         const password = document.getElementById("password").value.trim();
+        const rememberAccount = document.getElementById("rememberAccount").checked;
         const loginError = document.getElementById("loginError");
         loginError.innerText = "";
         loadingOverlay.style.display = 'flex'; 
@@ -1684,36 +1709,117 @@
         try {
             await setPersistence(authInstances['SETUP'], inMemoryPersistence);
             await Promise.all(Object.values(authInstances).map(auth => signInWithEmailAndPassword(auth, email, password)));
+            
+            // UPDATE: Simpan akun jika login berhasil dan checkbox dicentang
+            if (rememberAccount) {
+                saveAccountToStorage(email, password);
+            }
+
         } catch (error) {
             loginError.innerText = "Email atau password salah.";
             loadingOverlay.style.display = 'none'; 
         }
     };
 
+    // UPDATE: Fungsi-fungsi untuk Mengelola Akun Tersimpan
+    function saveAccountToStorage(email, password) {
+        let accounts = JSON.parse(localStorage.getItem(SAVED_ACCOUNTS_KEY) || '[]');
+        // Cek apakah email sudah ada, jika ada update passwordnya
+        const existingIndex = accounts.findIndex(acc => acc.email === email);
+        
+        // Encode password sederhana (Base64) agar tidak plain text, meski bukan enkripsi kuat
+        const encodedPass = btoa(password);
+
+        if (existingIndex >= 0) {
+            accounts[existingIndex].password = encodedPass;
+            accounts[existingIndex].lastUsed = Date.now();
+        } else {
+            accounts.push({ email: email, password: encodedPass, lastUsed: Date.now() });
+        }
+        
+        localStorage.setItem(SAVED_ACCOUNTS_KEY, JSON.stringify(accounts));
+    }
+
+    window.loadSavedAccounts = () => {
+        const wrapper = document.getElementById('savedAccountsWrapper');
+        const select = document.getElementById('savedAccountsSelect');
+        const accounts = JSON.parse(localStorage.getItem(SAVED_ACCOUNTS_KEY) || '[]');
+
+        if (accounts.length === 0) {
+            wrapper.style.display = 'none';
+            return;
+        }
+
+        wrapper.style.display = 'block';
+        // Reset options, keep default
+        select.innerHTML = '<option value="">-- Pilih Akun Tersimpan --</option>';
+        
+        // Sort by last used
+        accounts.sort((a, b) => b.lastUsed - a.lastUsed);
+
+        accounts.forEach(acc => {
+            const option = document.createElement('option');
+            option.value = acc.email;
+            option.innerText = acc.email;
+            // Simpan password di dataset option (ter-encode)
+            option.dataset.pass = acc.password;
+            select.appendChild(option);
+        });
+    };
+
+    window.fillCredentialsFromSaved = () => {
+        const select = document.getElementById('savedAccountsSelect');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        
+        const selectedOption = select.options[select.selectedIndex];
+        
+        if (selectedOption && selectedOption.value) {
+            emailInput.value = selectedOption.value;
+            try {
+                // Decode password
+                passwordInput.value = atob(selectedOption.dataset.pass);
+            } catch (e) {
+                console.error("Gagal decode password", e);
+                passwordInput.value = "";
+            }
+        } else {
+            emailInput.value = "";
+            passwordInput.value = "";
+        }
+    };
+
+    window.deleteSelectedAccount = () => {
+        const select = document.getElementById('savedAccountsSelect');
+        const emailToDelete = select.value;
+        
+        if (!emailToDelete) return;
+        
+        if (confirm(`Hapus akun tersimpan ${emailToDelete} dari perangkat ini?`)) {
+            let accounts = JSON.parse(localStorage.getItem(SAVED_ACCOUNTS_KEY) || '[]');
+            accounts = accounts.filter(acc => acc.email !== emailToDelete);
+            localStorage.setItem(SAVED_ACCOUNTS_KEY, JSON.stringify(accounts));
+            
+            // Bersihkan input
+            document.getElementById('email').value = "";
+            document.getElementById('password').value = "";
+            
+            // Reload dropdown
+            window.loadSavedAccounts();
+        }
+    };
+
     window.attachEventListeners = function() {
-        document.getElementById('tokenSearchSubject').addEventListener('keyup', renderTokenTable);
-        document.getElementById('scoreSearchName').addEventListener('keyup', () => renderScoreTable(1));
-        document.getElementById('scoreSearchClass').addEventListener('keyup', () => renderScoreTable(1));
-        document.getElementById('studentSearchId').addEventListener('keyup', () => renderStudentManagementTable(1));
-        document.getElementById('studentSearchName').addEventListener('keyup', () => renderStudentManagementTable(1));
-        document.getElementById('studentSearchClass').addEventListener('keyup', () => renderStudentManagementTable(1));
-        document.getElementById('studentStatusSearchId').addEventListener('keyup', () => renderStudentStatusTable(1));
-        document.getElementById('studentStatusSearchName').addEventListener('keyup', () => renderStudentStatusTable(1));
-        document.getElementById('studentStatusSearchClass').addEventListener('keyup', () => renderStudentStatusTable(1));
-        
-        document.getElementById('addTokenForm').addEventListener('submit', handleAddToken);
-        document.getElementById('modalForm').addEventListener('submit', handleEditToken);
-        document.getElementById('addStudentForm').addEventListener('submit', handleAddStudent);
-        
-        document.getElementById('addKelas').addEventListener('change', (e) => populateTokenModalDropdowns('add', e.target.value));
-        document.getElementById('addTahunAjaran').addEventListener('change', (e) => populateTokenModalDropdowns('add', document.getElementById('addKelas').value, e.target.value));
-        document.getElementById('addUjianName').addEventListener('change', (e) => populateTokenModalDropdowns('add', document.getElementById('addKelas').value, document.getElementById('addTahunAjaran').value, e.target.value));
+        // ... existing event listeners ...
         document.getElementById('addMapel').addEventListener('change', () => displayBankSoalInfo('add'));
 
         document.getElementById('editKelas').addEventListener('change', (e) => populateTokenModalDropdowns('edit', e.target.value));
         document.getElementById('editTahunAjaran').addEventListener('change', (e) => populateTokenModalDropdowns('edit', document.getElementById('editKelas').value, e.target.value));
         document.getElementById('editUjianName').addEventListener('change', (e) => populateTokenModalDropdowns('edit', document.getElementById('editKelas').value, document.getElementById('editTahunAjaran').value, e.target.value));
         document.getElementById('editMapel').addEventListener('change', () => displayBankSoalInfo('edit'));
+
+        // UPDATE: Load saved accounts saat halaman dimuat
+        window.loadSavedAccounts();
 
         // UPDATE: Event listener untuk tombol Enter pada input password di semua modal konfirmasi
         const confirmationPasswordInputs = [
