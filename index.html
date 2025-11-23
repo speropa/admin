@@ -6,16 +6,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
   <style>
+    /* UPDATE: Hardening Layout untuk html dan body agar tahan terhadap Zoom Out */
+    html, body {
+      height: 100%; /* Paksa tinggi 100% */
+      margin: 0;
+      padding: 0;
+      overflow: hidden; /* Mencegah scroll ganda pada body */
+    }
+
     /* Styling umum untuk body dan layout utama */
     body {
       font-family: 'Inter', sans-serif;
-      margin: 0;
-      padding: 0;
       background-color: #f4f7f6;
       display: flex;
-      min-height: 100vh;
-      overflow-x: hidden;
+      width: 100%;
     }
+    
     /* Sidebar disembunyikan secara default */
     .sidebar {
       width: 220px;
@@ -35,6 +41,7 @@
       box-sizing: border-box;
       transition: width 0.3s ease;
     }
+    
     /* Konten utama */
     .main-content {
       flex-grow: 1;
@@ -42,11 +49,13 @@
       background-color: #f4f7f6;
       display: flex;
       flex-direction: column;
-      overflow-y: auto;
-      height: 100vh;
+      overflow-y: auto; /* Scroll hanya terjadi di sini */
+      height: 100%; /* Mengikuti tinggi induk (body) */
       box-sizing: border-box;
       width: 100%;
+      position: relative; /* Penting untuk konteks stacking */
     }
+    
     /* Kontainer umum untuk bagian-bagian */
     .container {
       background: white;
@@ -102,7 +111,6 @@
       box-shadow: 0 4px 8px rgba(0,0,0,0.2);
     }
     
-    /* UPDATE: Tambahkan class utility untuk flex full height agar lebih rapi */
     .flex-column-full {
         display: flex;
         flex-direction: column;
@@ -726,7 +734,7 @@
       <h3 style="text-align: center; color: #2c3e50;">LOGIN ADMINISTRASI</h3>
       <p id="loginError" class="error"></p>
       
-      <!-- UPDATE: Container untuk Akun Tersimpan -->
+      <!-- Container untuk Akun Tersimpan -->
       <div id="savedAccountsWrapper" style="display:none; margin-bottom: 15px; background: #f8f9fa; padding: 10px; border-radius: 6px; border: 1px solid #e9ecef;">
           <label style="font-size: 12px; color: #555; font-weight: bold; display: block; margin-bottom: 5px;">Pilih Akun Tersimpan:</label>
           <div style="display: flex; gap: 5px;">
@@ -747,7 +755,7 @@
         <i class="fas fa-eye toggle-password" id="togglePassword"></i>
       </div>
       
-      <!-- UPDATE: Checkbox Simpan Akun -->
+      <!-- Checkbox Simpan Akun -->
       <div style="display: flex; align-items: center; margin-bottom: 15px; margin-top: 5px;">
           <input type="checkbox" id="rememberAccount" style="width: auto; margin: 0 8px 0 0;">
           <label for="rememberAccount" style="font-size: 14px; color: #555; cursor: pointer;">Simpan Akun di Perangkat Ini</label>
@@ -760,7 +768,8 @@
       </div>
     </div>
     
-    <!-- UPDATE: Mengubah style dashboardContent menjadi Flexbox agar anak elemennya bisa stretch -->
+    <!-- UPDATE: Hardening Flex Layout untuk Dashboard Content -->
+    <!-- 'height: 100%' mewarisi height 100% dari .main-content yang mewarisi height 100% dari body -->
     <div id="dashboardContent" style="display:none; flex-direction: column; flex: 1; height: 100%; min-height: 0;">
       <div id="dashboardSection" class="dashboard-section container">
         <div class="highlight-cards" id="highlightCards">
@@ -771,12 +780,14 @@
         </div>
       </div>
       
-      <!-- UPDATE: Menggunakan Flexbox (flex: 1) untuk memastikan section ini mengisi sisa ruang vertical -->
-      <div id="bankSoalSection" class="dashboard-section container" style="display: flex; flex-direction: column; flex: 1; margin-bottom: 0; min-height: 0; padding-bottom: 10px;">
+      <!-- UPDATE: Absolute Positioning Iframe Container -->
+      <!-- Menggunakan 'flex: 1' untuk mengambil sisa ruang, dan 'position: relative' sebagai jangkar absolute child -->
+      <div id="bankSoalSection" class="dashboard-section container" style="display: flex; flex-direction: column; flex: 1; margin-bottom: 0; min-height: 0; padding-bottom: 10px; position: relative;">
         <h1 id="bankSoalSectionTitle" style="text-align: left; color: #34495e; flex-shrink: 0;">Manajemen Bank Soal</h1>
-        <!-- Container iframe dibuat flex: 1 agar iframe memanjang otomatis -->
-        <div style="flex: 1; position: relative; display: flex; flex-direction: column; overflow: hidden; background: #fff;">
-          <iframe id="bankSoalFrame" style="flex: 1; width: 100%; border: none; height: 100%;" title="Bank Soal"></iframe>
+        
+        <!-- Wrapper Absolute untuk Iframe: Memaksa iframe memenuhi ruang sisa tanpa peduli flex-basis bug -->
+        <div style="flex: 1; position: relative; width: 100%; overflow: hidden; background: #fff;">
+          <iframe id="bankSoalFrame" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none;" title="Bank Soal"></iframe>
         </div>
       </div>
       
@@ -852,7 +863,7 @@
             <table id="studentStatusTable">
                 <thead>
                     <tr>
-                        <!-- UPDATE: Menambahkan Checkbox Pilih Semua -->
+                        <!-- Checkbox Pilih Semua -->
                         <th style="width: 50px;">
                             <div style="display: flex; align-items: center; justify-content: center; gap: 5px;">
                                 <input type="checkbox" id="selectAllStatus" style="margin: 0; width: 16px; height: 16px;" onchange="toggleSelectAllStatus(this)">
@@ -873,7 +884,6 @@
         <div id="studentStatusPagination" class="pagination-controls"></div>
       </div>
       
-      <!-- FIX: Mengembalikan Rules Section yang hilang -->
       <div id="rulesSection" class="dashboard-section container">
         <h1 id="rulesSectionTitle" style="text-align: left; margin-bottom: 20px; color: #34495e;">Pengaturan Ujian Global</h1>
         
@@ -1116,7 +1126,7 @@
     </div>
   </div>
 
-  <!-- UPDATE: Container Floating Action Bar (Baru) Dipindah ke luar dashboardContent -->
+  <!-- Container Floating Action Bar -->
   <div id="floatingBulkActions" class="floating-bulk-actions">
       <span id="selectedCountDisplay">0 Terpilih</span>
       <button class="text-button purple" onclick="initiateBulkReset()" style="background-color: #9b59b6;"><i class="fas fa-redo"></i> Reset Login</button>
@@ -1124,6 +1134,7 @@
       <button class="icon-button" onclick="clearSelection()" style="background: rgba(255,255,255,0.2); width: 30px; height: 30px;" title="Batalkan Pilihan"><i class="fas fa-times" style="color: white;"></i></button>
   </div>
 
+  <!-- Modals -->
   <div id="addTokenModal" class="modal">
     <div class="modal-content">
         <h4>Tambah Token Baru</h4>
@@ -1164,7 +1175,6 @@
     </div>
   </div>
 
-  <!-- ... (Modals lain tetap sama) ... -->
   <div id="editModal" class="modal">
     <div class="modal-content">
         <h4>Edit Token</h4>
@@ -2915,8 +2925,8 @@
 
                     for(const fbKey of Array.from(tokenInfo.firebaseKeys)) {
                         const studentIdPadded = padStudentId(student.id);
-                        if(submittedExamsCache[fbKey]?.[studentIdPadded]?.isSubmitted) {
-                            const answerData = studentAnswersCache[fbKey]?.[studentIdPadded];
+                        if(submittedExamsCache[fbKey]?.[padStudentId(student.id)]?.isSubmitted) {
+                            const answerData = studentAnswersCache[fbKey]?.[padStudentId(student.id)];
                             const bankSoal = bankSoalCache[`kelas${getNumericClass(tokenInfo.kelas)}`]?.[tokenInfo.tahunAjaran.replace(/\//g, '-')]?.[tokenInfo.ujianName.replace(/\s+/g, '-')]?.[`Kelas-${tokenInfo.kelas}`]?.[tokenInfo.subject.replace(/\s+/g, '-')];
                             if (answerData && bankSoal?.kunjab) {
                                 score = calculateScore(answerData.answers, bankSoal.kunjab);
