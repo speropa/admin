@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <title>Panel Admin Ujian</title>
-  <meta name="viewport" content="width=device-width, initial-scale=0.5" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
   <style>
     /* UPDATE: Hardening Layout untuk html dan body agar tahan terhadap Zoom Out */
@@ -400,6 +400,13 @@
       font-size: 0.9em;
       margin-top: 10px;
       min-height: 40px;
+      /* UPDATE: Menambahkan properti wrapping agar kunci jawaban tidak overflow */
+      white-space: normal;       /* Pastikan teks bisa turun baris */
+      word-wrap: break-word;     /* Support browser lama */
+      overflow-wrap: break-word; /* Standar modern */
+      word-break: break-all;     /* Memaksa break pada string panjang tanpa spasi (seperti A,A,A,A) */
+      max-height: 150px;         /* Opsional: Batasi tinggi jika kuncinya sangat banyak */
+      overflow-y: auto;          /* Opsional: Tambahkan scroll jika terlalu tinggi */
     }
     .bank-soal-info.not-found { color: #dc3545; font-weight: bold; }
     .bank-soal-info.found { color: #28a745; }
@@ -849,7 +856,6 @@
       <div id="studentStatusSection" class="dashboard-section container">
         <h1 style="text-align: left; margin-bottom: 20px; color: #34495e;">Status Peserta</h1>
         <div class="controls-header">
-            <!-- UPDATE: Hapus bulkActionsControl dari sini karena dipindah ke floating bar -->
             <div class="filters-group" style="flex-grow: 1; justify-content: flex-start; align-items: flex-end; width: 100%;">
                 <input type="text" id="studentStatusSearchId" placeholder="Cari ID..." style="max-width: 150px;"/>
                 <input type="text" id="studentStatusSearchName" placeholder="Cari Nama..." style="max-width: 200px;" />
@@ -1130,6 +1136,7 @@
   <div id="floatingBulkActions" class="floating-bulk-actions">
       <span id="selectedCountDisplay">0 Terpilih</span>
       <button class="text-button purple" onclick="initiateBulkReset()" style="background-color: #9b59b6;"><i class="fas fa-redo"></i> Reset Login</button>
+      <button class="text-button green" onclick="initiateBulkSubmit()" style="background-color: #27ae60;"><i class="fas fa-paper-plane"></i> Kirim Jawaban</button>
       <button class="text-button red" onclick="initiateBulkDelete()" style="background-color: #e74c3c;"><i class="fas fa-eraser"></i> Hapus Jawaban</button>
       <button class="icon-button" onclick="clearSelection()" style="background: rgba(255,255,255,0.2); width: 30px; height: 30px;" title="Batalkan Pilihan"><i class="fas fa-times" style="color: white;"></i></button>
   </div>
@@ -1271,7 +1278,7 @@
             </table>
         </div>
 
-        <!-- UPDATE: Input Password untuk Hapus Massal -->
+        <!-- Input Password untuk Hapus Massal -->
         <div id="bulkActionPasswordContainer" style="display: none; margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px;">
              <label for="bulkActionPassword" style="color: #e74c3c; font-weight: bold;">Password Admin (Wajib untuk Hapus):</label>
              <div class="password-input-container">
@@ -1371,7 +1378,6 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
     import { getDatabase, ref, push, onValue, update, remove, get, set } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
-    // UPDATE: Menambahkan inMemoryPersistence ke import
     import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, EmailAuthProvider, reauthenticateWithCredential, setPersistence, inMemoryPersistence } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
 
     const allFirebaseConfigs = {
@@ -1435,12 +1441,10 @@
     let studentClassForAction = null;
     let currentTableIdToCopy = '';
 
-    // Variable baru untuk aksi massal
     let selectedStatusKeys = new Set();
-    let pendingBulkActionType = null; // 'RESET' atau 'DELETE'
+    let pendingBulkActionType = null; 
     let pendingBulkActionStudents = [];
 
-    // UPDATE: Konstanta untuk penyimpanan akun
     const SAVED_ACCOUNTS_KEY = 'examAdmin_saved_accounts_v1';
 
     let selectedItemsPerPage = parseInt(localStorage.getItem('selectedItemsPerPage') || '50', 10);
@@ -1502,7 +1506,7 @@
     const grade8TokenSelect = document.getElementById('grade8TokenSelect');
     const grade9TokenSelect = document.getElementById('grade9TokenSelect');
     const activeButtonsInfoList = document.getElementById('activeButtonsInfoList');
-    // UPDATE: Referensi ke elemen floating bar
+    
     const floatingBulkActions = document.getElementById('floatingBulkActions');
     const selectedCountDisplay = document.getElementById('selectedCountDisplay');
 
@@ -1543,10 +1547,9 @@
     function initializeAppUI() {
         loginSection.style.display = 'none';
         sidebar.style.display = 'flex';
-        // UPDATE: Ubah display menjadi flex agar struktur flexbox bekerja
         dashboardContent.style.display = 'flex'; 
         document.body.style.flexDirection = 'row'; 
-        document.body.style.alignItems = 'stretch'; /* Pastikan stretch */
+        document.body.style.alignItems = 'stretch';
         document.body.style.justifyContent = 'flex-start';
         showSection('dashboardSection');
     }
@@ -1720,7 +1723,6 @@
             await setPersistence(authInstances['SETUP'], inMemoryPersistence);
             await Promise.all(Object.values(authInstances).map(auth => signInWithEmailAndPassword(auth, email, password)));
             
-            // UPDATE: Simpan akun jika login berhasil dan checkbox dicentang
             if (rememberAccount) {
                 saveAccountToStorage(email, password);
             }
@@ -1731,13 +1733,10 @@
         }
     };
 
-    // UPDATE: Fungsi-fungsi untuk Mengelola Akun Tersimpan
     function saveAccountToStorage(email, password) {
         let accounts = JSON.parse(localStorage.getItem(SAVED_ACCOUNTS_KEY) || '[]');
-        // Cek apakah email sudah ada, jika ada update passwordnya
         const existingIndex = accounts.findIndex(acc => acc.email === email);
         
-        // Encode password sederhana (Base64) agar tidak plain text, meski bukan enkripsi kuat
         const encodedPass = btoa(password);
 
         if (existingIndex >= 0) {
@@ -1756,25 +1755,24 @@
         const accounts = JSON.parse(localStorage.getItem(SAVED_ACCOUNTS_KEY) || '[]');
 
         if (accounts.length === 0) {
-            wrapper.style.display = 'none';
+            if(wrapper) wrapper.style.display = 'none';
             return;
         }
 
-        wrapper.style.display = 'block';
-        // Reset options, keep default
-        select.innerHTML = '<option value="">-- Pilih Akun Tersimpan --</option>';
-        
-        // Sort by last used
-        accounts.sort((a, b) => b.lastUsed - a.lastUsed);
+        if(wrapper) wrapper.style.display = 'block';
+        if(select) {
+            select.innerHTML = '<option value="">-- Pilih Akun Tersimpan --</option>';
+            
+            accounts.sort((a, b) => b.lastUsed - a.lastUsed);
 
-        accounts.forEach(acc => {
-            const option = document.createElement('option');
-            option.value = acc.email;
-            option.innerText = acc.email;
-            // Simpan password di dataset option (ter-encode)
-            option.dataset.pass = acc.password;
-            select.appendChild(option);
-        });
+            accounts.forEach(acc => {
+                const option = document.createElement('option');
+                option.value = acc.email;
+                option.innerText = acc.email;
+                option.dataset.pass = acc.password;
+                select.appendChild(option);
+            });
+        }
     };
 
     window.fillCredentialsFromSaved = () => {
@@ -1787,7 +1785,6 @@
         if (selectedOption && selectedOption.value) {
             emailInput.value = selectedOption.value;
             try {
-                // Decode password
                 passwordInput.value = atob(selectedOption.dataset.pass);
             } catch (e) {
                 console.error("Gagal decode password", e);
@@ -1810,17 +1807,31 @@
             accounts = accounts.filter(acc => acc.email !== emailToDelete);
             localStorage.setItem(SAVED_ACCOUNTS_KEY, JSON.stringify(accounts));
             
-            // Bersihkan input
             document.getElementById('email').value = "";
             document.getElementById('password').value = "";
             
-            // Reload dropdown
             window.loadSavedAccounts();
         }
     };
 
     window.attachEventListeners = function() {
-        // ... existing event listeners ...
+        document.getElementById('tokenSearchSubject').addEventListener('keyup', renderTokenTable);
+        document.getElementById('scoreSearchName').addEventListener('keyup', () => renderScoreTable(1));
+        document.getElementById('scoreSearchClass').addEventListener('keyup', () => renderScoreTable(1));
+        document.getElementById('studentSearchId').addEventListener('keyup', () => renderStudentManagementTable(1));
+        document.getElementById('studentSearchName').addEventListener('keyup', () => renderStudentManagementTable(1));
+        document.getElementById('studentSearchClass').addEventListener('keyup', () => renderStudentManagementTable(1));
+        document.getElementById('studentStatusSearchId').addEventListener('keyup', () => renderStudentStatusTable(1));
+        document.getElementById('studentStatusSearchName').addEventListener('keyup', () => renderStudentStatusTable(1));
+        document.getElementById('studentStatusSearchClass').addEventListener('keyup', () => renderStudentStatusTable(1));
+        
+        document.getElementById('addTokenForm').addEventListener('submit', handleAddToken);
+        document.getElementById('modalForm').addEventListener('submit', handleEditToken);
+        document.getElementById('addStudentForm').addEventListener('submit', handleAddStudent);
+        
+        document.getElementById('addKelas').addEventListener('change', (e) => populateTokenModalDropdowns('add', e.target.value));
+        document.getElementById('addTahunAjaran').addEventListener('change', (e) => populateTokenModalDropdowns('add', document.getElementById('addKelas').value, e.target.value));
+        document.getElementById('addUjianName').addEventListener('change', (e) => populateTokenModalDropdowns('add', document.getElementById('addKelas').value, document.getElementById('addTahunAjaran').value, e.target.value));
         document.getElementById('addMapel').addEventListener('change', () => displayBankSoalInfo('add'));
 
         document.getElementById('editKelas').addEventListener('change', (e) => populateTokenModalDropdowns('edit', e.target.value));
@@ -1828,17 +1839,15 @@
         document.getElementById('editUjianName').addEventListener('change', (e) => populateTokenModalDropdowns('edit', document.getElementById('editKelas').value, document.getElementById('editTahunAjaran').value, e.target.value));
         document.getElementById('editMapel').addEventListener('change', () => displayBankSoalInfo('edit'));
 
-        // UPDATE: Load saved accounts saat halaman dimuat
         window.loadSavedAccounts();
 
-        // UPDATE: Event listener untuk tombol Enter pada input password di semua modal konfirmasi
         const confirmationPasswordInputs = [
-            { id: 'bulkActionPassword', action: window.confirmBulkAction }, // Hapus Massal
-            { id: 'deleteAnswerPassword', action: window.confirmDeleteAnswer }, // Hapus Jawaban Satuan
-            { id: 'emptyStudentsPassword', action: window.confirmEmptyStudents }, // Kosongkan Siswa
-            { id: 'adminPasswordConfirmation', action: window.confirmEmptyTokens }, // Kosongkan Token
-            { id: 'forceActivePassword', action: window.confirmForceActive }, // Paksa Aktif
-            { id: 'restoreAdminPassword', action: window.checkRestoreAdminPassword } // Restore Backup
+            { id: 'bulkActionPassword', action: window.confirmBulkAction },
+            { id: 'deleteAnswerPassword', action: window.confirmDeleteAnswer },
+            { id: 'emptyStudentsPassword', action: window.confirmEmptyStudents },
+            { id: 'adminPasswordConfirmation', action: window.confirmEmptyTokens },
+            { id: 'forceActivePassword', action: window.confirmForceActive },
+            { id: 'restoreAdminPassword', action: window.checkRestoreAdminPassword }
         ];
 
         confirmationPasswordInputs.forEach(item => {
@@ -1846,8 +1855,8 @@
             if (input) {
                 input.addEventListener('keydown', (e) => {
                     if (e.key === 'Enter') {
-                        e.preventDefault(); // Mencegah form submit default jika ada
-                        item.action(); // Jalankan fungsi konfirmasi yang sesuai
+                        e.preventDefault(); 
+                        item.action(); 
                     }
                 });
             }
@@ -1883,7 +1892,6 @@
         document.querySelectorAll('#dashboardContent > .container, #dashboardContent > div > .container').forEach(s => s.style.display = 'none');
         document.getElementById(sectionId).style.display = 'block';
 
-        // Khusus untuk bankSoalSection yang menggunakan flexbox
         if (sectionId === 'bankSoalSection') {
             document.getElementById(sectionId).style.display = 'flex';
         }
@@ -2241,7 +2249,6 @@
             studentStatusInitialMessage.style.display = 'block';
             studentStatusTableContainer.style.display = 'none';
             studentStatusPaginationDiv.innerHTML = '';
-            // Ganti display none menjadi hapus class visible
             if(floatingBulkActions) floatingBulkActions.classList.remove('visible');
             return;
         }
@@ -2295,9 +2302,10 @@
             
             const isWorking = status === 'Sedang mengerjakan';
             const isSubmitted = status === 'Sudah submit';
+            const isResetStatus = status === 'Belum Login (reset)';
 
             const resetDisabled = !isWorking;
-            const submitDisabled = !isWorking;
+            const submitDisabled = !(isWorking || isResetStatus);
             const deleteDisabled = !isSubmitted;
 
             const actionButtonsHtml = `
@@ -2326,7 +2334,6 @@
         renderPaginationControls(studentStatusPaginationDiv, page, totalPages, 'renderStudentStatusTable');
     }
 
-    // Fungsi-fungsi untuk Aksi Massal
     window.toggleStudentStatusSelection = (key) => {
         if (selectedStatusKeys.has(key)) {
             selectedStatusKeys.delete(key);
@@ -2366,7 +2373,6 @@
 
     function updateBulkControlVisibility() {
         if (selectedStatusKeys.size > 0) {
-            // UPDATE: Gunakan class visible untuk animasi floating bar
             floatingBulkActions.classList.add('visible');
             selectedCountDisplay.innerText = `${selectedStatusKeys.size} Terpilih`;
         } else {
@@ -2375,14 +2381,18 @@
     }
 
     window.initiateBulkReset = () => {
-        prepareBulkAction('RESET', 'Sedang mengerjakan');
+        prepareBulkAction('RESET'); 
+    };
+
+    window.initiateBulkSubmit = () => {
+        prepareBulkAction('SUBMIT'); 
     };
 
     window.initiateBulkDelete = () => {
-        prepareBulkAction('DELETE', 'Sudah submit');
+        prepareBulkAction('DELETE'); 
     };
 
-    function prepareBulkAction(actionType, requiredStatusText) {
+    function prepareBulkAction(actionType) {
         pendingBulkActionType = actionType;
         pendingBulkActionStudents = [];
 
@@ -2417,7 +2427,19 @@
             else if (isLoggedInAny) status = 'Sedang mengerjakan';
             else if (hasAccessedAny) status = 'Belum Login (reset)';
 
-            if (status === requiredStatusText) {
+            let isValid = false;
+            
+            if (actionType === 'RESET') {
+                if (status === 'Sedang mengerjakan') isValid = true;
+            } 
+            else if (actionType === 'SUBMIT') {
+                if (status === 'Sedang mengerjakan' || status === 'Belum Login (reset)') isValid = true;
+            } 
+            else if (actionType === 'DELETE') {
+                if (status === 'Sudah submit') isValid = true;
+            }
+
+            if (isValid) {
                 pendingBulkActionStudents.push({
                     student: student,
                     status: status
@@ -2426,11 +2448,29 @@
         });
 
         if (pendingBulkActionStudents.length === 0) {
-            showNotification(`Tidak ada siswa terpilih yang memenuhi syarat untuk aksi ini (Status harus: ${requiredStatusText}).`, true);
+            let requiredStatusMsg = '';
+            if (actionType === 'RESET') requiredStatusMsg = "'Sedang mengerjakan'";
+            if (actionType === 'SUBMIT') requiredStatusMsg = "'Sedang mengerjakan' atau 'Belum Login (reset)'";
+            if (actionType === 'DELETE') requiredStatusMsg = "'Sudah submit'";
+
+            showNotification(`Tidak ada siswa terpilih yang memenuhi syarat (Status harus: ${requiredStatusMsg}).`, true);
             return;
         }
 
-        const title = actionType === 'RESET' ? 'Reset Login Massal' : 'Hapus Jawaban Massal';
+        let title = '';
+        let statusColor = '';
+        
+        if (actionType === 'RESET') {
+            title = 'Reset Login Massal';
+            statusColor = '#f39c12'; 
+        } else if (actionType === 'SUBMIT') {
+            title = 'Kirim Jawaban Massal';
+            statusColor = '#27ae60'; 
+        } else {
+            title = 'Hapus Jawaban Massal';
+            statusColor = '#e74c3c'; 
+        }
+
         const message = `Anda akan melakukan <b>${title}</b>. <br>Dari <b>${selectedStatusKeys.size}</b> siswa yang dipilih, hanya <b>${pendingBulkActionStudents.length}</b> siswa yang memenuhi syarat.`;
         
         document.getElementById('bulkActionTitle').innerText = title;
@@ -2444,12 +2484,11 @@
                 <td>${item.student.id}</td>
                 <td>${item.student.name}</td>
                 <td>${item.student.class}</td>
-                <td style="color: ${actionType === 'RESET' ? '#f39c12' : '#27ae60'}; font-weight: bold;">${item.status}</td>
+                <td style="color: ${statusColor}; font-weight: bold;">${item.status}</td>
             `;
             tbody.appendChild(row);
         });
 
-        // UPDATE: Tampilkan input password jika aksi adalah DELETE
         const passwordContainer = document.getElementById('bulkActionPasswordContainer');
         const passwordInput = document.getElementById('bulkActionPassword');
         const passwordError = document.getElementById('bulkActionPasswordError');
@@ -2470,12 +2509,12 @@
         document.getElementById('bulkActionModal').style.display = 'none';
         pendingBulkActionType = null;
         pendingBulkActionStudents = [];
+        document.getElementById('bulkActionPasswordContainer').style.display = 'none';
     };
 
     window.confirmBulkAction = async () => {
         if (!pendingBulkActionType || pendingBulkActionStudents.length === 0) return;
         
-        // UPDATE: Cek password jika tipe aksi adalah DELETE
         if (pendingBulkActionType === 'DELETE') {
             const password = document.getElementById('bulkActionPassword').value;
             const errorElement = document.getElementById('bulkActionPasswordError');
@@ -2488,7 +2527,6 @@
 
             loadingOverlay.style.display = 'flex';
             try {
-                // Re-autentikasi untuk keamanan
                 const user = authInstances['SETUP'].currentUser;
                 await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, password));
             } catch (error) {
@@ -2525,6 +2563,11 @@
                     if(group) {
                         if (pendingBulkActionType === 'RESET') {
                             updates[`${group}/exam_access_status/${fbKey}/${studentIdPadded}/isLoggedIn`] = false;
+                        
+                        } else if (pendingBulkActionType === 'SUBMIT') {
+                            updates[`${group}/submitted_exams/${fbKey}/${studentIdPadded}`] = { isSubmitted: true, timestamp: Date.now() };
+                            updates[`${group}/exam_access_status/${fbKey}/${studentIdPadded}/isLoggedIn`] = false;
+                        
                         } else if (pendingBulkActionType === 'DELETE') {
                             updates[`${group}/submitted_exams/${fbKey}/${studentIdPadded}`] = null;
                             updates[`${group}/student_answers/${fbKey}/${studentIdPadded}`] = null;
