@@ -5,6 +5,9 @@
   <title>Panel Admin Ujian</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+  <!-- Tambahkan library jsPDF dan autoTable untuk fitur Unduh PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
   <style>
     /* Styling umum untuk body dan layout utama */
     body {
@@ -152,6 +155,9 @@
     .text-button.light-blue:hover { background-color: #1976D2; }
     .text-button.orange { background-color: #FF9800; color: white; }
     .text-button.orange:hover { background-color: #FB8C00; }
+    .text-button.purple { background-color: #9b59b6; color: white; }
+    .text-button.purple:hover { background-color: #8e44ad; }
+
     /* Gaya tombol ikon */
     .icon-button {
       background: none; border: none; cursor: pointer;
@@ -250,6 +256,8 @@
     #tokenTableBody td:nth-child(3) {
         text-align: center;
     }
+    /* UPDATE: Menambahkan selector td:nth-child(1) agar kolom NO rata tengah */
+    #scoreTableBody td:nth-child(1),
     #scoreTableBody td:nth-child(3),
     #scoreTableBody td:nth-child(n+4) {
         text-align: center;
@@ -279,6 +287,7 @@
       justify-content: flex-end;
       gap: 10px;
       margin-top: 20px;
+      flex-wrap: wrap;
     }
     .modal button {
       margin: 0;
@@ -300,6 +309,8 @@
     .modal button.light-blue:hover { background-color: #1976D2; }
     .modal button.orange { background-color: #FF9800; color: white; }
     .modal button.orange:hover { background-color: #FB8C00; }
+    .modal button.purple { background-color: #9b59b6; color: white; }
+    .modal button.purple:hover { background-color: #8e44ad; }
 
     /* Style untuk tombol tutup modal yang lebih profesional */
     .modal-close-btn {
@@ -999,7 +1010,7 @@
                 <button class="text-button light-blue" onclick="window.currentScoreGradeFilter = '7'; window.renderScoreTable(1);"><i class="fas fa-graduation-cap"></i> Kelas 7</button>
                 <button class="text-button light-blue" onclick="window.currentScoreGradeFilter = '8'; window.renderScoreTable(1);"><i class="fas fa-graduation-cap"></i> Kelas 8</button>
                 <button class="text-button light-blue" onclick="window.currentScoreGradeFilter = '9'; window.renderScoreTable(1);"><i class="fas fa-graduation-cap"></i> Kelas 9</button>
-                <button class="text-button gray" onclick="openCopyPrintModal('scoreTable', 'Cetak Daftar Nilai')"><i class="fas fa-print"></i> Cetak</button>
+                <button id="scorePrintBtn" class="text-button gray" onclick="openCopyPrintModal('scoreTable', 'Ekspor Daftar Nilai')" style="display: none;"><i class="fas fa-print"></i> Cetak</button>
             </div>
             <div class="filters-group">
                 <input type="text" id="scoreSearchName" placeholder="Cari Nama Siswa" />
@@ -1133,7 +1144,20 @@
   <div id="forceActiveModal" class="modal"><div class="modal-content"><h4>Aktifkan Token Secara Paksa?</h4><p>Token ini akan dapat diakses kapanpun, mengabaikan jadwal yang ada.</p><div><label for="forceActivePassword">Password Login Admin:</label><div class="password-input-container"><input type="password" id="forceActivePassword"><i class="fas fa-eye toggle-password"></i></div><p id="forceActivePasswordError" class="error"></p></div><div class="modal-buttons"><button onclick="closeForceActiveModal()" class="cancel-button">Batal</button><button onclick="confirmForceActive()" class="confirm-button">Ya, Aktifkan</button></div></div></div>
   <div id="forceInactiveModal" class="modal"><div class="modal-content"><h4>Nonaktifkan Mode Paksa?</h4><p>Token akan kembali ke pengaturan jadwal semula.</p><div class="modal-buttons"><button onclick="closeForceInactiveModal()" class="cancel-button">Batal</button><button onclick="confirmForceInactive()" class="confirm-button">Ya, Nonaktifkan</button></div></div></div>
   <div id="notification" class="notification"><span id="notificationMessage"></span></div>
-  <div id="copyPrintModal" class="modal"><div class="modal-content"><h4 id="copyPrintModalTitle"></h4><button onclick="copyTableToClipboard()" class="confirm-button">Salin Tabel</button><p style="font-size: 0.9em; color: #555; margin-top: 15px;">Salin tabel kemudian paste ke word atau excel.</p><button onclick="closeCopyPrintModal()" class="cancel-button">Batal</button></div></div>
+  <div id="copyPrintModal" class="modal">
+      <div class="modal-content">
+          <h4 id="copyPrintModalTitle"></h4>
+          <p style="font-size: 0.9em; color: #555; margin-top: 5px; margin-bottom: 15px;">Pilih format ekspor data:</p>
+          <div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
+              <button onclick="copyTableToClipboard()" class="confirm-button" style="width: 100%; text-align: center;"><i class="fas fa-copy"></i> Salin Tabel (Clipboard)</button>
+              <button onclick="downloadScoreCSV()" class="text-button green" style="width: 100%; text-align: center; justify-content: center;"><i class="fas fa-file-csv"></i> Unduh CSV (Excel)</button>
+              <button onclick="downloadScorePDF()" class="text-button purple" style="width: 100%; text-align: center; justify-content: center;"><i class="fas fa-file-pdf"></i> Unduh PDF</button>
+          </div>
+          <div class="modal-buttons" style="margin-top: 15px;">
+              <button onclick="closeCopyPrintModal()" class="cancel-button">Batal</button>
+          </div>
+      </div>
+  </div>
   <div id="setlokasiModal" class="modal"><div class="modal-content" style="text-align: center;"><h4>Pengaturan Lokasi</h4><button onclick="aktifkanLokasi()" class="confirm-button">Aktifkan</button><button onclick="openGantiRadiusModal()" class="warning-button">Ganti Radius</button><button onclick="nonaktifkanLokasi()" class="cancel-button">Nonaktifkan</button><button onclick="closeSetlokasiModal()" class="gray text-button" style="margin-top: 10px;">Batal</button></div></div>
   <div id="gantiRadiusModal" class="modal"><div class="modal-content"><h4>Ganti Radius Lokasi (meter)</h4><label for="radiusMeter">Radius (meter):</label><input type="number" id="radiusMeter" placeholder="Contoh: 75" required /><div style="text-align: center; margin-top: 10px;"><button onclick="closeGantiRadiusModal()" class="cancel-button">Batal</button><button onclick="gantiRadiusDanAktifkan()" class="confirm-button">Ganti & Aktifkan</button></div></div></div>
   <div id="setBlockKeyModal" class="modal"><div class="modal-content"><h4>Atur Kunci Blokir</h4><label for="blockKeyInput">Kunci (Otomatis Kapital):</label><input type="text" id="blockKeyInput" placeholder="Contoh: BUKA" required oninput="this.value = this.value.toUpperCase()" /><div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;"><label for="blockKeyStatusToggle">Status Kunci:</label><label class="switch"><input type="checkbox" id="blockKeyStatusToggle"><span class="slider"></span></label></div><p id="blockKeySettingsError" class="error"></p><div class="modal-buttons"><button onclick="closeSetBlockKeyModal()" class="cancel-button">Batal</button><button onclick="saveBlockKeySettings()" class="confirm-button">Simpan</button></div></div></div>
@@ -1867,7 +1891,6 @@
       }
 
       loadingOverlay.style.display = 'flex';
-      const durationMinutes = Math.round((endTimeObj.getTime() - startTimeObj.getTime()) / 60000);
       const updatedData = { ...currentConsolidatedTokenInfo, kelas: newKelas, tahunAjaran, ujianName, subject, token, startTime, endTime, durationMinutes };
       delete updatedData.firebaseKeys;
       delete updatedData.firebaseGroups;
@@ -2201,52 +2224,153 @@
     window.openCopyPrintModal = (tableId, modalTitle) => { currentTableIdToCopy = tableId; document.getElementById('copyPrintModalTitle').innerText = modalTitle; document.getElementById('copyPrintModal').style.display = 'flex'; };
     window.closeCopyPrintModal = () => { document.getElementById('copyPrintModal').style.display = 'none'; };
     
-    window.copyTableToClipboard = () => {
-        let textToCopy = '';
+    // Fungsi bantu untuk mengumpulkan data yang akan diekspor (mendukung data filter)
+    function getDataForExport() {
+        let headers = [];
+        let data = [];
+        
         if (currentTableIdToCopy === 'tokenTable') {
-            const header = `NO\tMAPEL\tKELAS\tTOKEN\tDIBUKA\tDITUTUP\tDURASI\n`;
-            let body = '';
-            let consolidatedTokens = Array.from(consolidatedTokensMap.values()).sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
-            consolidatedTokens.forEach((data, index) => {
-                body += `${index + 1}\t${data.subject}\t${data.kelas}\t${data.token}\t${formatDisplayTime(data.startTime)}\t${formatDisplayTime(data.endTime)}\t${data.durationMinutes} menit\n`;
-            });
-            textToCopy = header + body;
+             headers = ["NO", "MAPEL", "KELAS", "TOKEN", "DIBUKA", "DITUTUP", "DURASI"];
+             let consolidatedTokens = Array.from(consolidatedTokensMap.values()).sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
+             // Filter sesuai pencarian jika ada (opsional, saat ini mengambil semua cache yang ditampilkan)
+             // Agar konsisten dengan tampilan, sebaiknya ambil sesuai filter pencarian di UI
+             const searchSubject = document.getElementById('tokenSearchSubject').value.trim().toUpperCase();
+             if (searchSubject) {
+                 consolidatedTokens = consolidatedTokens.filter(token => token.subject.toUpperCase().includes(searchSubject));
+             }
+             
+             consolidatedTokens.forEach((item, index) => {
+                 data.push([
+                     index + 1,
+                     item.subject,
+                     item.kelas,
+                     item.token,
+                     formatDisplayTime(item.startTime),
+                     formatDisplayTime(item.endTime),
+                     `${item.durationMinutes} menit`
+                 ]);
+             });
+
         } else if (currentTableIdToCopy === 'scoreTable') {
-            let studentsForCopy = filteredScores;
-            const relevantTokens = tokenCache.filter(t => getNumericClass(t.kelas) === window.currentScoreGradeFilter);
-            const subjects = [...new Set(relevantTokens.map(t => t.subject))].sort();
-            let header = `NO\tNAMA SISWA\tKELAS${subjects.map(s => `\t${generateAbbreviation(s)}`).join('')}\n`;
-            let body = '';
-            studentsForCopy.forEach((student, index) => {
-                let rowData = `${index + 1}\t${student.name}\t${student.class}`;
-                subjects.forEach(subject => {
-                    let score = '-';
-                    const tokenInfo = Array.from(consolidatedTokensMap.values()).find(t => t.subject === subject && getNumericClass(t.kelas) === getNumericClass(student.class));
-                    if(tokenInfo){
-                        for(const fbKey of Array.from(tokenInfo.firebaseKeys)){
-                             if(submittedExamsCache[fbKey]?.[padStudentId(student.id)]?.isSubmitted) {
-                                 const answerData = studentAnswersCache[fbKey]?.[padStudentId(student.id)];
-                                 const bankSoal = bankSoalCache[`kelas${getNumericClass(tokenInfo.kelas)}`]?.[tokenInfo.tahunAjaran.replace(/\//g, '-')]?.[tokenInfo.ujianName.replace(/\s+/g, '-')]?.[`Kelas-${tokenInfo.kelas}`]?.[tokenInfo.subject.replace(/\s+/g, '-')];
-                                 if (answerData && bankSoal?.kunjab) {
-                                     score = calculateScore(answerData.answers, bankSoal.kunjab);
-                                     break;
-                                 }
-                             }
-                        }
-                    }
-                    rowData += `\t${score}`;
-                });
-                body += rowData + '\n';
-            });
-            textToCopy = header + body;
+             let studentsForCopy = filteredScores; // Menggunakan data yang sudah difilter oleh fungsi renderScoreTable
+             const relevantTokens = tokenCache.filter(t => getNumericClass(t.kelas) === window.currentScoreGradeFilter);
+             const subjects = [...new Set(relevantTokens.map(t => t.subject))].sort();
+             
+             headers = ["NO", "NAMA SISWA", "KELAS", ...subjects.map(s => generateAbbreviation(s))];
+             
+             studentsForCopy.forEach((student, index) => {
+                 let row = [index + 1, student.name, student.class];
+                 subjects.forEach(subject => {
+                     let score = '-';
+                     const tokenInfo = Array.from(consolidatedTokensMap.values()).find(t => t.subject === subject && getNumericClass(t.kelas) === getNumericClass(student.class));
+                     if(tokenInfo){
+                         for(const fbKey of Array.from(tokenInfo.firebaseKeys)){
+                              if(submittedExamsCache[fbKey]?.[padStudentId(student.id)]?.isSubmitted) {
+                                  const answerData = studentAnswersCache[fbKey]?.[padStudentId(student.id)];
+                                  const bankSoal = bankSoalCache[`kelas${getNumericClass(tokenInfo.kelas)}`]?.[tokenInfo.tahunAjaran.replace(/\//g, '-')]?.[tokenInfo.ujianName.replace(/\s+/g, '-')]?.[`Kelas-${tokenInfo.kelas}`]?.[tokenInfo.subject.replace(/\s+/g, '-')];
+                                  if (answerData && bankSoal?.kunjab) {
+                                      score = calculateScore(answerData.answers, bankSoal.kunjab);
+                                      break;
+                                  }
+                              }
+                         }
+                     }
+                     row.push(score);
+                 });
+                 data.push(row);
+             });
         } else {
-            const table = document.getElementById(currentTableIdToCopy);
-            if (!table) return showNotification('Tabel tidak ditemukan.', true);
-            textToCopy = Array.from(table.querySelectorAll('tr')).map(row => 
-                Array.from(row.querySelectorAll('th, td')).map(cell => cell.innerText.trim()).join('\t')
-            ).join('\n');
+             // Fallback untuk tabel lain (mengambil dari DOM langsung)
+             const table = document.getElementById(currentTableIdToCopy);
+             if (table) {
+                 const ths = Array.from(table.querySelectorAll('thead th')).map(th => th.innerText.trim());
+                 headers = ths;
+                 const trs = Array.from(table.querySelectorAll('tbody tr'));
+                 trs.forEach(tr => {
+                     data.push(Array.from(tr.querySelectorAll('td')).map(td => td.innerText.trim()));
+                 });
+             }
         }
-        navigator.clipboard.writeText(textToCopy).then(() => showNotification('Tabel berhasil disalin.'), () => showNotification('Gagal menyalin tabel.', true));
+        return { headers, data };
+    }
+
+    window.copyTableToClipboard = () => {
+        const { headers, data } = getDataForExport();
+        if (!headers.length) return showNotification('Tidak ada data untuk disalin.', true);
+        
+        let textToCopy = headers.join('\t') + '\n';
+        data.forEach(row => {
+            textToCopy += row.join('\t') + '\n';
+        });
+        
+        // Metode Fallback: Menggunakan textarea sementara
+        // Ini lebih andal di browser yang membatasi navigator.clipboard (misal: non-HTTPS atau iframe)
+        const tempTextArea = document.createElement("textarea");
+        tempTextArea.value = textToCopy;
+        document.body.appendChild(tempTextArea);
+        tempTextArea.select();
+        try {
+            const successful = document.execCommand('copy');
+            if (successful) {
+                showNotification('Tabel berhasil disalin (Metode 1).');
+            } else {
+                throw new Error("ExecCommand gagal");
+            }
+        } catch (err) {
+            // Jika metode textarea gagal, coba navigator.clipboard
+            navigator.clipboard.writeText(textToCopy)
+                .then(() => showNotification('Tabel berhasil disalin (Metode 2).'))
+                .catch(() => showNotification('Gagal menyalin tabel. Browser memblokir akses clipboard.', true));
+        }
+        document.body.removeChild(tempTextArea);
+        closeCopyPrintModal();
+    };
+
+    window.downloadScoreCSV = () => {
+        const { headers, data } = getDataForExport();
+        if (!headers.length) return showNotification('Tidak ada data untuk diunduh.', true);
+
+        let csvContent = "data:text/csv;charset=utf-8,";
+        csvContent += headers.join(",") + "\r\n";
+        data.forEach(rowArray => {
+            let row = rowArray.map(item => `"${String(item).replace(/"/g, '""')}"`).join(",");
+            csvContent += row + "\r\n";
+        });
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `data_export_${new Date().getTime()}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        closeCopyPrintModal();
+    };
+
+    window.downloadScorePDF = () => {
+        if (!window.jspdf) return showNotification('Library PDF belum dimuat. Coba refresh halaman.', true);
+        const { headers, data } = getDataForExport();
+        if (!headers.length) return showNotification('Tidak ada data untuk diunduh.', true);
+
+        const { jsPDF } = window.jspdf;
+        // Orientasi Landscape untuk memuat banyak kolom nilai
+        const doc = new jsPDF('l', 'mm', 'a4'); 
+
+        doc.setFontSize(14);
+        doc.text(`Laporan Data - ${currentTableIdToCopy === 'scoreTable' ? 'Nilai Ujian' : 'Token'}`, 14, 15);
+        doc.setFontSize(10);
+        doc.text(`Dicetak pada: ${new Date().toLocaleString('id-ID')}`, 14, 22);
+
+        doc.autoTable({
+            head: [headers],
+            body: data,
+            startY: 25,
+            styles: { fontSize: 8, cellPadding: 2 },
+            headStyles: { fillColor: [44, 62, 80] }, // Warna header tabel sesuai tema
+            theme: 'grid'
+        });
+
+        doc.save(`laporan_${new Date().getTime()}.pdf`);
         closeCopyPrintModal();
     };
 
@@ -2385,6 +2509,8 @@
         scorePaginationDiv.innerHTML = '';
         scoreTableMessage.style.display = 'block';
         document.getElementById('scoreTable').style.display = 'none';
+        // Sembunyikan tombol cetak saat reset
+        document.getElementById('scorePrintBtn').style.display = 'none';
     }
 
     window.renderScoreTable = (page = 1) => {
@@ -2393,6 +2519,9 @@
 
         if (window.currentScoreGradeFilter === 'ALL') return resetScoreTable();
         
+        // Tampilkan tombol cetak jika filter kelas aktif
+        document.getElementById('scorePrintBtn').style.display = 'inline-block';
+
         scoreTableMessage.style.display = 'none';
         document.getElementById('scoreTable').style.display = 'table';
         
@@ -2414,8 +2543,17 @@
             let rowContent = `<td>${(page - 1) * selectedItemsPerPage + index + 1}</td><td>${student.name}</td><td>${student.class}</td>`;
             subjects.forEach(subject => {
                 let score = '-';
+                let isExpired = false;
+                
+                // Cari token yang sesuai untuk mapel dan kelas siswa ini
                 const tokenInfo = Array.from(consolidatedTokensMap.values()).find(t => t.subject === subject && getNumericClass(t.kelas) === getNumericClass(student.class));
+                
                 if (tokenInfo) {
+                    // Cek apakah jadwal ujian sudah lewat (mengabaikan status paksa aktif)
+                    if (new Date() > new Date(tokenInfo.endTime)) {
+                        isExpired = true;
+                    }
+
                     for(const fbKey of Array.from(tokenInfo.firebaseKeys)) {
                         const studentIdPadded = padStudentId(student.id);
                         if(submittedExamsCache[fbKey]?.[studentIdPadded]?.isSubmitted) {
@@ -2428,7 +2566,15 @@
                         }
                     }
                 }
-                rowContent += `<td>${score}</td>`;
+
+                // Logika pewarnaan: Jika nilai kosong ('-') DAN waktu ujian sudah habis
+                let cellStyle = '';
+                if (score === '-' && isExpired) {
+                    // Warna background merah muda dan teks merah gelap
+                    cellStyle = 'style="background-color: #fadbd8; color: #c0392b; font-weight: bold;" title="Ujian telah berakhir namun nilai kosong"';
+                }
+
+                rowContent += `<td ${cellStyle}>${score}</td>`;
             });
             row.innerHTML = rowContent;
             scoreTableBody.appendChild(row);
