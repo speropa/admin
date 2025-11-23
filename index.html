@@ -5,9 +5,6 @@
   <title>Panel Admin Ujian</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
-  <!-- Tambahkan library jsPDF dan autoTable untuk fitur Unduh PDF -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
   <style>
     /* Styling umum untuk body dan layout utama */
     body {
@@ -256,7 +253,6 @@
     #tokenTableBody td:nth-child(3) {
         text-align: center;
     }
-    /* UPDATE: Menambahkan selector td:nth-child(1) agar kolom NO rata tengah */
     #scoreTableBody td:nth-child(1),
     #scoreTableBody td:nth-child(3),
     #scoreTableBody td:nth-child(n+4) {
@@ -546,6 +542,40 @@
         text-align: center;
     }
 
+    /* UPDATE: Gaya untuk Floating Action Bar */
+    .floating-bulk-actions {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%) translateY(100px); /* Tersembunyi di bawah */
+        background-color: #2c3e50;
+        padding: 15px 25px;
+        border-radius: 50px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        z-index: 9999;
+        transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.27);
+    }
+    .floating-bulk-actions.visible {
+        transform: translateX(-50%) translateY(0); /* Muncul */
+    }
+    .floating-bulk-actions span {
+        color: white;
+        font-weight: bold;
+        margin-right: 10px;
+        border-right: 1px solid #7f8c8d;
+        padding-right: 15px;
+    }
+    .floating-bulk-actions button {
+        margin: 0;
+        padding: 8px 20px;
+        border-radius: 25px;
+        font-size: 14px;
+        box-shadow: none;
+    }
+
     @media (max-width: 768px) {
       body {
         flex-direction: row;
@@ -775,6 +805,7 @@
       <div id="studentStatusSection" class="dashboard-section container">
         <h1 style="text-align: left; margin-bottom: 20px; color: #34495e;">Status Peserta</h1>
         <div class="controls-header">
+            <!-- UPDATE: Hapus bulkActionsControl dari sini karena dipindah ke floating bar -->
             <div class="filters-group" style="flex-grow: 1; justify-content: flex-start; align-items: flex-end; width: 100%;">
                 <input type="text" id="studentStatusSearchId" placeholder="Cari ID..." style="max-width: 150px;"/>
                 <input type="text" id="studentStatusSearchName" placeholder="Cari Nama..." style="max-width: 200px;" />
@@ -788,7 +819,13 @@
             <table id="studentStatusTable">
                 <thead>
                     <tr>
-                        <th>NO</th>
+                        <!-- UPDATE: Menambahkan Checkbox Pilih Semua -->
+                        <th style="width: 50px;">
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 5px;">
+                                <input type="checkbox" id="selectAllStatus" style="margin: 0; width: 16px; height: 16px;" onchange="toggleSelectAllStatus(this)">
+                                <span>NO</span>
+                            </div>
+                        </th>
                         <th>ID SISWA</th>
                         <th>NAMA</th>
                         <th>KELAS</th>
@@ -802,6 +839,8 @@
         </div>
         <div id="studentStatusPagination" class="pagination-controls"></div>
       </div>
+      
+      <!-- FIX: Mengembalikan Rules Section yang hilang -->
       <div id="rulesSection" class="dashboard-section container">
         <h1 id="rulesSectionTitle" style="text-align: left; margin-bottom: 20px; color: #34495e;">Pengaturan Ujian Global</h1>
         
@@ -883,8 +922,8 @@
             </table>
           </div>
         </div>
-
       </div>
+
       <div id="setSelectClassSection" class="dashboard-section container">
         <h1 style="text-align: left; color: #34495e;">Pengaturan Tampilan Pilih Kelas</h1>
         <p style="font-size: 0.9em; color: #555; margin-top: 5px; margin-bottom: 15px;">
@@ -1010,7 +1049,7 @@
                 <button class="text-button light-blue" onclick="window.currentScoreGradeFilter = '7'; window.renderScoreTable(1);"><i class="fas fa-graduation-cap"></i> Kelas 7</button>
                 <button class="text-button light-blue" onclick="window.currentScoreGradeFilter = '8'; window.renderScoreTable(1);"><i class="fas fa-graduation-cap"></i> Kelas 8</button>
                 <button class="text-button light-blue" onclick="window.currentScoreGradeFilter = '9'; window.renderScoreTable(1);"><i class="fas fa-graduation-cap"></i> Kelas 9</button>
-                <button id="scorePrintBtn" class="text-button gray" onclick="openCopyPrintModal('scoreTable', 'Ekspor Daftar Nilai')" style="display: none;"><i class="fas fa-print"></i> Cetak</button>
+                <button class="text-button gray" id="scorePrintBtn" style="display: none;" onclick="openCopyPrintModal('scoreTable', 'Cetak Daftar Nilai')"><i class="fas fa-print"></i> Cetak</button>
             </div>
             <div class="filters-group">
                 <input type="text" id="scoreSearchName" placeholder="Cari Nama Siswa" />
@@ -1042,6 +1081,14 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- UPDATE: Container Floating Action Bar (Baru) Dipindah ke luar dashboardContent -->
+  <div id="floatingBulkActions" class="floating-bulk-actions">
+      <span id="selectedCountDisplay">0 Terpilih</span>
+      <button class="text-button purple" onclick="initiateBulkReset()" style="background-color: #9b59b6;"><i class="fas fa-redo"></i> Reset Login</button>
+      <button class="text-button red" onclick="initiateBulkDelete()" style="background-color: #e74c3c;"><i class="fas fa-eraser"></i> Hapus Jawaban</button>
+      <button class="icon-button" onclick="clearSelection()" style="background: rgba(255,255,255,0.2); width: 30px; height: 30px;" title="Batalkan Pilihan"><i class="fas fa-times" style="color: white;"></i></button>
   </div>
 
   <div id="addTokenModal" class="modal">
@@ -1084,6 +1131,7 @@
     </div>
   </div>
 
+  <!-- ... (Modals lain tetap sama) ... -->
   <div id="editModal" class="modal">
     <div class="modal-content">
         <h4>Edit Token</h4>
@@ -1144,20 +1192,7 @@
   <div id="forceActiveModal" class="modal"><div class="modal-content"><h4>Aktifkan Token Secara Paksa?</h4><p>Token ini akan dapat diakses kapanpun, mengabaikan jadwal yang ada.</p><div><label for="forceActivePassword">Password Login Admin:</label><div class="password-input-container"><input type="password" id="forceActivePassword"><i class="fas fa-eye toggle-password"></i></div><p id="forceActivePasswordError" class="error"></p></div><div class="modal-buttons"><button onclick="closeForceActiveModal()" class="cancel-button">Batal</button><button onclick="confirmForceActive()" class="confirm-button">Ya, Aktifkan</button></div></div></div>
   <div id="forceInactiveModal" class="modal"><div class="modal-content"><h4>Nonaktifkan Mode Paksa?</h4><p>Token akan kembali ke pengaturan jadwal semula.</p><div class="modal-buttons"><button onclick="closeForceInactiveModal()" class="cancel-button">Batal</button><button onclick="confirmForceInactive()" class="confirm-button">Ya, Nonaktifkan</button></div></div></div>
   <div id="notification" class="notification"><span id="notificationMessage"></span></div>
-  <div id="copyPrintModal" class="modal">
-      <div class="modal-content">
-          <h4 id="copyPrintModalTitle"></h4>
-          <p style="font-size: 0.9em; color: #555; margin-top: 5px; margin-bottom: 15px;">Pilih format ekspor data:</p>
-          <div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
-              <button onclick="copyTableToClipboard()" class="confirm-button" style="width: 100%; text-align: center;"><i class="fas fa-copy"></i> Salin Tabel (Clipboard)</button>
-              <button onclick="downloadScoreCSV()" class="text-button green" style="width: 100%; text-align: center; justify-content: center;"><i class="fas fa-file-csv"></i> Unduh CSV (Excel)</button>
-              <button onclick="downloadScorePDF()" class="text-button purple" style="width: 100%; text-align: center; justify-content: center;"><i class="fas fa-file-pdf"></i> Unduh PDF</button>
-          </div>
-          <div class="modal-buttons" style="margin-top: 15px;">
-              <button onclick="closeCopyPrintModal()" class="cancel-button">Batal</button>
-          </div>
-      </div>
-  </div>
+  <div id="copyPrintModal" class="modal"><div class="modal-content"><h4 id="copyPrintModalTitle"></h4><button onclick="copyTableToClipboard()" class="confirm-button">Salin Tabel</button><p style="font-size: 0.9em; color: #555; margin-top: 15px;">Salin tabel kemudian paste ke word atau excel.</p><button onclick="closeCopyPrintModal()" class="cancel-button">Batal</button></div></div>
   <div id="setlokasiModal" class="modal"><div class="modal-content" style="text-align: center;"><h4>Pengaturan Lokasi</h4><button onclick="aktifkanLokasi()" class="confirm-button">Aktifkan</button><button onclick="openGantiRadiusModal()" class="warning-button">Ganti Radius</button><button onclick="nonaktifkanLokasi()" class="cancel-button">Nonaktifkan</button><button onclick="closeSetlokasiModal()" class="gray text-button" style="margin-top: 10px;">Batal</button></div></div>
   <div id="gantiRadiusModal" class="modal"><div class="modal-content"><h4>Ganti Radius Lokasi (meter)</h4><label for="radiusMeter">Radius (meter):</label><input type="number" id="radiusMeter" placeholder="Contoh: 75" required /><div style="text-align: center; margin-top: 10px;"><button onclick="closeGantiRadiusModal()" class="cancel-button">Batal</button><button onclick="gantiRadiusDanAktifkan()" class="confirm-button">Ganti & Aktifkan</button></div></div></div>
   <div id="setBlockKeyModal" class="modal"><div class="modal-content"><h4>Atur Kunci Blokir</h4><label for="blockKeyInput">Kunci (Otomatis Kapital):</label><input type="text" id="blockKeyInput" placeholder="Contoh: BUKA" required oninput="this.value = this.value.toUpperCase()" /><div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;"><label for="blockKeyStatusToggle">Status Kunci:</label><label class="switch"><input type="checkbox" id="blockKeyStatusToggle"><span class="slider"></span></label></div><p id="blockKeySettingsError" class="error"></p><div class="modal-buttons"><button onclick="closeSetBlockKeyModal()" class="cancel-button">Batal</button><button onclick="saveBlockKeySettings()" class="confirm-button">Simpan</button></div></div></div>
@@ -1171,6 +1206,45 @@
   <div id="resetStudentModal" class="modal"><div class="modal-content"><h4>Reset Status Login Siswa</h4><p>Anda yakin ingin mereset status login siswa <b id="resetStudentNameDisplay"></b> (ID: <b id="resetStudentIdDisplay"></b>) untuk ujian yang dipilih?</p><p style="font-size: 0.9em; color: #555;">Ini akan memaksa siswa untuk login ulang jika mereka sedang dalam sesi.</p><div class="modal-buttons"><button onclick="closeResetStudentModal()" class="cancel-button">Batal</button><button onclick="confirmResetStudent()" class="confirm-button">Reset</button></div></div></div>
   <div id="submitAnswerModal" class="modal"><div class="modal-content"><h4>Kirim Jawaban Siswa (Manual)</h4><p>Anda yakin ingin menandai ujian yang dipilih untuk siswa <b id="submitStudentNameDisplay"></b> (ID: <b id="submitStudentIdDisplay"></b>) sebagai 'Sudah submit'?</p><p style="font-size: 0.9em; color: #555;">Tindakan ini akan mengunci jawaban siswa untuk ujian yang relevan.</p><div class="modal-buttons"><button onclick="closeSubmitAnswerModal()" class="cancel-button">Batal</button><button onclick="confirmSubmitAnswer()" class="confirm-button">Kirim</button></div></div></div>
   <div id="deleteAnswerModal" class="modal"><div class="modal-content"><h4>Hapus Jawaban Siswa</h4><p>Anda yakin ingin menghapus jawaban dan status submit untuk siswa <b id="deleteAnswerStudentNameDisplay"></b> (ID: <b id="deleteAnswerStudentIdDisplay"></b>) pada ujian yang dipilih?</p><p style="font-size: 0.9em; color: #e74c3c; font-weight: bold;">Tindakan ini tidak dapat dibatalkan!</p><div><label for="deleteAnswerPassword">Password Login Admin:</label><div class="password-input-container"><input type="password" id="deleteAnswerPassword"><i class="fas fa-eye toggle-password"></i></div><p id="deleteAnswerPasswordError" class="error"></p></div><div class="modal-buttons"><button onclick="closeDeleteAnswerModal()" class="cancel-button">Batal</button><button onclick="confirmDeleteAnswer()" class="confirm-button">Hapus Jawaban</button></div></div></div>
+  
+  <!-- Modal untuk Konfirmasi Aksi Massal -->
+  <div id="bulkActionModal" class="modal">
+    <div class="modal-content" style="max-width: 600px;">
+        <h4 id="bulkActionTitle">Konfirmasi Tindakan Massal</h4>
+        <p id="bulkActionMessage"></p>
+        <p style="font-size: 0.9em; color: #e74c3c; font-style: italic;">Hanya siswa yang memenuhi syarat status yang ditampilkan di bawah ini.</p>
+        
+        <div class="table-responsive" style="max-height: 250px; overflow-y: auto; margin-bottom: 15px;">
+            <table id="bulkActionTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>NAMA</th>
+                        <th>KELAS</th>
+                        <th>STATUS SAAT INI</th>
+                    </tr>
+                </thead>
+                <tbody id="bulkActionTableBody"></tbody>
+            </table>
+        </div>
+
+        <!-- UPDATE: Input Password untuk Hapus Massal -->
+        <div id="bulkActionPasswordContainer" style="display: none; margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px;">
+             <label for="bulkActionPassword" style="color: #e74c3c; font-weight: bold;">Password Admin (Wajib untuk Hapus):</label>
+             <div class="password-input-container">
+                 <input type="password" id="bulkActionPassword" placeholder="Masukkan Password Admin">
+                 <i class="fas fa-eye toggle-password"></i>
+             </div>
+             <p id="bulkActionPasswordError" class="error"></p>
+        </div>
+
+        <div class="modal-buttons">
+            <button onclick="closeBulkActionModal()" class="cancel-button">Batal</button>
+            <button id="confirmBulkActionButton" class="confirm-button" onclick="confirmBulkAction()">Konfirmasi</button>
+        </div>
+    </div>
+  </div>
+
   <!-- Loading Overlay ditampilkan default (display: flex) untuk menutup proses cek login awal -->
   <div id="loadingOverlay" class="loading-overlay" style="display: flex;"><div class="spinner"></div></div>
   
@@ -1318,6 +1392,11 @@
     let studentClassForAction = null;
     let currentTableIdToCopy = '';
 
+    // Variable baru untuk aksi massal
+    let selectedStatusKeys = new Set();
+    let pendingBulkActionType = null; // 'RESET' atau 'DELETE'
+    let pendingBulkActionStudents = [];
+
     let selectedItemsPerPage = parseInt(localStorage.getItem('selectedItemsPerPage') || '50', 10);
     let currentPageManagement = parseInt(localStorage.getItem('currentPageManagement') || '1', 10);
     let currentPageStatus = parseInt(localStorage.getItem('currentPageStatus') || '1', 10);
@@ -1377,6 +1456,9 @@
     const grade8TokenSelect = document.getElementById('grade8TokenSelect');
     const grade9TokenSelect = document.getElementById('grade9TokenSelect');
     const activeButtonsInfoList = document.getElementById('activeButtonsInfoList');
+    // UPDATE: Referensi ke elemen floating bar
+    const floatingBulkActions = document.getElementById('floatingBulkActions');
+    const selectedCountDisplay = document.getElementById('selectedCountDisplay');
 
     let currentConfirmAction = null; 
 
@@ -1587,8 +1669,6 @@
         loadingOverlay.style.display = 'flex'; 
 
         try {
-            // UPDATE: Menggunakan inMemoryPersistence agar sesi login hanya tersimpan di RAM.
-            // Jika halaman di-refresh atau tab ditutup, sesi akan hilang.
             await setPersistence(authInstances['SETUP'], inMemoryPersistence);
             await Promise.all(Object.values(authInstances).map(auth => signInWithEmailAndPassword(auth, email, password)));
         } catch (error) {
@@ -1891,6 +1971,7 @@
       }
 
       loadingOverlay.style.display = 'flex';
+      const durationMinutes = Math.round((endTimeObj.getTime() - startTimeObj.getTime()) / 60000);
       const updatedData = { ...currentConsolidatedTokenInfo, kelas: newKelas, tahunAjaran, ujianName, subject, token, startTime, endTime, durationMinutes };
       delete updatedData.firebaseKeys;
       delete updatedData.firebaseGroups;
@@ -2009,6 +2090,8 @@
             studentStatusInitialMessage.style.display = 'block';
             studentStatusTableContainer.style.display = 'none';
             studentStatusPaginationDiv.innerHTML = '';
+            // Ganti display none menjadi hapus class visible
+            if(floatingBulkActions) floatingBulkActions.classList.remove('visible');
             return;
         }
 
@@ -2033,6 +2116,12 @@
         const studentsForPage = filteredStudentsStatus.slice((page - 1) * selectedItemsPerPage, page * selectedItemsPerPage);
     
         studentStatusTableBody.innerHTML = '';
+        
+        const allSelected = studentsForPage.length > 0 && studentsForPage.every(s => selectedStatusKeys.has(s.key));
+        const selectAllCheckbox = document.getElementById('selectAllStatus');
+        if(selectAllCheckbox) selectAllCheckbox.checked = allSelected;
+        updateBulkControlVisibility();
+
         studentsForPage.forEach((student, index) => {
             const row = document.createElement('tr');
             let status = 'Belum Login';
@@ -2056,8 +2145,6 @@
             const isWorking = status === 'Sedang mengerjakan';
             const isSubmitted = status === 'Sudah submit';
 
-            // [PERBAIKAN] Tombol reset hanya aktif jika siswa sedang mengerjakan (isLoggedIn = true)
-            // dan nonaktif jika sudah submit atau belum login.
             const resetDisabled = !isWorking;
             const submitDisabled = !isWorking;
             const deleteDisabled = !isSubmitted;
@@ -2067,8 +2154,15 @@
                 <button class="icon-button submit" onclick="promptSubmitAnswer('${student.key}', '${student.id}', '${escape(student.name)}', '${student.class}')" title="Kirim Jawaban Manual" ${submitDisabled ? 'disabled' : ''}><i class="fas fa-paper-plane"></i></button>
                 <button class="icon-button erase" onclick="promptDeleteAnswer('${student.key}', '${student.id}', '${escape(student.name)}', '${student.class}')" title="Hapus Jawaban" ${deleteDisabled ? 'disabled' : ''}><i class="fas fa-eraser"></i></button>`;
 
+            const isChecked = selectedStatusKeys.has(student.key);
+
             row.innerHTML = `
-                <td>${(page - 1) * selectedItemsPerPage + index + 1}</td>
+                <td style="text-align: center;">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 5px;">
+                        <input type="checkbox" class="status-checkbox" value="${student.key}" style="margin: 0; width: 16px; height: 16px;" ${isChecked ? 'checked' : ''} onchange="toggleStudentStatusSelection('${student.key}')">
+                        <span>${(page - 1) * selectedItemsPerPage + index + 1}</span>
+                    </div>
+                </td>
                 <td>${student.id}</td>
                 <td>${student.name}</td>
                 <td>${student.class}</td>
@@ -2081,7 +2175,236 @@
         renderPaginationControls(studentStatusPaginationDiv, page, totalPages, 'renderStudentStatusTable');
     }
 
-    
+    // Fungsi-fungsi untuk Aksi Massal
+    window.toggleStudentStatusSelection = (key) => {
+        if (selectedStatusKeys.has(key)) {
+            selectedStatusKeys.delete(key);
+        } else {
+            selectedStatusKeys.add(key);
+        }
+        updateBulkControlVisibility();
+        
+        const selectAllCheckbox = document.getElementById('selectAllStatus');
+        if (selectAllCheckbox) {
+             const studentsForPage = filteredStudentsStatus.slice((currentPageStatus - 1) * selectedItemsPerPage, currentPageStatus * selectedItemsPerPage);
+             const allSelected = studentsForPage.length > 0 && studentsForPage.every(s => selectedStatusKeys.has(s.key));
+             selectAllCheckbox.checked = allSelected;
+        }
+    };
+
+    window.toggleSelectAllStatus = (checkbox) => {
+        const isChecked = checkbox.checked;
+        const studentsForPage = filteredStudentsStatus.slice((currentPageStatus - 1) * selectedItemsPerPage, currentPageStatus * selectedItemsPerPage);
+        
+        studentsForPage.forEach(student => {
+            if (isChecked) {
+                selectedStatusKeys.add(student.key);
+            } else {
+                selectedStatusKeys.delete(student.key);
+            }
+        });
+        updateBulkControlVisibility();
+        renderStudentStatusTable(currentPageStatus);
+    };
+
+    window.clearSelection = () => {
+        selectedStatusKeys.clear();
+        updateBulkControlVisibility();
+        renderStudentStatusTable(currentPageStatus);
+    };
+
+    function updateBulkControlVisibility() {
+        if (selectedStatusKeys.size > 0) {
+            // UPDATE: Gunakan class visible untuk animasi floating bar
+            floatingBulkActions.classList.add('visible');
+            selectedCountDisplay.innerText = `${selectedStatusKeys.size} Terpilih`;
+        } else {
+            floatingBulkActions.classList.remove('visible');
+        }
+    }
+
+    window.initiateBulkReset = () => {
+        prepareBulkAction('RESET', 'Sedang mengerjakan');
+    };
+
+    window.initiateBulkDelete = () => {
+        prepareBulkAction('DELETE', 'Sudah submit');
+    };
+
+    function prepareBulkAction(actionType, requiredStatusText) {
+        pendingBulkActionType = actionType;
+        pendingBulkActionStudents = [];
+
+        const tokenKeysForDisplay = [];
+        Object.values(lastSelectedTokens).forEach(id => {
+            if (id !== 'DEFAULT') {
+                const [token, kelas] = id.split('_');
+                const consolidated = Array.from(consolidatedTokensMap.values()).find(t => t.token === token && t.kelas === kelas);
+                if (consolidated) tokenKeysForDisplay.push(...Array.from(consolidated.firebaseKeys));
+            }
+        });
+
+        selectedStatusKeys.forEach(studentKey => {
+            const student = studentCache.find(s => s.key === studentKey);
+            if (!student) return;
+
+            let status = 'Belum Login';
+            const studentIdPadded = padStudentId(student.id);
+            let isLoggedInAny = false, isSubmittedAny = false, hasAccessedAny = false;
+
+            tokenKeysForDisplay.forEach(fbKey => {
+                const token = tokenCache.find(t => t.key === fbKey);
+                if(token && getNumericClass(token.kelas) === getNumericClass(student.class)) {
+                    const accessData = tokenAccessStatus[fbKey]?.[studentIdPadded];
+                    if (submittedExamsCache[fbKey]?.[studentIdPadded]?.isSubmitted) isSubmittedAny = true;
+                    if (accessData?.isLoggedIn) isLoggedInAny = true;
+                    if (accessData?.accessCount > 0) hasAccessedAny = true;
+                }
+            });
+
+            if (isSubmittedAny) status = 'Sudah submit';
+            else if (isLoggedInAny) status = 'Sedang mengerjakan';
+            else if (hasAccessedAny) status = 'Belum Login (reset)';
+
+            if (status === requiredStatusText) {
+                pendingBulkActionStudents.push({
+                    student: student,
+                    status: status
+                });
+            }
+        });
+
+        if (pendingBulkActionStudents.length === 0) {
+            showNotification(`Tidak ada siswa terpilih yang memenuhi syarat untuk aksi ini (Status harus: ${requiredStatusText}).`, true);
+            return;
+        }
+
+        const title = actionType === 'RESET' ? 'Reset Login Massal' : 'Hapus Jawaban Massal';
+        const message = `Anda akan melakukan <b>${title}</b>. <br>Dari <b>${selectedStatusKeys.size}</b> siswa yang dipilih, hanya <b>${pendingBulkActionStudents.length}</b> siswa yang memenuhi syarat.`;
+        
+        document.getElementById('bulkActionTitle').innerText = title;
+        document.getElementById('bulkActionMessage').innerHTML = message;
+        
+        const tbody = document.getElementById('bulkActionTableBody');
+        tbody.innerHTML = '';
+        pendingBulkActionStudents.forEach(item => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${item.student.id}</td>
+                <td>${item.student.name}</td>
+                <td>${item.student.class}</td>
+                <td style="color: ${actionType === 'RESET' ? '#f39c12' : '#27ae60'}; font-weight: bold;">${item.status}</td>
+            `;
+            tbody.appendChild(row);
+        });
+
+        // UPDATE: Tampilkan input password jika aksi adalah DELETE
+        const passwordContainer = document.getElementById('bulkActionPasswordContainer');
+        const passwordInput = document.getElementById('bulkActionPassword');
+        const passwordError = document.getElementById('bulkActionPasswordError');
+        
+        passwordInput.value = '';
+        passwordError.innerText = '';
+
+        if (actionType === 'DELETE') {
+            passwordContainer.style.display = 'block';
+        } else {
+            passwordContainer.style.display = 'none';
+        }
+
+        document.getElementById('bulkActionModal').style.display = 'flex';
+    }
+
+    window.closeBulkActionModal = () => {
+        document.getElementById('bulkActionModal').style.display = 'none';
+        pendingBulkActionType = null;
+        pendingBulkActionStudents = [];
+    };
+
+    window.confirmBulkAction = async () => {
+        if (!pendingBulkActionType || pendingBulkActionStudents.length === 0) return;
+        
+        // UPDATE: Cek password jika tipe aksi adalah DELETE
+        if (pendingBulkActionType === 'DELETE') {
+            const password = document.getElementById('bulkActionPassword').value;
+            const errorElement = document.getElementById('bulkActionPasswordError');
+            errorElement.innerText = '';
+            
+            if (!password) {
+                errorElement.innerText = 'Password diperlukan untuk menghapus data.';
+                return;
+            }
+
+            loadingOverlay.style.display = 'flex';
+            try {
+                // Re-autentikasi untuk keamanan
+                const user = authInstances['SETUP'].currentUser;
+                await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, password));
+            } catch (error) {
+                loadingOverlay.style.display = 'none';
+                errorElement.innerText = 'Password salah. Verifikasi gagal.';
+                return;
+            }
+        } else {
+            loadingOverlay.style.display = 'flex';
+        }
+
+        try {
+            const updates = {};
+
+            const tokenKeysForDisplay = [];
+             Object.values(lastSelectedTokens).forEach(id => {
+                if (id !== 'DEFAULT') {
+                    const [token, kelas] = id.split('_');
+                    const consolidated = Array.from(consolidatedTokensMap.values()).find(t => t.token === token && t.kelas === kelas);
+                    if (consolidated) tokenKeysForDisplay.push(...Array.from(consolidated.firebaseKeys));
+                }
+            });
+
+            pendingBulkActionStudents.forEach(item => {
+                const studentIdPadded = padStudentId(item.student.id);
+                
+                const relevantFbKeys = tokenKeysForDisplay.filter(fbKey => {
+                     const token = tokenCache.find(t => t.key === fbKey);
+                     return token && getNumericClass(token.kelas) === getNumericClass(item.student.class);
+                });
+
+                relevantFbKeys.forEach(fbKey => {
+                    const group = tokenCache.find(t => t.key === fbKey)?.firebaseGroup;
+                    if(group) {
+                        if (pendingBulkActionType === 'RESET') {
+                            updates[`${group}/exam_access_status/${fbKey}/${studentIdPadded}/isLoggedIn`] = false;
+                        } else if (pendingBulkActionType === 'DELETE') {
+                            updates[`${group}/submitted_exams/${fbKey}/${studentIdPadded}`] = null;
+                            updates[`${group}/student_answers/${fbKey}/${studentIdPadded}`] = null;
+                            updates[`${group}/exam_access_status/${fbKey}/${studentIdPadded}`] = null;
+                        }
+                    }
+                });
+            });
+
+             const promises = Object.keys(updates).map(path => {
+                const [group, ...rest] = path.split('/');
+                const db = dbInstances[group];
+                if(db) return update(ref(db), { [rest.join('/')]: updates[path] });
+                return Promise.resolve();
+            });
+
+            await Promise.all(promises);
+            showNotification(`Aksi massal berhasil dilakukan pada ${pendingBulkActionStudents.length} siswa.`);
+            
+            selectedStatusKeys.clear();
+            updateBulkControlVisibility();
+            renderStudentStatusTable(currentPageStatus);
+
+        } catch (error) {
+            showNotification("Gagal melakukan aksi massal: " + error.message, true);
+        } finally {
+            loadingOverlay.style.display = 'none';
+            closeBulkActionModal();
+        }
+    };
+
     function renderPaginationControls(container, currentPage, totalPages, renderFunction) {
         container.innerHTML = '';
         if (totalPages <= 1) return;
@@ -2224,153 +2547,52 @@
     window.openCopyPrintModal = (tableId, modalTitle) => { currentTableIdToCopy = tableId; document.getElementById('copyPrintModalTitle').innerText = modalTitle; document.getElementById('copyPrintModal').style.display = 'flex'; };
     window.closeCopyPrintModal = () => { document.getElementById('copyPrintModal').style.display = 'none'; };
     
-    // Fungsi bantu untuk mengumpulkan data yang akan diekspor (mendukung data filter)
-    function getDataForExport() {
-        let headers = [];
-        let data = [];
-        
-        if (currentTableIdToCopy === 'tokenTable') {
-             headers = ["NO", "MAPEL", "KELAS", "TOKEN", "DIBUKA", "DITUTUP", "DURASI"];
-             let consolidatedTokens = Array.from(consolidatedTokensMap.values()).sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
-             // Filter sesuai pencarian jika ada (opsional, saat ini mengambil semua cache yang ditampilkan)
-             // Agar konsisten dengan tampilan, sebaiknya ambil sesuai filter pencarian di UI
-             const searchSubject = document.getElementById('tokenSearchSubject').value.trim().toUpperCase();
-             if (searchSubject) {
-                 consolidatedTokens = consolidatedTokens.filter(token => token.subject.toUpperCase().includes(searchSubject));
-             }
-             
-             consolidatedTokens.forEach((item, index) => {
-                 data.push([
-                     index + 1,
-                     item.subject,
-                     item.kelas,
-                     item.token,
-                     formatDisplayTime(item.startTime),
-                     formatDisplayTime(item.endTime),
-                     `${item.durationMinutes} menit`
-                 ]);
-             });
-
-        } else if (currentTableIdToCopy === 'scoreTable') {
-             let studentsForCopy = filteredScores; // Menggunakan data yang sudah difilter oleh fungsi renderScoreTable
-             const relevantTokens = tokenCache.filter(t => getNumericClass(t.kelas) === window.currentScoreGradeFilter);
-             const subjects = [...new Set(relevantTokens.map(t => t.subject))].sort();
-             
-             headers = ["NO", "NAMA SISWA", "KELAS", ...subjects.map(s => generateAbbreviation(s))];
-             
-             studentsForCopy.forEach((student, index) => {
-                 let row = [index + 1, student.name, student.class];
-                 subjects.forEach(subject => {
-                     let score = '-';
-                     const tokenInfo = Array.from(consolidatedTokensMap.values()).find(t => t.subject === subject && getNumericClass(t.kelas) === getNumericClass(student.class));
-                     if(tokenInfo){
-                         for(const fbKey of Array.from(tokenInfo.firebaseKeys)){
-                              if(submittedExamsCache[fbKey]?.[padStudentId(student.id)]?.isSubmitted) {
-                                  const answerData = studentAnswersCache[fbKey]?.[padStudentId(student.id)];
-                                  const bankSoal = bankSoalCache[`kelas${getNumericClass(tokenInfo.kelas)}`]?.[tokenInfo.tahunAjaran.replace(/\//g, '-')]?.[tokenInfo.ujianName.replace(/\s+/g, '-')]?.[`Kelas-${tokenInfo.kelas}`]?.[tokenInfo.subject.replace(/\s+/g, '-')];
-                                  if (answerData && bankSoal?.kunjab) {
-                                      score = calculateScore(answerData.answers, bankSoal.kunjab);
-                                      break;
-                                  }
-                              }
-                         }
-                     }
-                     row.push(score);
-                 });
-                 data.push(row);
-             });
-        } else {
-             // Fallback untuk tabel lain (mengambil dari DOM langsung)
-             const table = document.getElementById(currentTableIdToCopy);
-             if (table) {
-                 const ths = Array.from(table.querySelectorAll('thead th')).map(th => th.innerText.trim());
-                 headers = ths;
-                 const trs = Array.from(table.querySelectorAll('tbody tr'));
-                 trs.forEach(tr => {
-                     data.push(Array.from(tr.querySelectorAll('td')).map(td => td.innerText.trim()));
-                 });
-             }
-        }
-        return { headers, data };
-    }
-
     window.copyTableToClipboard = () => {
-        const { headers, data } = getDataForExport();
-        if (!headers.length) return showNotification('Tidak ada data untuk disalin.', true);
-        
-        let textToCopy = headers.join('\t') + '\n';
-        data.forEach(row => {
-            textToCopy += row.join('\t') + '\n';
-        });
-        
-        // Metode Fallback: Menggunakan textarea sementara
-        // Ini lebih andal di browser yang membatasi navigator.clipboard (misal: non-HTTPS atau iframe)
-        const tempTextArea = document.createElement("textarea");
-        tempTextArea.value = textToCopy;
-        document.body.appendChild(tempTextArea);
-        tempTextArea.select();
-        try {
-            const successful = document.execCommand('copy');
-            if (successful) {
-                showNotification('Tabel berhasil disalin (Metode 1).');
-            } else {
-                throw new Error("ExecCommand gagal");
-            }
-        } catch (err) {
-            // Jika metode textarea gagal, coba navigator.clipboard
-            navigator.clipboard.writeText(textToCopy)
-                .then(() => showNotification('Tabel berhasil disalin (Metode 2).'))
-                .catch(() => showNotification('Gagal menyalin tabel. Browser memblokir akses clipboard.', true));
+        let textToCopy = '';
+        if (currentTableIdToCopy === 'tokenTable') {
+            const header = `NO\tMAPEL\tKELAS\tTOKEN\tDIBUKA\tDITUTUP\tDURASI\n`;
+            let body = '';
+            let consolidatedTokens = Array.from(consolidatedTokensMap.values()).sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
+            consolidatedTokens.forEach((data, index) => {
+                body += `${index + 1}\t${data.subject}\t${data.kelas}\t${data.token}\t${formatDisplayTime(data.startTime)}\t${formatDisplayTime(data.endTime)}\t${data.durationMinutes} menit\n`;
+            });
+            textToCopy = header + body;
+        } else if (currentTableIdToCopy === 'scoreTable') {
+            let studentsForCopy = filteredScores;
+            const relevantTokens = tokenCache.filter(t => getNumericClass(t.kelas) === window.currentScoreGradeFilter);
+            const subjects = [...new Set(relevantTokens.map(t => t.subject))].sort();
+            let header = `NO\tNAMA SISWA\tKELAS${subjects.map(s => `\t${generateAbbreviation(s)}`).join('')}\n`;
+            let body = '';
+            studentsForCopy.forEach((student, index) => {
+                let rowData = `${index + 1}\t${student.name}\t${student.class}`;
+                subjects.forEach(subject => {
+                    let score = '-';
+                    const tokenInfo = Array.from(consolidatedTokensMap.values()).find(t => t.subject === subject && getNumericClass(t.kelas) === getNumericClass(student.class));
+                    if(tokenInfo){
+                        for(const fbKey of Array.from(tokenInfo.firebaseKeys)){
+                             if(submittedExamsCache[fbKey]?.[padStudentId(student.id)]?.isSubmitted) {
+                                 const answerData = studentAnswersCache[fbKey]?.[padStudentId(student.id)];
+                                 const bankSoal = bankSoalCache[`kelas${getNumericClass(tokenInfo.kelas)}`]?.[tokenInfo.tahunAjaran.replace(/\//g, '-')]?.[tokenInfo.ujianName.replace(/\s+/g, '-')]?.[`Kelas-${tokenInfo.kelas}`]?.[tokenInfo.subject.replace(/\s+/g, '-')];
+                                 if (answerData && bankSoal?.kunjab) {
+                                     score = calculateScore(answerData.answers, bankSoal.kunjab);
+                                     break;
+                                 }
+                             }
+                        }
+                    }
+                    rowData += `\t${score}`;
+                });
+                body += rowData + '\n';
+            });
+            textToCopy = header + body;
+        } else {
+            const table = document.getElementById(currentTableIdToCopy);
+            if (!table) return showNotification('Tabel tidak ditemukan.', true);
+            textToCopy = Array.from(table.querySelectorAll('tr')).map(row => 
+                Array.from(row.querySelectorAll('th, td')).map(cell => cell.innerText.trim()).join('\t')
+            ).join('\n');
         }
-        document.body.removeChild(tempTextArea);
-        closeCopyPrintModal();
-    };
-
-    window.downloadScoreCSV = () => {
-        const { headers, data } = getDataForExport();
-        if (!headers.length) return showNotification('Tidak ada data untuk diunduh.', true);
-
-        let csvContent = "data:text/csv;charset=utf-8,";
-        csvContent += headers.join(",") + "\r\n";
-        data.forEach(rowArray => {
-            let row = rowArray.map(item => `"${String(item).replace(/"/g, '""')}"`).join(",");
-            csvContent += row + "\r\n";
-        });
-
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `data_export_${new Date().getTime()}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        closeCopyPrintModal();
-    };
-
-    window.downloadScorePDF = () => {
-        if (!window.jspdf) return showNotification('Library PDF belum dimuat. Coba refresh halaman.', true);
-        const { headers, data } = getDataForExport();
-        if (!headers.length) return showNotification('Tidak ada data untuk diunduh.', true);
-
-        const { jsPDF } = window.jspdf;
-        // Orientasi Landscape untuk memuat banyak kolom nilai
-        const doc = new jsPDF('l', 'mm', 'a4'); 
-
-        doc.setFontSize(14);
-        doc.text(`Laporan Data - ${currentTableIdToCopy === 'scoreTable' ? 'Nilai Ujian' : 'Token'}`, 14, 15);
-        doc.setFontSize(10);
-        doc.text(`Dicetak pada: ${new Date().toLocaleString('id-ID')}`, 14, 22);
-
-        doc.autoTable({
-            head: [headers],
-            body: data,
-            startY: 25,
-            styles: { fontSize: 8, cellPadding: 2 },
-            headStyles: { fillColor: [44, 62, 80] }, // Warna header tabel sesuai tema
-            theme: 'grid'
-        });
-
-        doc.save(`laporan_${new Date().getTime()}.pdf`);
+        navigator.clipboard.writeText(textToCopy).then(() => showNotification('Tabel berhasil disalin.'), () => showNotification('Gagal menyalin tabel.', true));
         closeCopyPrintModal();
     };
 
@@ -2509,7 +2731,6 @@
         scorePaginationDiv.innerHTML = '';
         scoreTableMessage.style.display = 'block';
         document.getElementById('scoreTable').style.display = 'none';
-        // Sembunyikan tombol cetak saat reset
         document.getElementById('scorePrintBtn').style.display = 'none';
     }
 
@@ -2519,7 +2740,6 @@
 
         if (window.currentScoreGradeFilter === 'ALL') return resetScoreTable();
         
-        // Tampilkan tombol cetak jika filter kelas aktif
         document.getElementById('scorePrintBtn').style.display = 'inline-block';
 
         scoreTableMessage.style.display = 'none';
@@ -2545,11 +2765,9 @@
                 let score = '-';
                 let isExpired = false;
                 
-                // Cari token yang sesuai untuk mapel dan kelas siswa ini
                 const tokenInfo = Array.from(consolidatedTokensMap.values()).find(t => t.subject === subject && getNumericClass(t.kelas) === getNumericClass(student.class));
                 
                 if (tokenInfo) {
-                    // Cek apakah jadwal ujian sudah lewat (mengabaikan status paksa aktif)
                     if (new Date() > new Date(tokenInfo.endTime)) {
                         isExpired = true;
                     }
@@ -2567,10 +2785,8 @@
                     }
                 }
 
-                // Logika pewarnaan: Jika nilai kosong ('-') DAN waktu ujian sudah habis
                 let cellStyle = '';
                 if (score === '-' && isExpired) {
-                    // Warna background merah muda dan teks merah gelap
                     cellStyle = 'style="background-color: #fadbd8; color: #c0392b; font-weight: bold;" title="Ujian telah berakhir namun nilai kosong"';
                 }
 
@@ -2681,7 +2897,6 @@
                 const group = tokenCache.find(t=> t.key === fbKey)?.firebaseGroup;
                  if(group) {
                     updates[`${group}/submitted_exams/${fbKey}/${studentIdPadded}`] = { isSubmitted: true, timestamp: Date.now() };
-                    // [PERBAIKAN] Tambahkan update untuk menonaktifkan status isLoggedIn
                     updates[`${group}/exam_access_status/${fbKey}/${studentIdPadded}/isLoggedIn`] = false;
                 }
             }
@@ -2751,7 +2966,7 @@
     };
     
     function loadSetlokasiSettings() { return new Promise(r => onValue(ref(setupDbInstance, 'setlokasi'), s => { const val=s.val()||{}; isLocationEnabledAdmin=val.isLocationEnabled||!1; allowedRadiusMeterAdmin=(val.allowedRadiusKm||0.075)*1000; currentLocationKeyAdmin=val.currentKey||''; keyLastGeneratedAdmin=val.keyLastGenerated||0; if(isLocationEnabledAdmin && Date.now()-keyLastGeneratedAdmin > FIFTEEN_MINUTES_IN_MS) update(ref(setupDbInstance,'setlokasi'),{currentKey:generateRandomKey(5),keyLastGenerated:Date.now()}); r(); }, {onlyOnce:!0})); }
-    // FIXED: Corrected { only Once: true } to { onlyOnce: true }
+    
     function loadBlockKeySettings() { return new Promise(r => onValue(ref(setupDbInstance, 'block_key_settings'), s => { const val = s.val() || {}; isBlockKeyEnabledAdmin = val.isEnabled || false; currentBlockKeyAdmin = val.key || "BUKA"; r(); }, { onlyOnce: true })); }
     function loadMinDurationSettings() { return new Promise(r => onValue(ref(setupDbInstance, 'min_duration_settings'), s => { const val=s.val()||{}; isMinDurationEnabledAdmin=val.isMinDurationEnabled||!1; minSubmitDurationSecondsAdmin=val.minDurationSeconds||1800; r(); }, {onlyOnce:!0})); }
     
