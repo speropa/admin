@@ -102,6 +102,14 @@
       box-shadow: 0 4px 8px rgba(0,0,0,0.2);
     }
     
+    /* UPDATE: Tambahkan class utility untuk flex full height agar lebih rapi */
+    .flex-column-full {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0; /* Penting untuk nested flex scrolling */
+    }
+
     /* Input field umum */
     input, select, textarea {
       padding: 12px; margin: 8px 0; width: 100%;
@@ -730,8 +738,9 @@
         <div id="currentTime" class="date-time"></div>
       </div>
     </div>
-    <!-- UPDATE: Menambahkan height: 100% pada dashboardContent agar anak elemen bisa menggunakan height 100% -->
-    <div id="dashboardContent" style="display:none; height: 100%;">
+    
+    <!-- UPDATE: Mengubah style dashboardContent menjadi Flexbox agar anak elemennya bisa stretch -->
+    <div id="dashboardContent" style="display:none; flex-direction: column; flex: 1; height: 100%; min-height: 0;">
       <div id="dashboardSection" class="dashboard-section container">
         <div class="highlight-cards" id="highlightCards">
         </div>
@@ -740,13 +749,16 @@
             </div>
         </div>
       </div>
-      <!-- UPDATE: Mengubah height menjadi 100% dan menghapus margin-bottom agar pas satu layar -->
-      <div id="bankSoalSection" class="dashboard-section container" style="display: flex; flex-direction: column; height: 100%; margin-bottom: 0;">
+      
+      <!-- UPDATE: Menggunakan Flexbox (flex: 1) untuk memastikan section ini mengisi sisa ruang vertical -->
+      <div id="bankSoalSection" class="dashboard-section container" style="display: flex; flex-direction: column; flex: 1; margin-bottom: 0; min-height: 0; padding-bottom: 10px;">
         <h1 id="bankSoalSectionTitle" style="text-align: left; color: #34495e; flex-shrink: 0;">Manajemen Bank Soal</h1>
-        <div style="flex-grow: 1; position: relative;">
-          <iframe id="bankSoalFrame" style="width: 100%; height: 100%; border: none;" title="Bank Soal"></iframe>
+        <!-- Container iframe dibuat flex: 1 agar iframe memanjang otomatis -->
+        <div style="flex: 1; position: relative; display: flex; flex-direction: column; overflow: hidden; background: #fff;">
+          <iframe id="bankSoalFrame" style="flex: 1; width: 100%; border: none; height: 100%;" title="Bank Soal"></iframe>
         </div>
       </div>
+      
       <div id="tokenSection" class="dashboard-section container">
         <h1 id="tokenSectionTitle" style="text-align: left; color: #34495e;">Manajemen Token</h1>
         <div class="controls-header">
@@ -1497,9 +1509,10 @@
     function initializeAppUI() {
         loginSection.style.display = 'none';
         sidebar.style.display = 'flex';
-        dashboardContent.style.display = 'block'; 
+        // UPDATE: Ubah display menjadi flex agar struktur flexbox bekerja
+        dashboardContent.style.display = 'flex'; 
         document.body.style.flexDirection = 'row'; 
-        document.body.style.alignItems = 'flex-start';
+        document.body.style.alignItems = 'stretch'; /* Pastikan stretch */
         document.body.style.justifyContent = 'flex-start';
         showSection('dashboardSection');
     }
