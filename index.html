@@ -3,32 +3,28 @@
 <head>
   <meta charset="UTF-8" />
   <title>Panel Admin Ujian</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=0.67" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
   <style>
-    /* UPDATE: Hardening Layout untuk html dan body agar tahan terhadap Zoom Out */
     html, body {
-      height: 100%; /* Paksa tinggi 100% */
+      height: 100%;
       margin: 0;
       padding: 0;
-      overflow: hidden; /* Mencegah scroll ganda pada body */
+      overflow: hidden;
     }
-
-      body {
+    body {
       font-family: 'Inter', sans-serif;
       background-color: #f4f7f6;
       display: flex;
       width: 100%;
     }
-    
-    /* Sidebar disembunyikan secara default */
     .sidebar {
       width: 220px;
       background-color: #2c3e50;
       color: white;
       padding: 20px;
       box-shadow: 2px 0 10px rgba(0,0,0,0.1);
-      display: none; /* Disembunyikan, akan ditampilkan via JS setelah login */
+      display: none;
       flex-direction: column;
       align-items: center;
       position: sticky;
@@ -40,22 +36,18 @@
       box-sizing: border-box;
       transition: width 0.3s ease;
     }
-    
-    /* Konten utama */
     .main-content {
       flex-grow: 1;
       padding: 20px;
       background-color: #f4f7f6;
       display: flex;
       flex-direction: column;
-      overflow-y: auto; /* Scroll hanya terjadi di sini */
-      height: 100%; /* Mengikuti tinggi induk (body) */
+      overflow-y: auto;
+      height: 100%;
       box-sizing: border-box;
       width: 100%;
-      position: relative; /* Penting untuk konteks stacking */
+      position: relative;
     }
-    
-    /* Kontainer umum untuk bagian-bagian */
     .container {
       background: white;
       padding: 25px;
@@ -65,7 +57,6 @@
       width: 100%;
       box-sizing: border-box;
     }
-    /* Logo di sidebar */
     .sidebar .logo-container {
       text-align: center;
       margin-bottom: 30px;
@@ -86,7 +77,6 @@
       white-space: nowrap;
       overflow: hidden;
     }
-    /* Navigasi sidebar */
     .sidebar-nav { width: 100%; flex-grow: 1; }
     .sidebar-nav button {
       background-color: transparent;
@@ -109,15 +99,12 @@
       background-color: #3498db; font-weight: bold;
       box-shadow: 0 4px 8px rgba(0,0,0,0.2);
     }
-    
     .flex-column-full {
         display: flex;
         flex-direction: column;
         flex: 1;
-        min-height: 0; /* Penting untuk nested flex scrolling */
+        min-height: 0;
     }
-
-    /* Input field umum */
     input, select, textarea {
       padding: 12px; margin: 8px 0; width: 100%;
       box-sizing: border-box; font-size: 16px;
@@ -129,7 +116,6 @@
       box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
       outline: none;
     }
-    /* Tombol umum */
     button {
       padding: 12px 25px; margin: 10px auto;
       display: block; font-size: 16px; cursor: pointer;
@@ -144,7 +130,6 @@
       box-shadow: 0 4px 8px rgba(0,0,0,0.15);
     }
     button:active { transform: translateY(0); box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-    /* Gaya tombol teks */
     .text-button {
       padding: 10px 20px; margin: 0; font-size: 15px;
       cursor: pointer; border: none; border-radius: 6px;
@@ -169,8 +154,6 @@
     .text-button.orange:hover { background-color: #FB8C00; }
     .text-button.purple { background-color: #9b59b6; color: white; }
     .text-button.purple:hover { background-color: #8e44ad; }
-
-    /* Gaya tombol ikon */
     .icon-button {
       background: none; border: none; cursor: pointer;
       padding: 8px; margin: 0; display: inline-flex;
@@ -197,7 +180,6 @@
     .icon-button:disabled i {
         color: #9e9e9e !important;
     }
-    /* Tabel responsif */
     .table-responsive {
       overflow-x: auto; -webkit-overflow-scrolling: touch;
       border-radius: 8px;
@@ -248,7 +230,6 @@
     #scoreTableBody td:nth-child(2) {
         white-space: normal;
     }
-    /* Status token */
     .token-status {
       cursor: pointer;
       font-weight: bold;
@@ -276,7 +257,6 @@
     #minDurationSettingsTableBody td, #shuffleSettingsTableBody td {
         text-align: center;
     }
-    /* Modal */
     .modal {
       display: none; position: fixed; z-index: 1000;
       left: 0; top: 0; width: 100%; height: 100%;
@@ -306,8 +286,6 @@
       padding: 10px 20px; font-size: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
       transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
     }
-
-    /* Specific modal button styles */
     .modal button.confirm-button { background-color: #28a745; color: white; }
     .modal button.confirm-button:hover { background-color: #218838; }
     .modal button.cancel-button { background-color: #dc3545; color: white; }
@@ -322,8 +300,6 @@
     .modal button.orange:hover { background-color: #FB8C00; }
     .modal button.purple { background-color: #9b59b6; color: white; }
     .modal button.purple:hover { background-color: #8e44ad; }
-
-    /* Style untuk tombol tutup modal yang lebih profesional */
     .modal-close-btn {
         background: transparent;
         border: none;
@@ -338,8 +314,6 @@
         color: #e74c3c;
         transform: scale(1.1);
     }
-
-    /* Overlay loading */
     .loading-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(255, 255, 255, 0.8);
@@ -353,7 +327,6 @@
       animation: spin 1s ease infinite;
     }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    /* Notifikasi */
     #notification {
       display: none; position: fixed; top: 20px; left: 50%;
       transform: translateX(-50%); background-color: #28a745;
@@ -367,7 +340,6 @@
     .error { color: #e74c3c; font-size: 14px; text-align: center; margin-top: 5px; }
     .footer { text-align: center; margin-top: 20px; color: #7f8c8d; font-size: 13px; }
     .date-time { font-size: 14px; color: #555; }
-    /* Header kontrol */
     .controls-header {
       display: flex;
       flex-wrap: wrap;
@@ -399,13 +371,12 @@
       font-size: 0.9em;
       margin-top: 10px;
       min-height: 40px;
-      /* UPDATE: Menambahkan properti wrapping agar kunci jawaban tidak overflow */
-      white-space: normal;       /* Pastikan teks bisa turun baris */
-      word-wrap: break-word;     /* Support browser lama */
-      overflow-wrap: break-word; /* Standar modern */
-      word-break: break-all;     /* Memaksa break pada string panjang tanpa spasi (seperti A,A,A,A) */
-      max-height: 150px;         /* Opsional: Batasi tinggi jika kuncinya sangat banyak */
-      overflow-y: auto;          /* Opsional: Tambahkan scroll jika terlalu tinggi */
+      white-space: normal;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      word-break: break-all;
+      max-height: 150px;
+      overflow-y: auto;
     }
     .bank-soal-info.not-found { color: #dc3545; font-weight: bold; }
     .bank-soal-info.found { color: #28a745; }
@@ -563,13 +534,11 @@
         width: 100%;
         text-align: center;
     }
-
-    /* UPDATE: Gaya untuk Floating Action Bar */
     .floating-bulk-actions {
         position: fixed;
         bottom: 20px;
         left: 50%;
-        transform: translateX(-50%) translateY(100px); /* Tersembunyi di bawah */
+        transform: translateX(-50%) translateY(100px);
         background-color: #2c3e50;
         padding: 15px 25px;
         border-radius: 50px;
@@ -581,7 +550,7 @@
         transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.27);
     }
     .floating-bulk-actions.visible {
-        transform: translateX(-50%) translateY(0); /* Muncul */
+        transform: translateX(-50%) translateY(0);
     }
     .floating-bulk-actions span {
         color: white;
@@ -735,12 +704,9 @@
     </div>
   </div>
   <div class="main-content" id="mainContent">
-    <!-- Login form disembunyikan secara default (display: none) -->
     <div class="container" id="loginSection" style="max-width: 400px; margin: auto; display: none;">
       <h3 style="text-align: center; color: #2c3e50;">LOGIN ADMINISTRATOR</h3>
       <p id="loginError" class="error"></p>
-      
-      <!-- Container untuk Akun Tersimpan -->
       <div id="savedAccountsWrapper" style="display:none; margin-bottom: 15px; background: #f8f9fa; padding: 10px; border-radius: 6px; border: 1px solid #e9ecef;">
           <label style="font-size: 12px; color: #555; font-weight: bold; display: block; margin-bottom: 5px;">Pilih Akun Tersimpan:</label>
           <div style="display: flex; gap: 5px;">
@@ -752,16 +718,11 @@
               </button>
           </div>
       </div>
-
-      <!-- Atribut autocomplete="off" ditambahkan untuk mencegah browser menampilkan dropdown email -->
       <input type="email" id="email" placeholder="Email" autocomplete="off" />
       <div class="password-input-container">
-        <!-- Atribut autocomplete="new-password" ditambahkan agar browser tidak otomatis mengisi password -->
         <input type="password" id="password" placeholder="Password" autocomplete="new-password" />
         <i class="fas fa-eye toggle-password" id="togglePassword"></i>
       </div>
-      
-      <!-- Checkbox Simpan Akun -->
       <div style="display: flex; align-items: center; margin-bottom: 15px; margin-top: 5px;">
           <input type="checkbox" id="rememberAccount" style="width: auto; margin: 0 8px 0 0;">
           <label for="rememberAccount" style="font-size: 14px; color: #555; cursor: pointer;">Simpan Akun di Perangkat Ini</label>
@@ -773,9 +734,6 @@
         <div id="currentTime" class="date-time"></div>
       </div>
     </div>
-    
-    <!-- UPDATE: Hardening Flex Layout untuk Dashboard Content -->
-    <!-- 'height: 100%' mewarisi height 100% dari .main-content yang mewarisi height 100% dari body -->
     <div id="dashboardContent" style="display:none; flex-direction: column; flex: 1; height: 100%; min-height: 0;">
       <div id="dashboardSection" class="dashboard-section container">
         <div class="highlight-cards" id="highlightCards">
@@ -785,13 +743,8 @@
             </div>
         </div>
       </div>
-      
-      <!-- UPDATE: Absolute Positioning Iframe Container -->
-      <!-- Menggunakan 'flex: 1' untuk mengambil sisa ruang, dan 'position: relative' sebagai jangkar absolute child -->
       <div id="bankSoalSection" class="dashboard-section container" style="display: flex; flex-direction: column; flex: 1; margin-bottom: 0; min-height: 0; padding-bottom: 10px; position: relative;">
         <h1 id="bankSoalSectionTitle" style="text-align: left; color: #34495e; flex-shrink: 0;">Manajemen Bank Soal</h1>
-        
-        <!-- Wrapper Absolute untuk Iframe: Memaksa iframe memenuhi ruang sisa tanpa peduli flex-basis bug -->
         <div style="flex: 1; position: relative; width: 100%; overflow: hidden; background: #fff;">
           <iframe id="bankSoalFrame" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none;" title="Bank Soal"></iframe>
         </div>
@@ -868,7 +821,6 @@
             <table id="studentStatusTable">
                 <thead>
                     <tr>
-                        <!-- Checkbox Pilih Semua -->
                         <th style="width: 50px;">
                             <div style="display: flex; align-items: center; justify-content: center; gap: 5px;">
                                 <input type="checkbox" id="selectAllStatus" style="margin: 0; width: 16px; height: 16px;" onchange="toggleSelectAllStatus(this)">
@@ -1131,7 +1083,6 @@
     </div>
   </div>
 
-  <!-- Container Floating Action Bar -->
   <div id="floatingBulkActions" class="floating-bulk-actions">
       <span id="selectedCountDisplay">0 Terpilih</span>
       <button class="text-button purple" onclick="initiateBulkReset()" style="background-color: #9b59b6;"><i class="fas fa-redo"></i> Reset Login</button>
@@ -1140,7 +1091,6 @@
       <button class="icon-button" onclick="clearSelection()" style="background: rgba(255,255,255,0.2); width: 30px; height: 30px;" title="Batalkan Pilihan"><i class="fas fa-times" style="color: white;"></i></button>
   </div>
 
-  <!-- Modals -->
   <div id="addTokenModal" class="modal">
     <div class="modal-content">
         <h4>Tambah Token Baru</h4>
@@ -1256,7 +1206,6 @@
   <div id="submitAnswerModal" class="modal"><div class="modal-content"><h4>Kirim Jawaban Siswa (Manual)</h4><p>Anda yakin ingin menandai ujian yang dipilih untuk siswa <b id="submitStudentNameDisplay"></b> (ID: <b id="submitStudentIdDisplay"></b>) sebagai 'Sudah submit'?</p><p style="font-size: 0.9em; color: #555;">Tindakan ini akan mengunci jawaban siswa untuk ujian yang relevan.</p><div class="modal-buttons"><button onclick="closeSubmitAnswerModal()" class="cancel-button">Batal</button><button onclick="confirmSubmitAnswer()" class="confirm-button">Kirim</button></div></div></div>
   <div id="deleteAnswerModal" class="modal"><div class="modal-content"><h4>Hapus Jawaban Siswa</h4><p>Anda yakin ingin menghapus jawaban dan status submit untuk siswa <b id="deleteAnswerStudentNameDisplay"></b> (ID: <b id="deleteAnswerStudentIdDisplay"></b>) pada ujian yang dipilih?</p><p style="font-size: 0.9em; color: #e74c3c; font-weight: bold;">Tindakan ini tidak dapat dibatalkan!</p><div><label for="deleteAnswerPassword">Password Login Admin:</label><div class="password-input-container"><input type="password" id="deleteAnswerPassword"><i class="fas fa-eye toggle-password"></i></div><p id="deleteAnswerPasswordError" class="error"></p></div><div class="modal-buttons"><button onclick="closeDeleteAnswerModal()" class="cancel-button">Batal</button><button onclick="confirmDeleteAnswer()" class="confirm-button">Hapus Jawaban</button></div></div></div>
   
-  <!-- Modal untuk Konfirmasi Aksi Massal -->
   <div id="bulkActionModal" class="modal">
     <div class="modal-content" style="max-width: 600px;">
         <h4 id="bulkActionTitle">Konfirmasi Tindakan Massal</h4>
@@ -1277,7 +1226,6 @@
             </table>
         </div>
 
-        <!-- Input Password untuk Hapus Massal -->
         <div id="bulkActionPasswordContainer" style="display: none; margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px;">
              <label for="bulkActionPassword" style="color: #e74c3c; font-weight: bold;">Password Admin (Wajib untuk Hapus):</label>
              <div class="password-input-container">
@@ -1294,7 +1242,6 @@
     </div>
   </div>
 
-  <!-- Loading Overlay ditampilkan default (display: flex) untuk menutup proses cek login awal -->
   <div id="loadingOverlay" class="loading-overlay" style="display: flex;"><div class="spinner"></div></div>
   
   <div id="emptyTokensModal" class="modal">
@@ -1357,7 +1304,6 @@
       </div>
   </div>
 
-  <!-- Struktur Modal Cetak Kartu dengan Header yang lebih rapi -->
   <div id="printCardModal" class="modal">
     <div class="modal-content" style="max-width: 95%; width: 1200px; height: 90vh; display: flex; flex-direction: column; padding: 0; overflow: hidden;">
       <div style="padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; background-color: #f8f9fa;">
@@ -1446,7 +1392,7 @@
 
     const SAVED_ACCOUNTS_KEY = 'examAdmin_saved_accounts_v1';
 
-    let selectedItemsPerPage = parseInt(localStorage.getItem('selectedItemsPerPage') || '50', 10);
+    let selectedItemsPerPage = parseInt(localStorage.getItem('selectedItemsPerPage') || '200', 10);
     let currentPageManagement = parseInt(localStorage.getItem('currentPageManagement') || '1', 10);
     let currentPageStatus = parseInt(localStorage.getItem('currentPageStatus') || '1', 10);
     let currentPageScore = parseInt(localStorage.getItem('currentPageScore') || '1', 10);
@@ -2190,11 +2136,15 @@
         }
     };
     
-    function renderStudentManagementTable(page = 1) {
+    window.renderStudentManagementTable = function(page = 1) {
         currentPageManagement = page;
         localStorage.setItem('currentPageManagement', currentPageManagement);
         
-        let studentsToDisplay = [...studentCache].sort((a,b) => a.class.localeCompare(b.class) || a.name.localeCompare(b.name));
+        let studentsToDisplay = [...studentCache].sort((a,b) => {
+            const classComparison = a.class.toString().localeCompare(b.class.toString(), undefined, {numeric: true, sensitivity: 'base'});
+            if (classComparison !== 0) return classComparison;
+            return a.name.toString().localeCompare(b.name.toString(), undefined, {sensitivity: 'base'});
+        });
         
         const searchId = document.getElementById('studentSearchId').value.trim();
         if (searchId) studentsToDisplay = studentsToDisplay.filter(s => s.id.includes(searchId));
@@ -2229,7 +2179,7 @@
         renderPaginationControls(studentPaginationDiv, page, totalPages, 'renderStudentManagementTable');
     }
 
-    function renderStudentStatusTable(page = 1) {
+    window.renderStudentStatusTable = function(page = 1) {
         currentPageStatus = page;
         localStorage.setItem('currentPageStatus', currentPageStatus);
     
@@ -2266,6 +2216,12 @@
         if (searchName) studentsToDisplay = studentsToDisplay.filter(s => s.name.toUpperCase().includes(searchName));
         const searchClass = document.getElementById('studentStatusSearchClass').value.trim().toUpperCase();
         if (searchClass) studentsToDisplay = studentsToDisplay.filter(s => s.class.toUpperCase().includes(searchClass));
+        
+        studentsToDisplay.sort((a,b) => {
+            const classComparison = a.class.toString().localeCompare(b.class.toString(), undefined, {numeric: true, sensitivity: 'base'});
+            if (classComparison !== 0) return classComparison;
+            return a.name.toString().localeCompare(b.name.toString(), undefined, {sensitivity: 'base'});
+        });
         
         filteredStudentsStatus = studentsToDisplay; 
     
@@ -2851,15 +2807,12 @@
 
             if (lines.length <= 1) errors.push("File CSV kosong atau hanya header.");
             
-            // UPDATE: Deteksi Delimiter (Koma atau Titik Koma)
-            // Memeriksa baris pertama (header) untuk menentukan delimiter yang dipakai
             let delimiter = ',';
             if (lines.length > 0 && lines[0].includes(';')) {
                 delimiter = ';';
             }
 
             for (let i = 1; i < lines.length; i++) {
-                // UPDATE: Menggunakan delimiter dinamis
                 const parts = lines[i].split(delimiter).map(p => p.trim());
                 
                 if (parts.length !== 4) { skipped++; errors.push(`Baris ${i+1}: Format kolom salah.`); continue; }
