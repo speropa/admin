@@ -705,7 +705,10 @@
   </div>
   <div class="main-content" id="mainContent">
     <div class="container" id="loginSection" style="max-width: 400px; margin: auto; display: none;">
-      <h3 style="text-align: center; color: #2c3e50;">LOGIN ADMINISTRATOR</h3>
+      <div style="text-align: center; margin-bottom: 20px;">
+          <img src="https://raw.githubusercontent.com/smp2pajangan/gambar/refs/heads/main/logosmpn2pjg.png" alt="Logo SMPN 2 Pajangan" style="width: 80px; height: 80px; object-fit: contain;">
+      </div>
+      <h3 style="text-align: center; color: #2c3e50; margin-top: 0;">LOGIN ADMINISTRATOR</h3>
       <p id="loginError" class="error"></p>
       <div id="savedAccountsWrapper" style="display:none; margin-bottom: 15px; background: #f8f9fa; padding: 10px; border-radius: 6px; border: 1px solid #e9ecef;">
           <label style="font-size: 12px; color: #555; font-weight: bold; display: block; margin-bottom: 5px;">Pilih Akun Tersimpan:</label>
@@ -728,7 +731,7 @@
           <label for="rememberAccount" style="font-size: 14px; color: #555; cursor: pointer;">Simpan Akun di Perangkat Ini</label>
       </div>
 
-      <button onclick="login()">Login</button>
+      <button id="loginBtn" onclick="login()">Login</button>
       <div class="footer">
         <div>@Admin SMPN 2 Pajangan</div>
         <div id="currentTime" class="date-time"></div>
@@ -1819,12 +1822,26 @@
             }
         });
 
+        // Login Enter Key Listeners
         const emailInput = document.getElementById('email');
         const passwordInput = document.getElementById('password');
-        const loginButton = document.querySelector('#loginSection button');
-        if (emailInput && passwordInput && loginButton) {
-            emailInput.addEventListener('keydown', e => e.key === 'Enter' && (e.preventDefault(), passwordInput.focus()));
-            passwordInput.addEventListener('keydown', e => e.key === 'Enter' && (e.preventDefault(), loginButton.click()));
+        
+        if (emailInput) {
+            emailInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if(passwordInput) passwordInput.focus();
+                }
+            });
+        }
+        
+        if (passwordInput) {
+            passwordInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    window.login();
+                }
+            });
         }
     };
 
