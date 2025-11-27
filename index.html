@@ -1194,12 +1194,10 @@
 
   <div id="deleteModal" class="modal"><div class="modal-content"><h4 style="text-align:center;">Hapus Token</h4><p>Yakin ingin menghapus token ini?</p><div class="modal-buttons"><button onclick="closeDeleteModal()" class="cancel-button">Batal</button><button onclick="confirmDelete()" class="confirm-button">Hapus</button></div></div></div>
   
-  <!-- MODIFIKASI: Menghapus input password dari modal ini -->
   <div id="forceActiveModal" class="modal">
     <div class="modal-content">
         <h4>Aktifkan Token Secara Paksa?</h4>
         <p>Token ini akan dapat diakses kapanpun, mengabaikan jadwal yang ada.</p>
-        <!-- Bagian input password dihapus -->
         <div class="modal-buttons">
             <button onclick="closeForceActiveModal()" class="cancel-button">Batal</button>
             <button onclick="confirmForceActive()" class="confirm-button">Ya, Aktifkan</button>
@@ -1210,12 +1208,10 @@
   <div id="forceInactiveModal" class="modal"><div class="modal-content"><h4>Nonaktifkan Mode Paksa?</h4><p>Token akan kembali ke pengaturan jadwal semula.</p><div class="modal-buttons"><button onclick="closeForceInactiveModal()" class="cancel-button">Batal</button><button onclick="confirmForceInactive()" class="confirm-button">Ya, Nonaktifkan</button></div></div></div>
   <div id="notification" class="notification"><span id="notificationMessage"></span></div>
   
-  <!-- MODIFIKASI: Update struktur modal untuk mendukung banyak pilihan -->
   <div id="copyPrintModal" class="modal">
     <div class="modal-content">
         <h4 id="copyPrintModalTitle"></h4>
         
-        <!-- Opsi Standar (Hanya Salin) -->
         <div id="genericExportOptions">
             <button onclick="copyTableToClipboard()" class="confirm-button" style="width: 100%; margin-bottom: 10px;">
                 <i class="fas fa-copy"></i> Salin Tabel
@@ -1225,18 +1221,15 @@
             </p>
         </div>
 
-        <!-- Opsi Khusus Nilai (Tinggal 2 Pilihan: Salin & PDF) -->
         <div id="scoreExportOptions" style="display: none; flex-direction: column; gap: 10px;">
             <button onclick="copyTableToClipboard()" class="text-button blue-gray" style="width: 100%; justify-content: center; padding: 12px;">
                 <i class="fas fa-copy"></i> Salin Tabel
             </button>
-            <!-- Tombol CSV dihapus -->
             <button onclick="printScoreToPDF()" class="text-button red" style="width: 100%; justify-content: center; padding: 12px;">
                 <i class="fas fa-file-pdf"></i> Cetak / Simpan PDF
             </button>
         </div>
 
-        <!-- FITUR BARU: Opsi Khusus Token (Salin & PDF) -->
         <div id="tokenExportOptions" style="display: none; flex-direction: column; gap: 10px;">
             <button onclick="copyTableToClipboard()" class="text-button blue-gray" style="width: 100%; justify-content: center; padding: 12px;">
                 <i class="fas fa-copy"></i> Salin Tabel
@@ -1385,45 +1378,26 @@
     import { getDatabase, ref, push, onValue, update, remove, get, set } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
     import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, EmailAuthProvider, reauthenticateWithCredential, setPersistence, inMemoryPersistence } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
 
-    const allFirebaseConfigs = {
-        '7ABC': { apiKey: "AIzaSyBAKwT7JY_HGnvK6h3u30-dfgRPXfef8l8", authDomain: "abc-a13ea.firebaseapp.com", projectId: "abc-a13ea", databaseURL: "https://abc-a13ea-default-rtdb.firebaseio.com", storageBucket: "abc-a13ea.firebasestorage.app", messagingSenderId: "1052966795599", appId: "1:1052966795599:web:d4d331199ca9081321ed3a" },
-        '7DEF': { apiKey: "AIzaSyBkhBZw3oADXUAJ9FXY9-g7XBsSmQhzZVk", authDomain: "def-ab5ee.firebaseapp.com", projectId: "def-ab5ee", databaseURL: "https://def-ab5ee-default-rtdb.firebaseio.com", storageBucket: "def-ab5ee.firebasestorage.app", messagingSenderId: "129712840107", appId: "1:129712840107:web:ab10576fed95f735dd46ee" },
-        '8ABC': { apiKey: "AIzaSyAwilwwwEJ2MAdSf09BotxNH-z6RiXaHXY", authDomain: "abc-43e73.firebaseapp.com", projectId: "abc-43e73", databaseURL: "https://abc-43e73-default-rtdb.firebaseio.com", storageBucket: "abc-43e73.firebasestorage.app", messagingSenderId: "1043754727577", appId: "1:1043754727577:web:56c3732bf2a6ac900c2008" },
-        '8DEF': { apiKey: "AIzaSyBeCI57lmZ4-8DAKYJ7nvYjnXOfvy0vqrk", authDomain: "def-efcb2.firebaseapp.com", projectId: "def-efcb2", databaseURL: "https://def-efcb2-default-rtdb.firebaseio.com", storageBucket: "def-efcb2.firebasestorage.app", messagingSenderId: "12569956361", appId: "1:12569956361:web:fea36c4e034e65f33ba8d8" },
-        '9ABC': { apiKey: "AIzaSyBZ6JR3ggnUiZFQ-wdrewbfhzMUwFaGGzQ", authDomain: "abc-d272a.firebaseapp.com", projectId: "abc-d272a", databaseURL: "https://abc-d272a-default-rtdb.firebaseio.com", storageBucket: "abc-d272a.firebasestorage.app", messagingSenderId: "1036605132828", appId: "1:1036605132828:web:2b59f91290d50afe304fd9" },
-        '9DEF': { apiKey: "AIzaSyC2iwuDMWTaJIG8g464Wt0En3CXI2DZiz4", authDomain: "def-85f32.firebaseapp.com", projectId: "def-85f32", databaseURL: "https://def-85f32-default-rtdb.firebaseio.com", storageBucket: "def-85f32.firebasestorage.app", messagingSenderId: "82670626048", appId: "1:82670626048:web:f5fdfda8fe078245b6bfe5" },
-        'SETUP': { apiKey: "AIzaSyBbXJ4VuACXyHJhl2eVSB2vHiT6hrx-XnE", authDomain: "setup-73809.firebaseapp.com", projectId: "setup-73809", databaseURL: "https://setup-73809-default-rtdb.firebaseio.com", storageBucket: "setup-73809.firebasestorage.app", messagingSenderId: "843995999446", appId: "1:843995999446:web:7fd92546f2d0bea73fed77" }
+    // SINGLE FIREBASE CONFIG (BLAZE PLAN) - SETUP PUSAT
+    const firebaseConfig = {
+        apiKey: "AIzaSyBbXJ4VuACXyHJhl2eVSB2vHiT6hrx-XnE",
+        authDomain: "setup-73809.firebaseapp.com",
+        projectId: "setup-73809",
+        databaseURL: "https://setup-73809-default-rtdb.firebaseio.com",
+        storageBucket: "setup-73809.firebasestorage.app",
+        messagingSenderId: "843995999446",
+        appId: "1:843995999446:web:7fd92546f2d0bea73fed77"
     };
     
-    const appInstances = {};
-    const authInstances = {}; 
-    const dbInstances = {};
-    
-    for (const groupKey in allFirebaseConfigs) {
-        if (allFirebaseConfigs.hasOwnProperty(groupKey)) {
-            const config = allFirebaseConfigs[groupKey];
-            const appInstance = initializeApp(config, groupKey);
-            authInstances[groupKey] = getAuth(appInstance);
-            dbInstances[groupKey] = getDatabase(appInstance);
-        }
-    }
-
-    const gradeToDbGroupMap = {
-        '7': ['7ABC', '7DEF'],
-        '8': ['8ABC', '8DEF'],
-        '9': ['9ABC', '9DEF']
-    };
-
-    const rombelToDbMap = {
-        '7A': '7ABC', '7B': '7ABC', '7C': '7ABC', '7D': '7DEF', '7E': '7DEF', '7F': '7DEF',
-        '8A': '8ABC', '8B': '8ABC', '8C': '8ABC', '8D': '8DEF', '8E': '8DEF', '8F': '8DEF',
-        '9A': '9ABC', '9B': '9ABC', '9C': '9ABC', '9D': '9DEF', '9E': '9DEF', '9F': '9DEF'
-    };
+    // Initialize Single Instance
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
 
     const THIRTY_DAYS_IN_MS = 30 * 24 * 60 * 60 * 1000;
     const FIFTEEN_MINUTES_IN_MS = 15 * 60 * 1000;
     const ONE_WEEK_IN_MS = 7 * 24 * 60 * 60 * 1000;
-    const VALID_ROMBELS = Object.keys(rombelToDbMap);
+    const VALID_ROMBELS = ['7A', '7B', '7C', '7D', '7E', '7F', '8A', '8B', '8C', '8D', '8E', '8F', '9A', '9B', '9C', '9D', '9E', '9F'];
     const defaultLocationCoordinate = "-7.8589546,110.2655596";
 
     let isImporting = false;
@@ -1478,8 +1452,6 @@
         kelas9: { enabled: false, url: '' },
         susulan: { enabled: false, list: {} }
     };
-
-    const setupDbInstance = dbInstances['SETUP'];
     
     let lastSelectedTokens = { '7': 'DEFAULT', '8': 'DEFAULT', '9': 'DEFAULT' };
     
@@ -1519,10 +1491,8 @@
 
     const padStudentId = (id) => String(id).padStart(3, '0');
     const padRoomNumber = (room) => { if (!room) return '-'; const numRoom = parseInt(room, 10); return !isNaN(numRoom) ? String(numRoom).padStart(2, '0') : String(room).toUpperCase(); };
-    const formatLocalDateTime = (date) => { const year = date.getFullYear(); const month = (date.getMonth() + 1).toString().padStart(2, '0'); const day = date.getDate().toString().padStart(2, '0'); const hours = date.getHours().toString().padStart(2, '0'); const minutes = date.getMinutes().toString().padStart(2, '0'); return `${year}-${month}-${day}T${hours}:${minutes}`; };
     const formatDisplayTime = (dateTimeString) => { if (!dateTimeString) return '-'; const date = new Date(dateTimeString); return date.toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' }); };
     const getNumericClass = (classString) => String(classString || '').match(/^(\d+)/)?.[1] || null;
-    const getDbForClass = (classIdentifier) => { const numericClass = getNumericClass(classIdentifier); if (rombelToDbMap[classIdentifier]) { return dbInstances[rombelToDbMap[classIdentifier]]; } if (gradeToDbGroupMap[numericClass]) { return gradeToDbGroupMap[numericClass].map(dbName => dbInstances[dbName]); } console.error(`Instance database tidak ditemukan untuk identifier: ${classIdentifier}`); return null; };
     const escapeHtmlAttributeForJsString = (s) => String(s).replace(/&/g, '&amp;').replace(/'/g, '&#39;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&#x3E;');
     const showNotification = (message, isError = false) => { 
         const n = document.getElementById('notification');
@@ -1559,7 +1529,7 @@
         showSection('dashboardSection');
     }
     
-    onAuthStateChanged(authInstances['SETUP'], async (user) => {
+    onAuthStateChanged(auth, async (user) => {
         if (user) {
             loadingOverlay.style.display = 'flex';
             await loadAndSetBankSoalUrl();
@@ -1576,7 +1546,7 @@
 
     async function loadAndSetBankSoalUrl() {
         try {
-            const snapshot = await get(ref(setupDbInstance, 'adminbanksoal/url'));
+            const snapshot = await get(ref(db, 'adminbanksoal/url'));
             if (snapshot.exists()) {
                 const url = snapshot.val();
                 const iframe = document.getElementById('bankSoalFrame');
@@ -1614,15 +1584,13 @@
     }
     
     function setupRealtimeListeners() {
-        const dbNames = Object.keys(gradeToDbGroupMap).flatMap(grade => gradeToDbGroupMap[grade]);
-        const totalInitialListeners = dbNames.length * 5; 
+        // Karena sekarang Single DB, kita tidak perlu looping dbNames.
+        // Cukup listen sekali ke root node masing-masing entity di 'db' (setupDb)
+        
         let loadedListeners = 0;
+        const totalInitialListeners = 5; 
         let initialLoadDone = false;
 
-        let liveData = {
-            tokens: {}, students: {}, access: {}, submitted: {}, answers: {}
-        };
-        
         const onDataReceived = () => {
             if (!initialLoadDone) {
                 loadedListeners++;
@@ -1638,49 +1606,49 @@
             }
         };
         
-        dbNames.forEach(dbName => {
-            onValue(ref(dbInstances[dbName], 'tokens'), (snapshot) => {
-                liveData.tokens[dbName] = [];
-                snapshot.forEach(child => {
-                    const data = child.val();
-                    data.key = child.key;
-                    data.firebaseGroup = dbName;
-                    if (data.createdAt && (Date.now() - data.createdAt) > THIRTY_DAYS_IN_MS) {
-                        remove(ref(dbInstances[dbName], 'tokens/' + data.key));
-                        return;
-                    }
-                    liveData.tokens[dbName].push(data);
-                });
-                tokenCache = Object.values(liveData.tokens).flat();
-                onDataReceived();
+        // Listen Tokens
+        onValue(ref(db, 'tokens'), (snapshot) => {
+            const tokensList = [];
+            snapshot.forEach(child => {
+                const data = child.val();
+                data.key = child.key;
+                data.firebaseGroup = 'central'; // Dummy group for compatibility
+                if (data.createdAt && (Date.now() - data.createdAt) > THIRTY_DAYS_IN_MS) {
+                    remove(ref(db, 'tokens/' + data.key));
+                    return;
+                }
+                tokensList.push(data);
             });
+            tokenCache = tokensList;
+            onDataReceived();
+        });
 
-            onValue(ref(dbInstances[dbName], 'students'), (snapshot) => {
-                liveData.students[dbName] = [];
-                snapshot.forEach(child => {
-                    liveData.students[dbName].push({ ...child.val(), key: child.key, firebaseGroup: dbName });
-                });
-                studentCache = Object.values(liveData.students).flat();
-                onDataReceived();
+        // Listen Students
+        onValue(ref(db, 'students'), (snapshot) => {
+            const studentsList = [];
+            snapshot.forEach(child => {
+                studentsList.push({ ...child.val(), key: child.key, firebaseGroup: 'central' });
             });
+            studentCache = studentsList;
+            onDataReceived();
+        });
 
-            onValue(ref(dbInstances[dbName], 'exam_access_status'), (snapshot) => {
-                liveData.access[dbName] = snapshot.val() || {};
-                tokenAccessStatus = Object.values(liveData.access).reduce((acc, val) => ({ ...acc, ...val }), {});
-                onDataReceived();
-            });
+        // Listen Access Status
+        onValue(ref(db, 'exam_access_status'), (snapshot) => {
+            tokenAccessStatus = snapshot.val() || {};
+            onDataReceived();
+        });
 
-            onValue(ref(dbInstances[dbName], 'submitted_exams'), (snapshot) => {
-                liveData.submitted[dbName] = snapshot.val() || {};
-                submittedExamsCache = Object.values(liveData.submitted).reduce((acc, val) => ({ ...acc, ...val }), {});
-                onDataReceived();
-            });
+        // Listen Submitted Exams
+        onValue(ref(db, 'submitted_exams'), (snapshot) => {
+            submittedExamsCache = snapshot.val() || {};
+            onDataReceived();
+        });
 
-            onValue(ref(dbInstances[dbName], 'student_answers'), (snapshot) => {
-                liveData.answers[dbName] = snapshot.val() || {};
-                studentAnswersCache = Object.values(liveData.answers).reduce((acc, val) => ({ ...acc, ...val }), {});
-                onDataReceived();
-            });
+        // Listen Answers
+        onValue(ref(db, 'student_answers'), (snapshot) => {
+            studentAnswersCache = snapshot.val() || {};
+            onDataReceived();
         });
     }
 
@@ -1703,6 +1671,7 @@
     function buildConsolidatedTokensMap() {
         consolidatedTokensMap.clear();
         tokenCache.forEach(tokenData => {
+            // Logic ini dipertahankan agar jika ada nama token sama di kelas sama (meski kecil kemungkinan di single DB), tetap aman
             const consolidatedKey = `${tokenData.token}_${tokenData.kelas}`;
             if (!consolidatedTokensMap.has(consolidatedKey)) {
                 consolidatedTokensMap.set(consolidatedKey, { ...tokenData, firebaseKeys: new Set([tokenData.key]), firebaseGroups: new Set([tokenData.firebaseGroup]) });
@@ -1725,8 +1694,8 @@
         loadingOverlay.style.display = 'flex'; 
 
         try {
-            await setPersistence(authInstances['SETUP'], inMemoryPersistence);
-            await Promise.all(Object.values(authInstances).map(auth => signInWithEmailAndPassword(auth, email, password)));
+            await setPersistence(auth, inMemoryPersistence);
+            await signInWithEmailAndPassword(auth, email, password);
             
             if (rememberAccount) {
                 saveAccountToStorage(email, password);
@@ -1851,7 +1820,6 @@
             { id: 'deleteAnswerPassword', action: window.confirmDeleteAnswer },
             { id: 'emptyStudentsPassword', action: window.confirmEmptyStudents },
             { id: 'adminPasswordConfirmation', action: window.confirmEmptyTokens },
-            // MODIFIKASI: Menghapus forceActivePassword dari listener enter key karena inputnya sudah dihapus
             { id: 'restoreAdminPassword', action: window.checkRestoreAdminPassword }
         ];
 
@@ -1994,7 +1962,7 @@
     }
 
     async function reauthenticateAndExecute(password, errorElementId, actionFunction) {
-        const user = authInstances['SETUP'].currentUser; 
+        const user = auth.currentUser; 
         const errorElement = document.getElementById(errorElementId);
         errorElement.innerText = '';
         if (!user || !user.email) return errorElement.innerText = 'Sesi tidak valid. Silakan login ulang.';
@@ -2018,12 +1986,10 @@
         if (isCurrentlyActive) {
             document.getElementById('forceInactiveModal').style.display = 'flex';
         } else {
-            // MODIFIKASI: Tidak perlu reset password field lagi
             document.getElementById('forceActiveModal').style.display = 'flex';
         }
     };
     
-    // MODIFIKASI: Menghapus verifikasi password, langsung eksekusi logika update
     window.confirmForceActive = async () => {
         if (!currentConsolidatedTokenInfo) return;
         
@@ -2031,10 +1997,8 @@
         try {
             const updatePromises = [];
             for (const key of currentConsolidatedTokenInfo.firebaseKeys) {
-                const token = tokenCache.find(t => t.key === key);
-                if (token && dbInstances[token.firebaseGroup]) {
-                    updatePromises.push(update(ref(dbInstances[token.firebaseGroup], `tokens/${key}`), { isForceActive: true, isActive: true }));
-                }
+                // Di single DB, path selalu ke root 'tokens'
+                updatePromises.push(update(ref(db, `tokens/${key}`), { isForceActive: true, isActive: true }));
             }
             await Promise.all(updatePromises);
             showNotification('Token diaktifkan secara paksa.');
@@ -2052,10 +2016,7 @@
         try {
             const updatePromises = [];
             for (const key of currentConsolidatedTokenInfo.firebaseKeys) {
-                const token = tokenCache.find(t => t.key === key);
-                if (token && dbInstances[token.firebaseGroup]) {
-                    updatePromises.push(update(ref(dbInstances[token.firebaseGroup], `tokens/${key}`), { isForceActive: false }));
-                }
+                updatePromises.push(update(ref(db, `tokens/${key}`), { isForceActive: false }));
             }
             await Promise.all(updatePromises);
             showNotification('Mode paksa dinonaktifkan.');
@@ -2088,19 +2049,18 @@
         const endTimeObj = new Date(endTime);
         if (startTimeObj >= endTimeObj) return errorMsg.innerText = "Waktu buka harus sebelum waktu tutup!";
         
+        // Cek duplikasi di cache global
         if (tokenCache.some(item => item.token === token && getNumericClass(item.kelas) === getNumericClass(kelas))) {
             return errorMsg.innerText = "Token sudah ada untuk kelas ini!";
         }
         
-        const targetDbs = getDbForClass(kelas);
-        if (!targetDbs || targetDbs.length === 0) return errorMsg.innerText = "Konfigurasi DB tidak ditemukan untuk kelas ini.";
-
         loadingOverlay.style.display = 'flex';
         const durationMinutes = Math.round((endTimeObj.getTime() - startTimeObj.getTime()) / 60000);
         const data = { subject, kelas, token, tahunAjaran, ujianName, startTime, endTime, durationMinutes, createdAt: Date.now(), isActive: false, isForceActive: false };
         
         try {
-            await Promise.all(targetDbs.map(db => push(ref(db, 'tokens'), data)));
+            // Langsung push ke single DB
+            await push(ref(db, 'tokens'), data);
             showNotification('Token berhasil ditambahkan!');
             closeAddTokenModal();
         } catch (err) {
@@ -2162,17 +2122,15 @@
       try {
           if (oldKelas !== newKelas || oldToken !== token) {
               const deletePromises = Array.from(currentConsolidatedTokenInfo.firebaseKeys).flatMap(fbKey => {
-                  const t = tokenCache.find(tok => tok.key === fbKey);
-                  return t ? [remove(ref(dbInstances[t.firebaseGroup], `tokens/${fbKey}`))] : [];
+                  return [remove(ref(db, `tokens/${fbKey}`))];
               });
               await Promise.all(deletePromises);
-              const newTargetDbs = getDbForClass(newKelas);
-              await Promise.all(newTargetDbs.map(db => push(ref(db, 'tokens'), updatedData)));
+              // Push baru ke single DB
+              await push(ref(db, 'tokens'), updatedData);
               showNotification(`Token berhasil dipindahkan ke kelas ${newKelas}!`);
           } else {
               const updatePromises = Array.from(currentConsolidatedTokenInfo.firebaseKeys).map(fbKey => {
-                  const t = tokenCache.find(item => item.key === fbKey);
-                  return t ? update(ref(dbInstances[t.firebaseGroup], `tokens/${fbKey}`), updatedData) : Promise.resolve();
+                  return update(ref(db, `tokens/${fbKey}`), updatedData);
               });
               await Promise.all(updatePromises);
               showNotification('Token berhasil diedit!');
@@ -2197,13 +2155,12 @@
         loadingOverlay.style.display = 'flex';
         try {
             const deletePromises = Array.from(currentConsolidatedTokenInfo.firebaseKeys).flatMap(fbKey => {
-                const t = tokenCache.find(tok => tok.key === fbKey);
-                return t ? [
-                    remove(ref(dbInstances[t.firebaseGroup], `tokens/${fbKey}`)),
-                    remove(ref(dbInstances[t.firebaseGroup], `exam_access_status/${fbKey}`)),
-                    remove(ref(dbInstances[t.firebaseGroup], `submitted_exams/${fbKey}`)),
-                    remove(ref(dbInstances[t.firebaseGroup], `student_answers/${fbKey}`))
-                ] : [];
+                return [
+                    remove(ref(db, `tokens/${fbKey}`)),
+                    remove(ref(db, `exam_access_status/${fbKey}`)),
+                    remove(ref(db, `submitted_exams/${fbKey}`)),
+                    remove(ref(db, `student_answers/${fbKey}`))
+                ];
             });
             await Promise.all(deletePromises);
             showNotification('Token dan semua data terkait berhasil dihapus!');
@@ -2561,7 +2518,7 @@
 
             loadingOverlay.style.display = 'flex';
             try {
-                const user = authInstances['SETUP'].currentUser;
+                const user = auth.currentUser;
                 await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, password));
             } catch (error) {
                 loadingOverlay.style.display = 'none';
@@ -2593,32 +2550,23 @@
                 });
 
                 relevantFbKeys.forEach(fbKey => {
-                    const group = tokenCache.find(t => t.key === fbKey)?.firebaseGroup;
-                    if(group) {
-                        if (pendingBulkActionType === 'RESET') {
-                            updates[`${group}/exam_access_status/${fbKey}/${studentIdPadded}/isLoggedIn`] = false;
-                        
-                        } else if (pendingBulkActionType === 'SUBMIT') {
-                            updates[`${group}/submitted_exams/${fbKey}/${studentIdPadded}`] = { isSubmitted: true, timestamp: Date.now() };
-                            updates[`${group}/exam_access_status/${fbKey}/${studentIdPadded}/isLoggedIn`] = false;
-                        
-                        } else if (pendingBulkActionType === 'DELETE') {
-                            updates[`${group}/submitted_exams/${fbKey}/${studentIdPadded}`] = null;
-                            updates[`${group}/student_answers/${fbKey}/${studentIdPadded}`] = null;
-                            updates[`${group}/exam_access_status/${fbKey}/${studentIdPadded}`] = null;
-                        }
+                    if (pendingBulkActionType === 'RESET') {
+                        updates[`exam_access_status/${fbKey}/${studentIdPadded}/isLoggedIn`] = false;
+                    
+                    } else if (pendingBulkActionType === 'SUBMIT') {
+                        updates[`submitted_exams/${fbKey}/${studentIdPadded}`] = { isSubmitted: true, timestamp: Date.now() };
+                        updates[`exam_access_status/${fbKey}/${studentIdPadded}/isLoggedIn`] = false;
+                    
+                    } else if (pendingBulkActionType === 'DELETE') {
+                        updates[`submitted_exams/${fbKey}/${studentIdPadded}`] = null;
+                        updates[`student_answers/${fbKey}/${studentIdPadded}`] = null;
+                        updates[`exam_access_status/${fbKey}/${studentIdPadded}`] = null;
                     }
                 });
             });
 
-             const promises = Object.keys(updates).map(path => {
-                const [group, ...rest] = path.split('/');
-                const db = dbInstances[group];
-                if(db) return update(ref(db), { [rest.join('/')]: updates[path] });
-                return Promise.resolve();
-            });
-
-            await Promise.all(promises);
+            await update(ref(db), updates);
+            
             showNotification(`Aksi massal berhasil dilakukan pada ${pendingBulkActionStudents.length} siswa.`);
             
             selectedStatusKeys.clear();
@@ -2667,16 +2615,18 @@
         errorMsg.innerText = "";
         
         if (!VALID_ROMBELS.includes(studentClass)) return errorMsg.innerText = "Kelas tidak valid.";
-        const targetDb = getDbForClass(studentClass);
-        if (!targetDb || Array.isArray(targetDb)) return errorMsg.innerText = "Konfigurasi DB tidak lengkap.";
         if (!/^\d+$/.test(id)) return errorMsg.innerText = "ID Siswa harus angka!";
         
         const paddedId = padStudentId(id);
-        if (studentCache.some(s => s.id === paddedId && s.firebaseGroup === rombelToDbMap[studentClass])) return errorMsg.innerText = "ID Siswa sudah ada.";
+        
+        // Cek duplikasi di single studentCache
+        if (studentCache.some(s => s.id === paddedId && getNumericClass(s.class) === getNumericClass(studentClass) && s.class === studentClass)) {
+             return errorMsg.innerText = "ID Siswa sudah ada di kelas ini.";
+        }
         
         const data = { id: paddedId, name, class: studentClass, room: padRoomNumber(room) };
         try {
-            await push(ref(targetDb, 'students'), data);
+            await push(ref(db, 'students'), data);
             showNotification('Siswa berhasil ditambahkan.');
             closeAddStudentModal();
         } catch (error) {
@@ -2708,24 +2658,19 @@
         const originalStudent = studentCache.find(s => s.key === currentStudentKey);
         if (!originalStudent) return errorMsg.innerText = "Data siswa asli tidak ditemukan.";
         
-        const oldDb = getDbForClass(originalStudent.class);
-        const newDb = getDbForClass(newClass);
-        if (!oldDb || Array.isArray(oldDb) || !newDb || Array.isArray(newDb)) return errorMsg.innerText = "Konfigurasi DB tidak lengkap.";
-        
         const paddedId = padStudentId(id);
-        if (studentCache.some(s => s.id === paddedId && s.key !== currentStudentKey && s.firebaseGroup === rombelToDbMap[newClass])) return errorMsg.innerText = "ID Siswa sudah ada.";
+        
+        // Cek duplikasi jika ID atau Kelas berubah
+        if ((paddedId !== originalStudent.id || newClass !== originalStudent.class) && 
+            studentCache.some(s => s.id === paddedId && s.class === newClass && s.key !== currentStudentKey)) {
+             return errorMsg.innerText = "ID Siswa sudah ada di kelas tersebut.";
+        }
         
         loadingOverlay.style.display = 'flex';
         const updatedData = { id: paddedId, name, class: newClass, room: padRoomNumber(room) };
         try {
-            if (oldDb.app.name !== newDb.app.name) {
-                await remove(ref(oldDb, 'students/' + currentStudentKey));
-                await push(ref(newDb, 'students'), updatedData);
-                showNotification(`Siswa dipindahkan ke kelas ${newClass}!`);
-            } else {
-                await update(ref(newDb, 'students/' + currentStudentKey), updatedData);
-                showNotification('Data siswa diperbarui.');
-            }
+            await update(ref(db, 'students/' + currentStudentKey), updatedData);
+            showNotification('Data siswa diperbarui.');
             closeEditStudentModal();
         } catch (error) {
             errorMsg.innerText = "Gagal: " + error.message;
@@ -2755,8 +2700,7 @@
     window.closeLogoutModal = () => document.getElementById('logoutConfirmModal').style.display = 'none';
     window.confirmLogout = () => { 
         sidebar.style.display = 'none';
-        Promise.all(Object.values(authInstances).map(auth => signOut(auth)))
-            .finally(() => { localStorage.clear(); location.reload(); });
+        signOut(auth).finally(() => { localStorage.clear(); location.reload(); });
     };
     window.closeResetStudentModal = () => { document.getElementById('resetStudentModal').style.display = 'none'; studentKeyForAction = null; };
     window.closeSubmitAnswerModal = () => { document.getElementById('submitAnswerModal').style.display = 'none'; studentKeyForAction = null; };
@@ -2772,7 +2716,6 @@
     
     window.showPrintInfoModal = () => window.open('https://speropa.github.io/cetakkartu', '_blank');
 
-    // MODIFIKASI: Logika untuk menampilkan opsi yang sesuai berdasarkan tableId
     window.openCopyPrintModal = (tableId, modalTitle) => { 
         currentTableIdToCopy = tableId; 
         document.getElementById('copyPrintModalTitle').innerText = modalTitle; 
@@ -2781,7 +2724,6 @@
         const scoreOptions = document.getElementById('scoreExportOptions');
         const tokenOptions = document.getElementById('tokenExportOptions');
         
-        // Sembunyikan semua opsi terlebih dahulu
         genericOptions.style.display = 'none';
         scoreOptions.style.display = 'none';
         tokenOptions.style.display = 'none';
@@ -2845,11 +2787,8 @@
             ).join('\n');
         }
 
-        // PERBAIKAN: Menggunakan teknik textarea + execCommand agar lebih stabil di semua browser/iframe
         const textArea = document.createElement("textarea");
         textArea.value = textToCopy;
-        
-        // Sembunyikan textarea tapi tetap dalam viewport agar bisa diselect
         textArea.style.position = "fixed";
         textArea.style.left = "-9999px";
         textArea.style.top = "0";
@@ -2886,7 +2825,7 @@
     updateTime();
 
     setInterval(() => {
-        if (authInstances['SETUP'].currentUser && isLocationEnabledAdmin) loadSetlokasiSettings(); 
+        if (auth.currentUser && isLocationEnabledAdmin) loadSetlokasiSettings(); 
         periksaAndUpdateStatusToken(); 
     }, 10 * 1000); 
 
@@ -2894,13 +2833,9 @@
 
     window.confirmDeleteStudent = async () => {
         if (!deleteStudentKey) return;
-        const student = studentCache.find(s => s.key === deleteStudentKey);
-        if (!student) return showNotification("Siswa tidak ditemukan.", true);
-        const targetDb = getDbForClass(student.class);
-        if (!targetDb || Array.isArray(targetDb)) return showNotification("Gagal: DB tidak ditemukan.", true);
         loadingOverlay.style.display = 'flex';
         try {
-            await remove(ref(targetDb, 'students/' + deleteStudentKey));
+            await remove(ref(db, 'students/' + deleteStudentKey));
             showNotification('Siswa berhasil dihapus.');
         } catch (error) {
             showNotification("Gagal: " + error.message, true);
@@ -2932,7 +2867,6 @@
             const lines = e.target.result.split('\n').filter(line => line.trim());
             let imported = 0, skipped = 0, errors = [];
             const batchMap = {};
-            Object.keys(dbInstances).filter(n => n !== 'SETUP').forEach(name => batchMap[name] = {});
 
             if (lines.length <= 1) errors.push("File CSV kosong atau hanya header.");
             
@@ -2947,15 +2881,20 @@
                 if (parts.length !== 4) { skipped++; errors.push(`Baris ${i+1}: Format kolom salah.`); continue; }
                 const [id, name, sClass, room] = parts;
                 if (!/^\d+$/.test(id) || !name || !VALID_ROMBELS.includes(sClass.toUpperCase())) { skipped++; errors.push(`Baris ${i+1}: Data tidak valid.`); continue; }
-                const dbName = rombelToDbMap[sClass.toUpperCase()];
                 const paddedId = padStudentId(id);
-                if (studentCache.some(s => s.id === paddedId && s.firebaseGroup === dbName)) { skipped++; errors.push(`Baris ${i+1}: ID ${id} sudah ada.`); continue; }
                 
-                batchMap[dbName][push(ref(dbInstances[dbName], 'students')).key] = { id: paddedId, name: name.toUpperCase().replace(/'/g, ''), class: sClass.toUpperCase(), room: padRoomNumber(room) };
+                // Cek duplikasi di studentCache single DB
+                if (studentCache.some(s => s.id === paddedId && s.class === sClass.toUpperCase())) { skipped++; errors.push(`Baris ${i+1}: ID ${id} sudah ada.`); continue; }
+                
+                // Kumpulkan update
+                const newKey = push(ref(db, 'students')).key;
+                batchMap[`students/${newKey}`] = { id: paddedId, name: name.toUpperCase().replace(/'/g, ''), class: sClass.toUpperCase(), room: padRoomNumber(room) };
                 imported++;
             }
             try {
-                await Promise.all(Object.keys(batchMap).filter(n => Object.keys(batchMap[n]).length > 0).map(n => update(ref(dbInstances[n], 'students'), batchMap[n])));
+                if(Object.keys(batchMap).length > 0) {
+                    await update(ref(db), batchMap);
+                }
                 showNotification(`${imported} siswa berhasil diimpor!`);
             } catch (err) { errors.push(`Firebase Error: ${err.message}`); }
             
@@ -2972,13 +2911,13 @@
     window.confirmEmptyStudents = async () => {
         const password = document.getElementById('emptyStudentsPassword').value;
         await reauthenticateAndExecute(password, 'emptyStudentsPasswordError', async () => {
-            const promises = [];
-            Object.keys(dbInstances).filter(n => n !== 'SETUP').forEach(dbName => {
-                ['students', 'exam_access_status', 'submitted_exams', 'student_answers'].forEach(node => {
-                    promises.push(remove(ref(dbInstances[dbName], node)));
-                });
-            });
-            await Promise.all(promises);
+            const updates = {};
+            updates['students'] = null;
+            updates['exam_access_status'] = null;
+            updates['submitted_exams'] = null;
+            updates['student_answers'] = null;
+            
+            await update(ref(db), updates);
             showNotification('Semua data peserta berhasil dikosongkan!');
             closeEmptyStudentsModal();
         });
@@ -2989,13 +2928,13 @@
     window.confirmEmptyTokens = async () => {
         const password = document.getElementById('adminPasswordConfirmation').value;
         await reauthenticateAndExecute(password, 'adminPasswordConfirmationError', async () => {
-            const promises = [];
-            Object.keys(dbInstances).filter(n => n !== 'SETUP').forEach(dbName => {
-                ['tokens', 'exam_access_status', 'submitted_exams', 'student_answers'].forEach(node => {
-                    promises.push(remove(ref(dbInstances[dbName], node)));
-                });
-            });
-            await Promise.all(promises);
+            const updates = {};
+            updates['tokens'] = null;
+            updates['exam_access_status'] = null;
+            updates['submitted_exams'] = null;
+            updates['student_answers'] = null;
+            
+            await update(ref(db), updates);
             showNotification('Semua token dan data terkait berhasil dikosongkan!');
             closeEmptyTokensModal();
         });
@@ -3016,7 +2955,6 @@
         scoreTableMessage.style.display = 'block';
         document.getElementById('scoreTable').style.display = 'none';
         
-        // KEMBALIKAN: Hanya handle tombol scorePrintBtn
         document.getElementById('scorePrintBtn').style.display = 'none';
     }
 
@@ -3026,7 +2964,6 @@
 
         if (window.currentScoreGradeFilter === 'ALL') return resetScoreTable();
         
-        // KEMBALIKAN: Tampilkan tombol cetak saja
         document.getElementById('scorePrintBtn').style.display = 'inline-block';
 
         scoreTableMessage.style.display = 'none';
@@ -3104,8 +3041,6 @@
         }
     }
 
-    // FUNGSI CSV DIHAPUS
-
     // FITUR BARU: Cetak Token ke PDF
     window.printTokenToPDF = () => {
         const consolidatedTokens = Array.from(consolidatedTokensMap.values()).sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
@@ -3146,14 +3081,12 @@
                         th, td { border: 1px solid #333; padding: 8px; text-align: center; }
                         th { background-color: #f2f2f2; }
                         
-                        /* PENGATURAN CETAK AGAR BERSIH DARI HEADER/FOOTER BROWSER */
                         @media print {
                             @page { 
                                 size: landscape; 
                                 margin: 0; 
                             }
                             body { 
-                                /* MODIFIKASI: Margin Kiri 3cm, sisanya 1cm (Atas Kanan Bawah Kiri) */
                                 margin: 1cm 1cm 1cm 3cm; 
                                 -webkit-print-color-adjust: exact;
                             }
@@ -3177,10 +3110,9 @@
         closeCopyPrintModal();
     };
 
-    // FITUR BARU: Cetak PDF (Print View)
     window.printScoreToPDF = () => {
         if (!filteredScores || filteredScores.length === 0) {
-            closeCopyPrintModal(); // Tutup modal jika error
+            closeCopyPrintModal(); 
             return showNotification('Tidak ada data nilai untuk dicetak.', true);
         }
 
@@ -3225,9 +3157,8 @@
                         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
                         th, td { border: 1px solid #333; padding: 6px 8px; text-align: center; }
                         th { background-color: #f2f2f2; }
-                        td:nth-child(2) { text-align: left; } /* Nama rata kiri */
+                        td:nth-child(2) { text-align: left; }
                         
-                        /* PENGATURAN CETAK AGAR BERSIH DARI HEADER/FOOTER BROWSER */
                         @media print {
                             @page { 
                                 size: landscape; 
@@ -3254,7 +3185,7 @@
             </html>
         `);
         printWindow.document.close();
-        closeCopyPrintModal(); // Tutup modal setelah jendela cetak terbuka
+        closeCopyPrintModal(); 
     };
 
     window.promptResetStudent = (key, id, name, sClass) => { studentKeyForAction = key; studentIdForAction = id; studentNameForAction = unescape(name); studentClassForAction = sClass; document.getElementById('resetStudentNameDisplay').innerText = unescape(name); document.getElementById('resetStudentIdDisplay').innerText = id; document.getElementById('resetStudentModal').style.display = 'flex'; };
@@ -3284,20 +3215,10 @@
             const studentIdPadded = padStudentId(studentIdForAction);
             
             for (const fbKey of consolidatedToken.firebaseKeys) {
-                const group = tokenCache.find(t=> t.key === fbKey)?.firebaseGroup;
-                if(group) {
-                    updates[`${group}/exam_access_status/${fbKey}/${studentIdPadded}/isLoggedIn`] = false;
-                }
+                updates[`exam_access_status/${fbKey}/${studentIdPadded}/isLoggedIn`] = false;
             }
             
-            const promises = Object.keys(updates).map(path => {
-                const [group, ...rest] = path.split('/');
-                const db = dbInstances[group];
-                if(db) return update(ref(db), { [rest.join('/')]: updates[path] });
-                return Promise.resolve();
-            });
-
-            await Promise.all(promises);
+            await update(ref(db), updates);
             showNotification(`Status login siswa ${studentIdForAction} berhasil direset untuk ujian yang dipilih.`);
 
         } catch (error) { 
@@ -3334,21 +3255,11 @@
             const studentIdPadded = padStudentId(studentIdForAction);
 
             for (const fbKey of consolidatedToken.firebaseKeys) {
-                const group = tokenCache.find(t=> t.key === fbKey)?.firebaseGroup;
-                 if(group) {
-                    updates[`${group}/submitted_exams/${fbKey}/${studentIdPadded}`] = { isSubmitted: true, timestamp: Date.now() };
-                    updates[`${group}/exam_access_status/${fbKey}/${studentIdPadded}/isLoggedIn`] = false;
-                }
+                updates[`submitted_exams/${fbKey}/${studentIdPadded}`] = { isSubmitted: true, timestamp: Date.now() };
+                updates[`exam_access_status/${fbKey}/${studentIdPadded}/isLoggedIn`] = false;
             }
             
-            const promises = Object.keys(updates).map(path => {
-                const [group, ...rest] = path.split('/');
-                const db = dbInstances[group];
-                if(db) return update(ref(db), { [rest.join('/')]: updates[path] });
-                return Promise.resolve();
-            });
-
-            await Promise.all(promises);
+            await update(ref(db), updates);
             showNotification(`Jawaban siswa ${studentIdForAction} untuk ujian yang dipilih berhasil disubmit.`);
         } catch (error) { 
             showNotification("Gagal: " + error.message, true); 
@@ -3384,53 +3295,43 @@
             const studentIdPadded = padStudentId(studentIdForAction);
 
             for (const fbKey of consolidatedToken.firebaseKeys) {
-                const group = tokenCache.find(t => t.key === fbKey)?.firebaseGroup;
-                 if(group) {
-                    updates[`${group}/submitted_exams/${fbKey}/${studentIdPadded}`] = null;
-                    updates[`${group}/student_answers/${fbKey}/${studentIdPadded}`] = null;
-                    updates[`${group}/exam_access_status/${fbKey}/${studentIdPadded}`] = null;
-                 }
+                updates[`submitted_exams/${fbKey}/${studentIdPadded}`] = null;
+                updates[`student_answers/${fbKey}/${studentIdPadded}`] = null;
+                updates[`exam_access_status/${fbKey}/${studentIdPadded}`] = null;
             }
 
-            const promises = Object.keys(updates).map(path => {
-                const [group, ...rest] = path.split('/');
-                const db = dbInstances[group];
-                if(db) return update(ref(db), { [rest.join('/')]: updates[path] });
-                return Promise.resolve();
-            });
-
-            await Promise.all(promises);
+            await update(ref(db), updates);
             showNotification(`Semua jawaban siswa ${studentIdForAction} untuk ujian yang dipilih telah dihapus.`);
             closeDeleteAnswerModal();
         });
     };
     
-    function loadSetlokasiSettings() { return new Promise(r => onValue(ref(setupDbInstance, 'setlokasi'), s => { const val=s.val()||{}; isLocationEnabledAdmin=val.isLocationEnabled||!1; allowedRadiusMeterAdmin=(val.allowedRadiusKm||0.075)*1000; currentLocationKeyAdmin=val.currentKey||''; keyLastGeneratedAdmin=val.keyLastGenerated||0; if(isLocationEnabledAdmin && Date.now()-keyLastGeneratedAdmin > FIFTEEN_MINUTES_IN_MS) update(ref(setupDbInstance,'setlokasi'),{currentKey:generateRandomKey(5),keyLastGenerated:Date.now()}); r(); }, {onlyOnce:!0})); }
+    function loadSetlokasiSettings() { return new Promise(r => onValue(ref(db, 'setlokasi'), s => { const val=s.val()||{}; isLocationEnabledAdmin=val.isLocationEnabled||!1; allowedRadiusMeterAdmin=(val.allowedRadiusKm||0.075)*1000; currentLocationKeyAdmin=val.currentKey||''; keyLastGeneratedAdmin=val.keyLastGenerated||0; if(isLocationEnabledAdmin && Date.now()-keyLastGeneratedAdmin > FIFTEEN_MINUTES_IN_MS) update(ref(db,'setlokasi'),{currentKey:generateRandomKey(5),keyLastGenerated:Date.now()}); r(); }, {onlyOnce:!0})); }
     
-    function loadBlockKeySettings() { return new Promise(r => onValue(ref(setupDbInstance, 'block_key_settings'), s => { const val = s.val() || {}; isBlockKeyEnabledAdmin = val.isEnabled || false; currentBlockKeyAdmin = val.key || "BUKA"; r(); }, { onlyOnce: true })); }
-    function loadMinDurationSettings() { return new Promise(r => onValue(ref(setupDbInstance, 'min_duration_settings'), s => { const val=s.val()||{}; isMinDurationEnabledAdmin=val.isMinDurationEnabled||!1; minSubmitDurationSecondsAdmin=val.minDurationSeconds||1800; r(); }, {onlyOnce:!0})); }
+    function loadBlockKeySettings() { return new Promise(r => onValue(ref(db, 'block_key_settings'), s => { const val = s.val() || {}; isBlockKeyEnabledAdmin = val.isEnabled || false; currentBlockKeyAdmin = val.key || "BUKA"; r(); }, { onlyOnce: true })); }
+    function loadMinDurationSettings() { return new Promise(r => onValue(ref(db, 'min_duration_settings'), s => { const val=s.val()||{}; isMinDurationEnabledAdmin=val.isMinDurationEnabled||!1; minSubmitDurationSecondsAdmin=val.minDurationSeconds||1800; r(); }, {onlyOnce:!0})); }
     
-    function loadShuffleSettings() { return new Promise(r => onValue(ref(setupDbInstance, 'acaksoalpilgan'), s => { shuffleSettingsCache=s.val()||{soal:!0,pilgan:!0}; r(); }, {onlyOnce:!0})); }
+    function loadShuffleSettings() { return new Promise(r => onValue(ref(db, 'acaksoalpilgan'), s => { shuffleSettingsCache=s.val()||{soal:!0,pilgan:!0}; r(); }, {onlyOnce:!0})); }
 
     function renderShuffleSettingsTable() { shuffleSettingsTableBody.innerHTML = `<tr><td>Acak Urutan Soal</td><td style="color:${shuffleSettingsCache.soal?'green':'red'};font-weight:bold;">${shuffleSettingsCache.soal?'ON':'OFF'}</td><td><label class="switch"><input type="checkbox" onchange="toggleShuffleSetting('soal')" ${shuffleSettingsCache.soal?'checked':''}><span class="slider"></span></label></td></tr><tr><td>Acak Urutan Pilihan Ganda</td><td style="color:${shuffleSettingsCache.pilgan?'green':'red'};font-weight:bold;">${shuffleSettingsCache.pilgan?'ON':'OFF'}</td><td><label class="switch"><input type="checkbox" onchange="toggleShuffleSetting('pilgan')" ${shuffleSettingsCache.pilgan?'checked':''}><span class="slider"></span></label></td></tr>`; }
 
-    window.toggleShuffleSetting = async (setting) => { const path = `acaksoalpilgan/${setting}`; const newValue = !shuffleSettingsCache[setting]; loadingOverlay.style.display = 'flex'; try { await update(ref(setupDbInstance), { [path]: newValue }); showNotification(`Pengaturan '${setting}' berhasil diperbarui.`); await loadShuffleSettings(); renderShuffleSettingsTable(); } catch (error) { showNotification(`Gagal memperbarui pengaturan: ${error.message}`, true); } finally { loadingOverlay.style.display = 'none'; } };
+    window.toggleShuffleSetting = async (setting) => { const path = `acaksoalpilgan/${setting}`; const newValue = !shuffleSettingsCache[setting]; loadingOverlay.style.display = 'flex'; try { await update(ref(db), { [path]: newValue }); showNotification(`Pengaturan '${setting}' berhasil diperbarui.`); await loadShuffleSettings(); renderShuffleSettingsTable(); } catch (error) { showNotification(`Gagal memperbarui pengaturan: ${error.message}`, true); } finally { loadingOverlay.style.display = 'none'; } };
 
-    function loadPublicSettings() { return new Promise(r => onValue(ref(setupDbInstance, 'publicSettings'), s => { publicSettingsCache=s.val()||{kelas7:{e:0,u:''},kelas8:{e:0,u:''},kelas9:{e:0,u:''},susulan:{e:0,l:{}}}; cleanUpOldSusulanExams(); r(); }, {onlyOnce:!0})); }
+    function loadPublicSettings() { return new Promise(r => onValue(ref(db, 'publicSettings'), s => { publicSettingsCache=s.val()||{kelas7:{e:0,u:''},kelas8:{e:0,u:''},kelas9:{e:0,u:''},susulan:{e:0,l:{}}}; cleanUpOldSusulanExams(); r(); }, {onlyOnce:!0})); }
 
     function renderPublicSettingsControls() { document.getElementById('kelas7Toggle').checked = publicSettingsCache.kelas7.enabled; document.getElementById('kelas7Url').value = publicSettingsCache.kelas7.url; document.getElementById('kelas8Toggle').checked = publicSettingsCache.kelas8.enabled; document.getElementById('kelas8Url').value = publicSettingsCache.kelas8.url; document.getElementById('kelas9Toggle').checked = publicSettingsCache.kelas9.enabled; document.getElementById('kelas9Url').value = publicSettingsCache.kelas9.url; document.getElementById('susulanToggle').checked = publicSettingsCache.susulan.enabled; }
     
-    window.savePublicSettings = async () => { loadingOverlay.style.display = 'flex'; try { await update(ref(setupDbInstance, 'publicSettings'), { kelas7: { enabled: document.getElementById('kelas7Toggle').checked, url: document.getElementById('kelas7Url').value.trim() }, kelas8: { enabled: document.getElementById('kelas8Toggle').checked, url: document.getElementById('kelas8Url').value.trim() }, kelas9: { enabled: document.getElementById('kelas9Toggle').checked, url: document.getElementById('kelas9Url').value.trim() }, 'susulan/enabled': document.getElementById('susulanToggle').checked }); showNotification('Pengaturan berhasil disimpan!'); await loadPublicSettings(); renderActiveButtonsInfo(); } catch (error) { showNotification('Gagal: ' + error.message, true); } finally { loadingOverlay.style.display = 'none'; } };
+    window.savePublicSettings = async () => { loadingOverlay.style.display = 'flex'; try { await update(ref(db, 'publicSettings'), { kelas7: { enabled: document.getElementById('kelas7Toggle').checked, url: document.getElementById('kelas7Url').value.trim() }, kelas8: { enabled: document.getElementById('kelas8Toggle').checked, url: document.getElementById('kelas8Url').value.trim() }, kelas9: { enabled: document.getElementById('kelas9Toggle').checked, url: document.getElementById('kelas9Url').value.trim() }, 'susulan/enabled': document.getElementById('susulanToggle').checked }); showNotification('Pengaturan berhasil disimpan!'); await loadPublicSettings(); renderActiveButtonsInfo(); } catch (error) { showNotification('Gagal: ' + error.message, true); } finally { loadingOverlay.style.display = 'none'; } };
     
-    window.addSusulanUjian = async () => { const name = document.getElementById('addSusulanName').value.trim(); const url = document.getElementById('addSusulanUrl').value.trim(); if (!name || !url) return showNotification('Nama dan URL tidak boleh kosong!', true); loadingOverlay.style.display = 'flex'; try { await push(ref(setupDbInstance, 'publicSettings/susulan/list'), { name, url, createdAt: Date.now() }); showNotification('Ujian susulan ditambahkan!'); document.getElementById('addSusulanName').value = ''; document.getElementById('addSusulanUrl').value = ''; await loadPublicSettings(); renderActiveButtonsInfo(); } catch (error) { showNotification('Gagal: ' + error.message, true); } finally { loadingOverlay.style.display = 'none'; } };
+    window.addSusulanUjian = async () => { const name = document.getElementById('addSusulanName').value.trim(); const url = document.getElementById('addSusulanUrl').value.trim(); if (!name || !url) return showNotification('Nama dan URL tidak boleh kosong!', true); loadingOverlay.style.display = 'flex'; try { await push(ref(db, 'publicSettings/susulan/list'), { name, url, createdAt: Date.now() }); showNotification('Ujian susulan ditambahkan!'); document.getElementById('addSusulanName').value = ''; document.getElementById('addSusulanUrl').value = ''; await loadPublicSettings(); renderActiveButtonsInfo(); } catch (error) { showNotification('Gagal: ' + error.message, true); } finally { loadingOverlay.style.display = 'none'; } };
 
-    window.deleteSusulanUjian = async (id) => { openGenericConfirmModal('Hapus Ujian Susulan', 'Yakin ingin menghapus ujian ini?', async () => { loadingOverlay.style.display = 'flex'; try { await remove(ref(setupDbInstance, `publicSettings/susulan/list/${id}`)); showNotification('Ujian susulan dihapus!'); await loadPublicSettings(); renderActiveButtonsInfo(); } catch (error) { showNotification('Gagal: ' + error.message, true); } finally { loadingOverlay.style.display = 'none'; } }); };
+    window.deleteSusulanUjian = async (id) => { window.openGenericConfirmModal('Hapus Ujian Susulan', 'Yakin ingin menghapus ujian ini?', async () => { loadingOverlay.style.display = 'flex'; try { await remove(ref(db, `publicSettings/susulan/list/${id}`)); showNotification('Ujian susulan dihapus!'); await loadPublicSettings(); renderActiveButtonsInfo(); } catch (error) { showNotification('Gagal: ' + error.message, true); } finally { loadingOverlay.style.display = 'none'; } }); };
     
-    function cleanUpOldSusulanExams() { if (!publicSettingsCache.susulan?.list) return; const updates = {}; Object.entries(publicSettingsCache.susulan.list).forEach(([id, exam]) => { if (Date.now() - exam.createdAt > ONE_WEEK_IN_MS) updates[id] = null; }); if(Object.keys(updates).length > 0) update(ref(setupDbInstance, 'publicSettings/susulan/list'), updates); }
+    function cleanUpOldSusulanExams() { if (!publicSettingsCache.susulan?.list) return; const updates = {}; Object.entries(publicSettingsCache.susulan.list).forEach(([id, exam]) => { if (Date.now() - exam.createdAt > ONE_WEEK_IN_MS) updates[id] = null; }); if(Object.keys(updates).length > 0) update(ref(db, 'publicSettings/susulan/list'), updates); }
 
     function renderActiveButtonsInfo() { activeButtonsInfoList.innerHTML = ''; ['kelas7', 'kelas8', 'kelas9'].forEach(k => { const info = publicSettingsCache[k]; const li = document.createElement('li'); li.className = 'info-list-item'; li.innerHTML = `<div><span class="status-indicator ${info.enabled ? 'on' : 'off'}"></span><strong>${k.charAt(0).toUpperCase() + k.slice(1)}:</strong> ${info.enabled ? 'Aktif' : 'Nonaktif'}</div>${info.url ? `<div class="link-info">Link: <a href="${info.url}" target="_blank">${info.url}</a></div>` : ''}`; activeButtonsInfoList.appendChild(li); }); const susulanInfo = publicSettingsCache.susulan; const headerLi = document.createElement('li'); headerLi.className = 'info-list-item'; headerLi.innerHTML = `<div><span class="status-indicator ${susulanInfo.enabled ? 'on' : 'off'}"></span><strong>Ujian Susulan:</strong> ${susulanInfo.enabled ? 'Aktif' : 'Nonaktif'}</div>`; activeButtonsInfoList.appendChild(headerLi); if (susulanInfo.enabled && susulanInfo.list) { Object.entries(susulanInfo.list).forEach(([id, item]) => { const itemLi = document.createElement('li'); itemLi.className = 'info-list-item'; itemLi.style.paddingLeft = '20px'; itemLi.innerHTML = `<div><span>${item.name}</span><button class="icon-button delete-button" onclick="deleteSusulanUjian('${id}')" title="Hapus"><i class="fas fa-trash-alt"></i></button></div><div class="link-info">Link: <a href="${item.url}" target="_blank">${item.url}</a></div>`; activeButtonsInfoList.appendChild(itemLi); }); } }
 
-    function periksaAndUpdateStatusToken() { const now = new Date(); tokenCache.forEach(token => { const newIsActive = token.isForceActive || (now >= new Date(token.startTime) && now < new Date(token.endTime)); if (token.isActive !== newIsActive) update(ref(dbInstances[token.firebaseGroup], `tokens/${token.key}`), { isActive: newIsActive }); }); }
+    function periksaAndUpdateStatusToken() { const now = new Date(); tokenCache.forEach(token => { const newIsActive = token.isForceActive || (now >= new Date(token.startTime) && now < new Date(token.endTime)); if (token.isActive !== newIsActive) update(ref(db, `tokens/${token.key}`), { isActive: newIsActive }); }); }
     
     function updateSetlokasiStatusDisplay() { const statusText = isLocationEnabledAdmin ? 'ON' : 'OFF'; const statusColor = isLocationEnabledAdmin ? 'green' : 'red'; locationSettingsTableBody.innerHTML = `<tr><td>${currentLocationKeyAdmin}</td><td>${defaultLocationCoordinate}</td><td>${allowedRadiusMeterAdmin}m</td><td style="color:${statusColor};font-weight:bold;">${statusText}</td><td><button class="icon-button" onclick="openSetlokasiModal()"><i class="fas fa-map-marker-alt"></i></button></td></tr>`; }
     function renderBlockKeySettingsTable() { const statusText = isBlockKeyEnabledAdmin ? 'ON' : 'OFF'; const statusColor = isBlockKeyEnabledAdmin ? 'green' : 'red'; blockKeySettingsTableBody.innerHTML = `<tr><td>${currentBlockKeyAdmin}</td><td style="color:${statusColor};font-weight:bold;">${statusText}</td><td><button class="icon-button edit" onclick="openSetBlockKeyModal()"><i class="fas fa-edit"></i></button></td></tr>`; }
@@ -3440,19 +3341,19 @@
     window.closeSetlokasiModal = () => document.getElementById('setlokasiModal').style.display = 'none';
     window.openGantiRadiusModal = () => { document.getElementById('gantiRadiusModal').style.display = 'flex'; document.getElementById('radiusMeter').value = allowedRadiusMeterAdmin; closeSetlokasiModal(); };
     window.closeGantiRadiusModal = () => document.getElementById('gantiRadiusModal').style.display = 'none';
-    window.aktifkanLokasi = async () => { await update(ref(setupDbInstance, 'setlokasi'), { isLocationEnabled: true }); showNotification('Lokasi diaktifkan.'); closeSetlokasiModal(); await loadSetlokasiSettings(); updateSetlokasiStatusDisplay(); };
-    window.nonaktifkanLokasi = async () => { await update(ref(setupDbInstance, 'setlokasi'), { isLocationEnabled: false }); showNotification('Lokasi dinonaktifkan.'); closeSetlokasiModal(); await loadSetlokasiSettings(); updateSetlokasiStatusDisplay(); };
-    window.gantiRadiusDanAktifkan = async () => { const r = parseInt(document.getElementById('radiusMeter').value); if(isNaN(r) || r<=0) return; await update(ref(setupDbInstance, 'setlokasi'), { allowedRadiusKm: r / 1000, isLocationEnabled: true }); showNotification(`Radius diubah jadi ${r}m & diaktifkan.`); closeGantiRadiusModal(); await loadSetlokasiSettings(); updateSetlokasiStatusDisplay(); };
+    window.aktifkanLokasi = async () => { await update(ref(db, 'setlokasi'), { isLocationEnabled: true }); showNotification('Lokasi diaktifkan.'); closeSetlokasiModal(); await loadSetlokasiSettings(); updateSetlokasiStatusDisplay(); };
+    window.nonaktifkanLokasi = async () => { await update(ref(db, 'setlokasi'), { isLocationEnabled: false }); showNotification('Lokasi dinonaktifkan.'); closeSetlokasiModal(); await loadSetlokasiSettings(); updateSetlokasiStatusDisplay(); };
+    window.gantiRadiusDanAktifkan = async () => { const r = parseInt(document.getElementById('radiusMeter').value); if(isNaN(r) || r<=0) return; await update(ref(db, 'setlokasi'), { allowedRadiusKm: r / 1000, isLocationEnabled: true }); showNotification(`Radius diubah jadi ${r}m & diaktifkan.`); closeGantiRadiusModal(); await loadSetlokasiSettings(); updateSetlokasiStatusDisplay(); };
 
     window.openSetBlockKeyModal = () => { document.getElementById('blockKeyInput').value = currentBlockKeyAdmin; document.getElementById('blockKeyStatusToggle').checked = isBlockKeyEnabledAdmin; document.getElementById('blockKeySettingsError').innerText = ""; document.getElementById('setBlockKeyModal').style.display = 'flex'; };
     window.closeSetBlockKeyModal = () => document.getElementById('setBlockKeyModal').style.display = 'none';
-    window.saveBlockKeySettings = async () => { const keyInput = document.getElementById('blockKeyInput').value.trim().toUpperCase(); const isEnabled = document.getElementById('blockKeyStatusToggle').checked; const errorMsg = document.getElementById('blockKeySettingsError'); errorMsg.innerText = ""; if (!keyInput) { errorMsg.innerText = "Kunci tidak boleh kosong."; return; } loadingOverlay.style.display = 'flex'; try { await update(ref(setupDbInstance, 'block_key_settings'), { key: keyInput, isEnabled: isEnabled }); showNotification('Pengaturan kunci blokir berhasil disimpan.'); closeSetBlockKeyModal(); await loadBlockKeySettings(); renderBlockKeySettingsTable(); } catch (error) { showNotification("Gagal menyimpan: " + error.message, true); } finally { loadingOverlay.style.display = 'none'; } };
+    window.saveBlockKeySettings = async () => { const keyInput = document.getElementById('blockKeyInput').value.trim().toUpperCase(); const isEnabled = document.getElementById('blockKeyStatusToggle').checked; const errorMsg = document.getElementById('blockKeySettingsError'); errorMsg.innerText = ""; if (!keyInput) { errorMsg.innerText = "Kunci tidak boleh kosong."; return; } loadingOverlay.style.display = 'flex'; try { await update(ref(db, 'block_key_settings'), { key: keyInput, isEnabled: isEnabled }); showNotification('Pengaturan kunci blokir berhasil disimpan.'); closeSetBlockKeyModal(); await loadBlockKeySettings(); renderBlockKeySettingsTable(); } catch (error) { showNotification("Gagal menyimpan: " + error.message, true); } finally { loadingOverlay.style.display = 'none'; } };
 
     window.openSetMinDurationModal = () => { document.getElementById('setMinDurationModal').style.display = 'flex'; document.getElementById('minDurationMinutesInput').value = minSubmitDurationSecondsAdmin / 60; };
     window.closeSetMinDurationModal = () => document.getElementById('setMinDurationModal').style.display = 'none';
-    window.aktifkanMinDuration = async () => { await update(ref(setupDbInstance, 'min_duration_settings'), { isMinDurationEnabled: true }); showNotification('Durasi minimal diaktifkan.'); closeSetMinDurationModal(); await loadMinDurationSettings(); renderMinDurationSettingsTable(); };
-    window.nonaktifkanMinDuration = async () => { await update(ref(setupDbInstance, 'min_duration_settings'), { isMinDurationEnabled: false }); showNotification('Durasi minimal dinonaktifkan.'); closeSetMinDurationModal(); await loadMinDurationSettings(); renderMinDurationSettingsTable(); };
-    window.setMinDurationAndActivate = async () => { const m = parseInt(document.getElementById('minDurationMinutesInput').value); if(isNaN(m)) return; await update(ref(setupDbInstance, 'min_duration_settings'), { minDurationSeconds: m * 60, isMinDurationEnabled: true }); showNotification(`Durasi minimal diubah & diaktifkan.`); closeSetMinDurationModal(); await loadMinDurationSettings(); renderMinDurationSettingsTable(); };
+    window.aktifkanMinDuration = async () => { await update(ref(db, 'min_duration_settings'), { isMinDurationEnabled: true }); showNotification('Durasi minimal diaktifkan.'); closeSetMinDurationModal(); await loadMinDurationSettings(); renderMinDurationSettingsTable(); };
+    window.nonaktifkanMinDuration = async () => { await update(ref(db, 'min_duration_settings'), { isMinDurationEnabled: false }); showNotification('Durasi minimal dinonaktifkan.'); closeSetMinDurationModal(); await loadMinDurationSettings(); renderMinDurationSettingsTable(); };
+    window.setMinDurationAndActivate = async () => { const m = parseInt(document.getElementById('minDurationMinutesInput').value); if(isNaN(m)) return; await update(ref(db, 'min_duration_settings'), { minDurationSeconds: m * 60, isMinDurationEnabled: true }); showNotification(`Durasi minimal diubah & diaktifkan.`); closeSetMinDurationModal(); await loadMinDurationSettings(); renderMinDurationSettingsTable(); };
     
     function updateDashboard() { if(document.getElementById('dashboardSection').style.display === 'block') { updateHighlightCards(); renderProgressCards(); } }
 
@@ -3515,17 +3416,9 @@
         showNotification('Mempersiapkan data backup...');
         loadingOverlay.style.display = 'flex';
         try {
-            const allData = {};
-            const dbNames = Object.keys(dbInstances);
-
-            const promises = dbNames.map(async (dbName) => {
-                const snapshot = await get(ref(dbInstances[dbName]));
-                if (snapshot.exists()) {
-                    allData[dbName] = snapshot.val();
-                }
-            });
-
-            await Promise.all(promises);
+            // Backup SINGLE Root
+            const snapshot = await get(ref(db));
+            const allData = snapshot.val() || {};
 
             const date = new Date();
             const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -3533,16 +3426,17 @@
             const fullBackup = {
                 backupInfo: {
                     createdAt: date.toISOString(),
-                    version: '1.1'
+                    version: '2.0', // Updated version
+                    type: 'single-db'
                 },
-                data: allData
+                data: allData // Structure now matches the root of the single DB
             };
             
             const blob = new Blob([JSON.stringify(fullBackup, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `backup-smpn2pajangan-${dateString}.json`;
+            a.download = `backup-smpn2pajangan-central-${dateString}.json`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -3566,6 +3460,7 @@
         });
     };
     window.closeRestoreModal = () => document.getElementById('restoreModal').style.display = 'none';
+    
     window.confirmRestoreInternal = () => { openGenericConfirmModal('Konfirmasi Pemulihan', 'Yakin ingin memulihkan data? Ini akan MENIMPA SEMUA DATA.', async () => { 
         const file = document.getElementById('backupFileInput').files[0];
         if (!file) {
@@ -3577,17 +3472,26 @@
         reader.onload = async (e) => {
             try {
                 const backupData = JSON.parse(e.target.result);
-                const dataToRestore = backupData.data;
-                if (!dataToRestore) throw new Error("Format file backup tidak valid.");
+                // Support structure lama (multi-db) atau baru (single-db)
+                // Jika backup lama, kita ambil data dari SETUP dan mungkin merge data lain (complex migration)
+                // Disini kita asumsi restore dari backup format baru atau menimpa root secara langsung
+                
+                let dataToRestore = backupData.data;
+                
+                // Jika data berbentuk { '7ABC': ..., 'SETUP': ... } (Multi DB backup lama)
+                // Kita perlu migrasi manual atau menolak. Untuk keamanan saat ini kita timpa root
+                // Tapi jika user merestore backup lama ke sistem baru, struktur mungkin kacau.
+                // Idealnya:
+                if (backupData.data['SETUP']) {
+                     // Ini backup format lama. Ambil SETUP dan mungkin merge students/tokens
+                     // Sederhananya, kita peringatkan atau coba ambil yang relevan
+                     // Untuk saat ini: Restore apa adanya ke root (Bahaya jika strukturnya beda)
+                     // LEBIH AMAN: Restore SETUP saja jika format lama
+                     dataToRestore = backupData.data['SETUP']; // Fallback logic
+                }
 
-                const restorePromises = Object.keys(dataToRestore).map(dbName => {
-                    if (dbInstances[dbName]) {
-                        return set(ref(dbInstances[dbName]), dataToRestore[dbName]);
-                    }
-                    return Promise.resolve();
-                });
+                await set(ref(db), dataToRestore);
 
-                await Promise.all(restorePromises);
                 showNotification('Data berhasil dipulihkan! Halaman akan dimuat ulang.');
                 setTimeout(() => location.reload(), 2000);
             } catch (error) {
@@ -3616,24 +3520,32 @@
 
     async function loadBankSoal() {
         bankSoalCache = {};
-        const fetchPromises = [];
-
-        Object.keys(gradeToDbGroupMap).forEach(gradeNum => {
-            bankSoalCache[`kelas${gradeNum}`] = {};
-            gradeToDbGroupMap[gradeNum].forEach(dbName => {
-                const dbInstance = dbInstances[dbName];
-                if (dbInstance) {
-                    fetchPromises.push(
-                        get(ref(dbInstance, 'ujian')).then(snapshot => {
-                            if (snapshot.exists()) {
-                                Object.assign(bankSoalCache[`kelas${gradeNum}`], snapshot.val());
-                            }
-                        })
-                    );
-                }
-            });
-        });
-        await Promise.all(fetchPromises);
+        // Single call to fetch all 'ujian' node
+        try {
+            const snapshot = await get(ref(db, 'ujian'));
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                // Format bankSoalCache: { kelas7: {...}, kelas8: {...} }
+                // Pastikan struktur di DB sesuai atau mapping disini
+                // Di kode lama, struktur di DB adalah root -> ujian -> tahun -> mapel
+                // Kita perlu memetakan ini ke format yang diharapkan UI displayBankSoalInfo
+                
+                // UI mengharapkan: bankSoalCache[`kelas${grade}`][tahun][ujianName][`Kelas-${kelas}`][mapel]
+                // Karena single DB, kita simpan raw data dan biarkan UI akses
+                // Asumsi: Struktur di DB 'ujian' sudah mencakup semua kelas
+                
+                // Kita akan populate cache per kelas secara manual dari data root 'ujian'
+                // Namun, karena struktur DB lama memisahkan DB per kelas, data 'ujian' di tiap DB mungkin parsial.
+                // Di Single DB, 'ujian' harus berisi gabungan semua.
+                
+                // Workaround: Simpan referensi root ujian ke semua key kelas
+                ['7', '8', '9'].forEach(g => {
+                    bankSoalCache[`kelas${g}`] = data; 
+                });
+            }
+        } catch (e) {
+            console.error("Gagal load bank soal:", e);
+        }
     }
 
     function populateTokenModalDropdowns(prefix, kelas, tahunAjaran, ujianName, selectedMapel) {
