@@ -812,9 +812,13 @@
         <h1 style="text-align: left; margin-bottom: 20px; color: #34495e;">Status Peserta</h1>
         <div class="controls-header">
             <div class="filters-group" style="flex-grow: 1; justify-content: flex-start; align-items: flex-end; width: 100%;">
-                <input type="text" id="studentStatusSearchId" placeholder="Cari ID..." style="max-width: 150px;"/>
-                <input type="text" id="studentStatusSearchName" placeholder="Cari Nama..." style="max-width: 200px;" />
-                <input type="text" id="studentStatusSearchClass" placeholder="Cari Kelas..." style="max-width: 150px;" />
+                <input type="text" id="studentStatusSearchInput" placeholder="Cari Siswa (ID, Nama, atau Kelas)..." style="flex-grow: 1;" />
+                <select id="studentStatusFilterStatus" onchange="window.renderStudentStatusTable(1)" style="max-width: 180px; font-weight: bold;">
+                    <option value="ALL">Semua Status</option>
+                    <option value="BELUM_LOGIN">Belum Login</option>
+                    <option value="SEDANG_MENGERJAKAN">Sedang Mengerjakan</option>
+                    <option value="SUDAH_SUBMIT">Sudah Submit</option>
+                </select>
             </div>
         </div>
         <p id="studentStatusInitialMessage">
@@ -1014,9 +1018,7 @@
         </div>
         <div class="controls-header">
             <div class="filters-group" style="flex-grow: 1; justify-content: flex-start; align-items: flex-end; width: 100%;">
-                <input type="text" id="studentSearchId" placeholder="Cari ID..." style="max-width: 150px;"/>
-                <input type="text" id="studentSearchName" placeholder="Cari Nama..." style="max-width: 200px;" />
-                <input type="text" id="studentSearchClass" placeholder="Cari Kelas..." style="max-width: 150px;" />
+                <input type="text" id="studentSearchInput" placeholder="Cari Siswa (ID, Nama, atau Kelas)..." style="flex-grow: 1;" />
                 <select id="itemsPerPageSelect" onchange="window.updateItemsPerPage(this.value)">
                     <option value="25">25 per halaman</option>
                     <option value="50" selected>50 per halaman</option>
@@ -1588,9 +1590,6 @@
         const totalInitialListeners = 5; 
         let initialLoadDone = false;
         
-        // --- FITUR ANTI-HANG: UI Throttling ---
-        // Kita hanya akan mengizinkan update tampilan maksimal sekali setiap 3 detik.
-        // Data tetap diterima di latar belakang, tapi rendering ditahan agar tidak membebani browser.
         let uiUpdateTimeout = null; 
 
         const onDataReceived = () => {
@@ -1603,15 +1602,13 @@
                     loadingOverlay.style.display = 'none';
                 }
             } else {
-                // Throttle UI: Jika update sedang dijadwalkan, jangan lakukan apa-apa
                 if (uiUpdateTimeout) return; 
                 
-                // Jadwalkan update UI dalam 3 detik
                 uiUpdateTimeout = setTimeout(() => {
                     buildConsolidatedTokensMap();
                     updateAllDependentUI();
                     uiUpdateTimeout = null;
-                }, 3000); // 3000ms = 3 detik
+                }, 500); 
             }
         };
         
@@ -1801,12 +1798,17 @@
         document.getElementById('tokenSearchSubject').addEventListener('keyup', renderTokenTable);
         document.getElementById('scoreSearchName').addEventListener('keyup', () => renderScoreTable(1));
         document.getElementById('scoreSearchClass').addEventListener('keyup', () => renderScoreTable(1));
-        document.getElementById('studentSearchId').addEventListener('keyup', () => renderStudentManagementTable(1));
-        document.getElementById('studentSearchName').addEventListener('keyup', () => renderStudentManagementTable(1));
-        document.getElementById('studentSearchClass').addEventListener('keyup', () => renderStudentManagementTable(1));
-        document.getElementById('studentStatusSearchId').addEventListener('keyup', () => renderStudentStatusTable(1));
-        document.getElementById('studentStatusSearchName').addEventListener('keyup', () => renderStudentStatusTable(1));
-        document.getElementById('studentStatusSearchClass').addEventListener('keyup', () => renderStudentStatusTable(1));
+        
+        // Listener untuk Input Pencarian Gabungan Baru
+        const studentSearchInput = document.getElementById('studentSearchInput');
+        if (studentSearchInput) {
+            studentSearchInput.addEventListener('keyup', () => renderStudentManagementTable(1));
+        }
+
+        const studentStatusSearchInput = document.getElementById('studentStatusSearchInput');
+        if (studentStatusSearchInput) {
+            studentStatusSearchInput.addEventListener('keyup', () => renderStudentStatusTable(1));
+        }
         
         document.getElementById('addTokenForm').addEventListener('submit', handleAddToken);
         document.getElementById('modalForm').addEventListener('submit', handleEditToken);
@@ -2191,12 +2193,16 @@
             return a.name.toString().localeCompare(b.name.toString(), undefined, {sensitivity: 'base'});
         });
         
-        const searchId = document.getElementById('studentSearchId').value.trim();
-        if (searchId) studentsToDisplay = studentsToDisplay.filter(s => s.id.includes(searchId));
-        const searchName = document.getElementById('studentSearchName').value.trim().toUpperCase();
-        if (searchName) studentsToDisplay = studentsToDisplay.filter(s => s.name.toUpperCase().includes(searchName));
-        const searchClass = document.getElementById('studentSearchClass').value.trim().toUpperCase();
-        if (searchClass) studentsToDisplay = studentsToDisplay.filter(s => s.class.toUpperCase().includes(searchClass));
+        // --- LOGIKA PENCARIAN GABUNGAN BARU ---
+        const searchInput = document.getElementById('studentSearchInput').value.trim().toUpperCase();
+        if (searchInput) {
+            studentsToDisplay = studentsToDisplay.filter(s => 
+                s.id.toUpperCase().includes(searchInput) ||
+                s.name.toUpperCase().includes(searchInput) ||
+                s.class.toUpperCase().includes(searchInput)
+            );
+        }
+        // --------------------------------------
         
         filteredStudentsManagement = studentsToDisplay;
         
@@ -2255,13 +2261,52 @@
             return tokenCache.some(tc => tokenKeysForDisplay.includes(tc.key) && getNumericClass(tc.kelas) === studentGrade);
         });
     
-        const searchId = document.getElementById('studentStatusSearchId').value.trim();
-        if (searchId) studentsToDisplay = studentsToDisplay.filter(s => s.id.includes(searchId));
-        const searchName = document.getElementById('studentStatusSearchName').value.trim().toUpperCase();
-        if (searchName) studentsToDisplay = studentsToDisplay.filter(s => s.name.toUpperCase().includes(searchName));
-        const searchClass = document.getElementById('studentStatusSearchClass').value.trim().toUpperCase();
-        if (searchClass) studentsToDisplay = studentsToDisplay.filter(s => s.class.toUpperCase().includes(searchClass));
+        // --- LOGIKA PENCARIAN GABUNGAN BARU ---
+        const searchInput = document.getElementById('studentStatusSearchInput').value.trim().toUpperCase();
+        if (searchInput) {
+            studentsToDisplay = studentsToDisplay.filter(s => 
+                s.id.toUpperCase().includes(searchInput) ||
+                s.name.toUpperCase().includes(searchInput) ||
+                s.class.toUpperCase().includes(searchInput)
+            );
+        }
+        // --------------------------------------
         
+        // --- LOGIKA FILTER STATUS ---
+        const statusFilter = document.getElementById('studentStatusFilterStatus').value;
+        if (statusFilter !== 'ALL') {
+            studentsToDisplay = studentsToDisplay.filter(student => {
+                const studentIdPadded = padStudentId(student.id);
+                let isLoggedInAny = false, isSubmittedAny = false, hasAccessedAny = false;
+
+                tokenKeysForDisplay.forEach(fbKey => {
+                    const token = tokenCache.find(t => t.key === fbKey);
+                    // Hanya cek token yang relevan dengan kelas siswa
+                    if (token && getNumericClass(token.kelas) === getNumericClass(student.class)) {
+                        const accessData = tokenAccessStatus[fbKey]?.[studentIdPadded];
+                        if (submittedExamsCache[fbKey]?.[studentIdPadded]?.isSubmitted) isSubmittedAny = true;
+                        if (accessData?.isLoggedIn) isLoggedInAny = true;
+                        if (accessData?.accessCount > 0) hasAccessedAny = true;
+                    }
+                });
+
+                let computedStatus = 'Belum Login';
+                if (isSubmittedAny) computedStatus = 'Sudah submit';
+                else if (isLoggedInAny) computedStatus = 'Sedang mengerjakan';
+                else if (hasAccessedAny) computedStatus = 'Belum Login (reset)';
+
+                if (statusFilter === 'BELUM_LOGIN') {
+                    return computedStatus === 'Belum Login' || computedStatus === 'Belum Login (reset)';
+                } else if (statusFilter === 'SEDANG_MENGERJAKAN') {
+                    return computedStatus === 'Sedang mengerjakan';
+                } else if (statusFilter === 'SUDAH_SUBMIT') {
+                    return computedStatus === 'Sudah submit';
+                }
+                return true;
+            });
+        }
+        // ---------------------------------
+
         studentsToDisplay.sort((a,b) => {
             const classComparison = a.class.toString().localeCompare(b.class.toString(), undefined, {numeric: true, sensitivity: 'base'});
             if (classComparison !== 0) return classComparison;
@@ -2287,10 +2332,14 @@
             let isLoggedInAny = false, isSubmittedAny = false, hasAccessedAny = false;
 
             tokenKeysForDisplay.forEach(fbKey => {
-                const accessData = tokenAccessStatus[fbKey]?.[studentIdPadded];
-                if (submittedExamsCache[fbKey]?.[studentIdPadded]?.isSubmitted) isSubmittedAny = true;
-                if (accessData?.isLoggedIn) isLoggedInAny = true;
-                if (accessData?.accessCount > 0) hasAccessedAny = true;
+                // Pastikan token cocok dengan kelas siswa untuk akurasi status
+                const token = tokenCache.find(t => t.key === fbKey);
+                if (token && getNumericClass(token.kelas) === getNumericClass(student.class)) {
+                    const accessData = tokenAccessStatus[fbKey]?.[studentIdPadded];
+                    if (submittedExamsCache[fbKey]?.[studentIdPadded]?.isSubmitted) isSubmittedAny = true;
+                    if (accessData?.isLoggedIn) isLoggedInAny = true;
+                    if (accessData?.accessCount > 0) hasAccessedAny = true;
+                }
             });
             
             if (isSubmittedAny) status = 'Sudah submit';
