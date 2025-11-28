@@ -1584,12 +1584,14 @@
     }
     
     function setupRealtimeListeners() {
-        // Karena sekarang Single DB, kita tidak perlu looping dbNames.
-        // Cukup listen sekali ke root node masing-masing entity di 'db' (setupDb)
-        
         let loadedListeners = 0;
         const totalInitialListeners = 5; 
         let initialLoadDone = false;
+        
+        // --- FITUR ANTI-HANG: UI Throttling ---
+        // Kita hanya akan mengizinkan update tampilan maksimal sekali setiap 3 detik.
+        // Data tetap diterima di latar belakang, tapi rendering ditahan agar tidak membebani browser.
+        let uiUpdateTimeout = null; 
 
         const onDataReceived = () => {
             if (!initialLoadDone) {
@@ -1601,8 +1603,15 @@
                     loadingOverlay.style.display = 'none';
                 }
             } else {
-                buildConsolidatedTokensMap();
-                updateAllDependentUI();
+                // Throttle UI: Jika update sedang dijadwalkan, jangan lakukan apa-apa
+                if (uiUpdateTimeout) return; 
+                
+                // Jadwalkan update UI dalam 3 detik
+                uiUpdateTimeout = setTimeout(() => {
+                    buildConsolidatedTokensMap();
+                    updateAllDependentUI();
+                    uiUpdateTimeout = null;
+                }, 3000); // 3000ms = 3 detik
             }
         };
         
@@ -3416,7 +3425,6 @@
         showNotification('Mempersiapkan data backup...');
         loadingOverlay.style.display = 'flex';
         try {
-            // Backup SINGLE Root
             const snapshot = await get(ref(db));
             const allData = snapshot.val() || {};
 
@@ -3460,7 +3468,6 @@
         });
     };
     window.closeRestoreModal = () => document.getElementById('restoreModal').style.display = 'none';
-    
     window.confirmRestoreInternal = () => { openGenericConfirmModal('Konfirmasi Pemulihan', 'Yakin ingin memulihkan data? Ini akan MENIMPA SEMUA DATA.', async () => { 
         const file = document.getElementById('backupFileInput').files[0];
         if (!file) {
@@ -3472,21 +3479,8 @@
         reader.onload = async (e) => {
             try {
                 const backupData = JSON.parse(e.target.result);
-                // Support structure lama (multi-db) atau baru (single-db)
-                // Jika backup lama, kita ambil data dari SETUP dan mungkin merge data lain (complex migration)
-                // Disini kita asumsi restore dari backup format baru atau menimpa root secara langsung
-                
                 let dataToRestore = backupData.data;
-                
-                // Jika data berbentuk { '7ABC': ..., 'SETUP': ... } (Multi DB backup lama)
-                // Kita perlu migrasi manual atau menolak. Untuk keamanan saat ini kita timpa root
-                // Tapi jika user merestore backup lama ke sistem baru, struktur mungkin kacau.
-                // Idealnya:
                 if (backupData.data['SETUP']) {
-                     // Ini backup format lama. Ambil SETUP dan mungkin merge students/tokens
-                     // Sederhananya, kita peringatkan atau coba ambil yang relevan
-                     // Untuk saat ini: Restore apa adanya ke root (Bahaya jika strukturnya beda)
-                     // LEBIH AMAN: Restore SETUP saja jika format lama
                      dataToRestore = backupData.data['SETUP']; // Fallback logic
                 }
 
@@ -3520,25 +3514,10 @@
 
     async function loadBankSoal() {
         bankSoalCache = {};
-        // Single call to fetch all 'ujian' node
         try {
             const snapshot = await get(ref(db, 'ujian'));
             if (snapshot.exists()) {
                 const data = snapshot.val();
-                // Format bankSoalCache: { kelas7: {...}, kelas8: {...} }
-                // Pastikan struktur di DB sesuai atau mapping disini
-                // Di kode lama, struktur di DB adalah root -> ujian -> tahun -> mapel
-                // Kita perlu memetakan ini ke format yang diharapkan UI displayBankSoalInfo
-                
-                // UI mengharapkan: bankSoalCache[`kelas${grade}`][tahun][ujianName][`Kelas-${kelas}`][mapel]
-                // Karena single DB, kita simpan raw data dan biarkan UI akses
-                // Asumsi: Struktur di DB 'ujian' sudah mencakup semua kelas
-                
-                // Kita akan populate cache per kelas secara manual dari data root 'ujian'
-                // Namun, karena struktur DB lama memisahkan DB per kelas, data 'ujian' di tiap DB mungkin parsial.
-                // Di Single DB, 'ujian' harus berisi gabungan semua.
-                
-                // Workaround: Simpan referensi root ujian ke semua key kelas
                 ['7', '8', '9'].forEach(g => {
                     bankSoalCache[`kelas${g}`] = data; 
                 });
