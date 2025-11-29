@@ -1929,7 +1929,24 @@
         if (searchSubject) {
             consolidatedTokens = consolidatedTokens.filter(token => token.subject.toUpperCase().includes(searchSubject));
         }
-        consolidatedTokens.sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
+        
+        // MODIFIKASI: Logika Pengurutan DIBALIK (Tanggal Dulu, Baru Kelas)
+        // 1. Urutkan berdasarkan Waktu (Terdekat ke Terjauh)
+        // 2. Jika waktu sama, urutkan berdasarkan Kelas (7, 8, 9)
+        consolidatedTokens.sort((a, b) => {
+            const timeA = new Date(a.startTime).getTime();
+            const timeB = new Date(b.startTime).getTime();
+
+            // Prioritas 1: Bandingkan Waktu
+            if (timeA !== timeB) {
+                return timeA - timeB; // Ascending: Tanggal yang lebih kecil (awal) di atas
+            }
+
+            // Prioritas 2: Bandingkan Kelas (jika waktu sama persis)
+            const classA = parseInt(String(a.kelas).match(/\d+/)?.[0] || '0', 10);
+            const classB = parseInt(String(b.kelas).match(/\d+/)?.[0] || '0', 10);
+            return classA - classB; // Ascending: 7, 8, 9
+        });
         
         consolidatedTokens.forEach((data, index) => {
             const row = document.createElement('tr');
