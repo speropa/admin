@@ -222,6 +222,41 @@
         max-height: 100px; /* Batasi tinggi teks */
     }
 
+    /* --- PERBAIKAN TAMPILAN TABEL NILAI (PROFESSIONAL LOOK) --- */
+    /* 1. Reset width 100% khusus untuk tabel skor agar tidak melar */
+    #scoreTable {
+        width: auto !important; 
+        margin: 0 auto; /* Posisi tengah */
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    /* 2. Pastikan container tabel skor bisa menengahkan tabel */
+    #scoreSection .table-responsive {
+        display: flex;
+        justify-content: center; /* Tengahkan tabel */
+        align-items: flex-start;
+        background: white;
+        width: 100%;
+        overflow-x: auto; /* Tetap bisa scroll jika layar kecil */
+    }
+
+    /* 3. Atur lebar kolom Nama Siswa agar proporsional (tidak terlalu lebar, tidak terlalu sempit) */
+    #scoreTable th:nth-child(2), 
+    #scoreTable td:nth-child(2) {
+        min-width: 250px; /* Lebar minimal yang nyaman dibaca */
+        max-width: 400px; /* Jangan lebih lebar dari ini */
+        white-space: normal; /* Nama panjang boleh turun baris jika perlu */
+    }
+
+    /* 4. Pastikan kolom Nilai rapi (kecil-kecil) */
+    #scoreTable th:nth-child(n+4), 
+    #scoreTable td:nth-child(n+4) {
+        width: 40px; /* Lebar tetap untuk kolom nilai */
+        min-width: 40px;
+        text-align: center;
+        padding: 5px;
+    }
+
     /* Pastikan header No, Nama, Kelas tetap horizontal */
     #scoreTable th:nth-child(1),
     #scoreTable th:nth-child(2),
