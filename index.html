@@ -222,30 +222,30 @@
         max-height: 100px; /* Batasi tinggi teks */
     }
 
-    /* --- PERBAIKAN TAMPILAN TABEL NILAI (PROFESSIONAL LOOK) --- */
-    /* 1. Reset width 100% khusus untuk tabel skor agar tidak melar */
+    /* --- KEMBALI KE TAMPILAN FULL WIDTH (STANDARD) --- */
+    /* 1. Pastikan tabel menggunakan lebar penuh */
     #scoreTable {
-        width: auto !important; 
-        margin: 0 auto; /* Posisi tengah */
+        width: 100% !important; 
+        margin: 0;
         border-bottom: 1px solid #e0e0e0;
     }
 
-    /* 2. Pastikan container tabel skor bisa menengahkan tabel */
+    /* 2. Reset container agar scrollbar normal */
     #scoreSection .table-responsive {
-        display: flex;
-        justify-content: center; /* Tengahkan tabel */
-        align-items: flex-start;
-        background: white;
+        display: block;
         width: 100%;
-        overflow-x: auto; /* Tetap bisa scroll jika layar kecil */
+        overflow-x: auto;
+        background: white;
+        text-align: left;
     }
 
-    /* 3. Atur lebar kolom Nama Siswa agar proporsional (tidak terlalu lebar, tidak terlalu sempit) */
+    /* 3. Kolom Nama Siswa: Tetap beri min-width agar tidak hancur, tapi biarkan melebar (hapus max-width) */
     #scoreTable th:nth-child(2), 
     #scoreTable td:nth-child(2) {
-        min-width: 250px; /* Lebar minimal yang nyaman dibaca */
-        max-width: 400px; /* Jangan lebih lebar dari ini */
-        white-space: normal; /* Nama panjang boleh turun baris jika perlu */
+        min-width: 200px; /* Lebar minimal aman */
+        max-width: none; /* Biarkan melebar mengisi sisa layar */
+        white-space: normal; 
+        text-align: left; 
     }
 
     /* 4. Pastikan kolom Nilai rapi (kecil-kecil) */
@@ -2924,8 +2924,20 @@
             textToCopy = header + body;
         } else if (currentTableIdToCopy === 'scoreTable') {
             let studentsForCopy = filteredScores;
-            const relevantTokens = tokenCache.filter(t => getNumericClass(t.kelas) === window.currentScoreGradeFilter);
-            const subjects = [...new Set(relevantTokens.map(t => t.subject))].sort();
+            
+            // --- MODIFIKASI: URUTKAN KOLOM MAPEL SESUAI WAKTU TOKEN (KRONOLOGIS) ---
+            let relevantTokens = tokenCache.filter(t => getNumericClass(t.kelas) === window.currentScoreGradeFilter);
+            
+            // Urutkan token berdasarkan Waktu Mulai, lalu Nama Mapel
+            relevantTokens.sort((a, b) => {
+                const timeA = new Date(a.startTime).getTime();
+                const timeB = new Date(b.startTime).getTime();
+                if (timeA !== timeB) return timeA - timeB; // Yang duluan ujian di kiri
+                return a.subject.localeCompare(b.subject);
+            });
+
+            // Ambil nama subject yang unik (Set mempertahankan urutan insertion dari hasil sort di atas)
+            const subjects = [...new Set(relevantTokens.map(t => t.subject))];
             
             // GUNAKAN FUNGSI SINGKATAN CERDAS (SMART ABBREVIATION) UNTUK HEADER SALIN TABEL
             let header = `NO\tNAMA SISWA\tKELAS${subjects.map(s => `\t${generateSmartAbbreviation(s)}`).join('')}\n`;
@@ -3168,7 +3180,19 @@
 
         filteredScores = studentsForGrade.sort((a,b) => a.class.localeCompare(b.class) || a.name.localeCompare(b.name));
         
-        const subjects = [...new Set(tokenCache.filter(t => getNumericClass(t.kelas) === window.currentScoreGradeFilter).map(t => t.subject))].sort();
+        // --- MODIFIKASI: URUTKAN KOLOM MAPEL SESUAI WAKTU TOKEN (KRONOLOGIS) ---
+        let relevantTokens = tokenCache.filter(t => getNumericClass(t.kelas) === window.currentScoreGradeFilter);
+        
+        // Urutkan token berdasarkan Waktu Mulai, lalu Nama Mapel
+        relevantTokens.sort((a, b) => {
+            const timeA = new Date(a.startTime).getTime();
+            const timeB = new Date(b.startTime).getTime();
+            if (timeA !== timeB) return timeA - timeB; // Yang duluan ujian di kiri
+            return a.subject.localeCompare(b.subject);
+        });
+
+        // Ambil nama subject yang unik (Set mempertahankan urutan insertion dari hasil sort di atas)
+        const subjects = [...new Set(relevantTokens.map(t => t.subject))];
         
         // GUNAKAN WRAPPER DIV (.v-text) UNTUK HEADER VERTIKAL AGAR FONT KONSISTEN
         scoreTableHeader.innerHTML = `
