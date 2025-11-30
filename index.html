@@ -199,6 +199,39 @@
       font-weight: bold; color: #2c3e50;
       white-space: nowrap;
     }
+
+    /* CSS BARU UNTUK HEADER VERTIKAL - DIPERBAIKI */
+    th.vertical-header {
+        height: 110px; /* DIKURANGI DARI 150px JADI 110px */
+        vertical-align: bottom; /* Teks dimulai dari bawah */
+        padding: 10px 4px;
+        text-align: center;
+        line-height: 1.2;
+    }
+
+    th.vertical-header .v-text {
+        writing-mode: vertical-rl;
+        transform: rotate(180deg);
+        white-space: nowrap;
+        display: inline-block;
+        text-align: left;
+        font-family: 'Inter', sans-serif; /* Pastikan font sama */
+        font-weight: bold; /* Pastikan ketebalan sama */
+        font-size: 13px; /* Ukuran disesuaikan sedikit agar rapi */
+        letter-spacing: 0.3px;
+        max-height: 100px; /* Batasi tinggi teks */
+    }
+
+    /* Pastikan header No, Nama, Kelas tetap horizontal */
+    #scoreTable th:nth-child(1),
+    #scoreTable th:nth-child(2),
+    #scoreTable th:nth-child(3) {
+        writing-mode: horizontal-tb;
+        transform: none;
+        height: auto;
+        vertical-align: middle;
+    }
+
     tr:nth-child(even) { background-color: #f9f9f9; }
     #tokenTableBody td, #studentTableBody td, #scoreTableBody td, #studentStatusTableBody td {
         white-space: nowrap;
@@ -1224,21 +1257,27 @@
         </div>
 
         <div id="scoreExportOptions" style="display: none; flex-direction: column; gap: 10px;">
+            <ol style="font-size: 0.9em; color: #555; margin-bottom: 5px; margin-top: 0; padding-left: 20px;">
+                <li>Salinlah tabel</li>
+                <li>Buka spreadsheet atau Ms. Excel</li>
+                <li>Paste dan edit sesuai keinginan</li>
+            </ol>
             <button onclick="copyTableToClipboard()" class="text-button blue-gray" style="width: 100%; justify-content: center; padding: 12px;">
                 <i class="fas fa-copy"></i> Salin Tabel
             </button>
-            <button onclick="printScoreToPDF()" class="text-button red" style="width: 100%; justify-content: center; padding: 12px;">
-                <i class="fas fa-file-pdf"></i> Cetak / Simpan PDF
-            </button>
+            <!-- Tombol PDF dihapus -->
         </div>
 
         <div id="tokenExportOptions" style="display: none; flex-direction: column; gap: 10px;">
+            <ol style="font-size: 0.9em; color: #555; margin-bottom: 5px; margin-top: 0; padding-left: 20px;">
+                <li>Salinlah tabel</li>
+                <li>Buka spreadsheet atau Ms. Excel</li>
+                <li>Paste dan edit sesuai keinginan</li>
+            </ol>
             <button onclick="copyTableToClipboard()" class="text-button blue-gray" style="width: 100%; justify-content: center; padding: 12px;">
                 <i class="fas fa-copy"></i> Salin Tabel
             </button>
-            <button onclick="printTokenToPDF()" class="text-button red" style="width: 100%; justify-content: center; padding: 12px;">
-                <i class="fas fa-file-pdf"></i> Cetak / Simpan PDF
-            </button>
+            <!-- Tombol PDF dihapus -->
         </div>
 
         <div style="text-align: right; margin-top: 20px;">
@@ -1930,19 +1969,25 @@
             consolidatedTokens = consolidatedTokens.filter(token => token.subject.toUpperCase().includes(searchSubject));
         }
         
-        // MODIFIKASI: Logika Pengurutan DIBALIK (Tanggal Dulu, Baru Kelas)
-        // 1. Urutkan berdasarkan Waktu (Terdekat ke Terjauh)
-        // 2. Jika waktu sama, urutkan berdasarkan Kelas (7, 8, 9)
+        // MODIFIKASI: Logika Pengurutan
+        // 1. Waktu (Ascending: Terawal ke Terakhir)
+        // 2. Nama Mapel (Alphabetical A-Z)
+        // 3. Kelas (Ascending: 7, 8, 9)
         consolidatedTokens.sort((a, b) => {
+            // Prioritas 1: Bandingkan Waktu (Tanggal Dibuka)
             const timeA = new Date(a.startTime).getTime();
             const timeB = new Date(b.startTime).getTime();
-
-            // Prioritas 1: Bandingkan Waktu
             if (timeA !== timeB) {
                 return timeA - timeB; // Ascending: Tanggal yang lebih kecil (awal) di atas
             }
 
-            // Prioritas 2: Bandingkan Kelas (jika waktu sama persis)
+            // Prioritas 2: Nama Mapel (Abjad)
+            const subjectCompare = a.subject.localeCompare(b.subject);
+            if (subjectCompare !== 0) {
+                return subjectCompare;
+            }
+
+            // Prioritas 3: Bandingkan Kelas
             const classA = parseInt(String(a.kelas).match(/\d+/)?.[0] || '0', 10);
             const classB = parseInt(String(b.kelas).match(/\d+/)?.[0] || '0', 10);
             return classA - classB; // Ascending: 7, 8, 9
@@ -2821,7 +2866,23 @@
         if (currentTableIdToCopy === 'tokenTable') {
             const header = `NO\tMAPEL\tKELAS\tTOKEN\tDIBUKA\tDITUTUP\tDURASI\n`;
             let body = '';
-            let consolidatedTokens = Array.from(consolidatedTokensMap.values()).sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
+            // --- MODIFIKASI: Logika Pengurutan untuk Salin Tabel Token ---
+            // 1. Waktu (Ascending)
+            // 2. Nama Mapel (Alphabetical)
+            // 3. Kelas (Ascending)
+            let consolidatedTokens = Array.from(consolidatedTokensMap.values()).sort((a, b) => {
+                const timeA = new Date(a.startTime).getTime();
+                const timeB = new Date(b.startTime).getTime();
+                if (timeA !== timeB) return timeA - timeB;
+
+                const subjectDiff = a.subject.localeCompare(b.subject);
+                if (subjectDiff !== 0) return subjectDiff;
+
+                const classA = parseInt(String(a.kelas).match(/\d+/)?.[0] || '0', 10);
+                const classB = parseInt(String(b.kelas).match(/\d+/)?.[0] || '0', 10);
+                return classA - classB;
+            });
+
             consolidatedTokens.forEach((data, index) => {
                 body += `${index + 1}\t${data.subject}\t${data.kelas}\t${data.token}\t${formatDisplayTime(data.startTime)}\t${formatDisplayTime(data.endTime)}\t${data.durationMinutes} menit\n`;
             });
@@ -2830,7 +2891,10 @@
             let studentsForCopy = filteredScores;
             const relevantTokens = tokenCache.filter(t => getNumericClass(t.kelas) === window.currentScoreGradeFilter);
             const subjects = [...new Set(relevantTokens.map(t => t.subject))].sort();
-            let header = `NO\tNAMA SISWA\tKELAS${subjects.map(s => `\t${generateAbbreviation(s)}`).join('')}\n`;
+            
+            // GUNAKAN FUNGSI SINGKATAN CERDAS (SMART ABBREVIATION) UNTUK HEADER SALIN TABEL
+            let header = `NO\tNAMA SISWA\tKELAS${subjects.map(s => `\t${generateSmartAbbreviation(s)}`).join('')}\n`;
+            
             let body = '';
             studentsForCopy.forEach((student, index) => {
                 let rowData = `${index + 1}\t${student.name}\t${student.class}`;
@@ -3016,11 +3080,28 @@
     };
     window.closeEmptyTokensModal = () => document.getElementById('emptyTokensModal').style.display = 'none';
 
-    function generateAbbreviation(subjectName) {
-        if (!subjectName) return 'N/A';
-        const words = subjectName.toUpperCase().split(' ').filter(w => !['DAN', 'DAN,'].includes(w));
-        if (words.length >= 3) return words.map(w => w[0]).join('');
-        return words.join(' ').substring(0, 4);
+    // FUNGSI SINGKATAN MAPEL CERDAS (SMART ABBREVIATION)
+    function generateSmartAbbreviation(subjectName) {
+        if (!subjectName) return '-';
+        // Hapus spasi berlebih dan pecah jadi array kata
+        const words = subjectName.trim().split(/\s+/);
+        
+        if (words.length === 1) {
+            // 1 kata: Matematika -> Matematika
+            return words[0]; 
+        } else if (words.length === 2) {
+            // 2 kata: Bahasa Indonesia -> B. Indonesia
+            return `${words[0][0]}. ${words[1]}`;
+        } else {
+            // 3 kata atau lebih: Pendidikan Agama Islam -> P. A. Islam
+            // Semua disingkat KECUALI kata terakhir
+            let result = "";
+            for(let i = 0; i < words.length - 1; i++) {
+                result += `${words[i][0]}. `;
+            }
+            result += words[words.length - 1];
+            return result;
+        }
     }
 
     function resetScoreTable() {
@@ -3053,7 +3134,15 @@
         filteredScores = studentsForGrade.sort((a,b) => a.class.localeCompare(b.class) || a.name.localeCompare(b.name));
         
         const subjects = [...new Set(tokenCache.filter(t => getNumericClass(t.kelas) === window.currentScoreGradeFilter).map(t => t.subject))].sort();
-        scoreTableHeader.innerHTML = `<tr><th>NO</th><th>NAMA SISWA</th><th>KELAS</th>${subjects.map(s => `<th>${generateAbbreviation(s)}</th>`).join('')}</tr>`;
+        
+        // GUNAKAN WRAPPER DIV (.v-text) UNTUK HEADER VERTIKAL AGAR FONT KONSISTEN
+        scoreTableHeader.innerHTML = `
+            <tr>
+                <th>NO</th>
+                <th>NAMA SISWA</th>
+                <th>KELAS</th>
+                ${subjects.map(s => `<th class="vertical-header"><div class="v-text">${generateSmartAbbreviation(s)}</div></th>`).join('')}
+            </tr>`;
         
         const scoresForPage = filteredScores.slice((page - 1) * selectedItemsPerPage, page * selectedItemsPerPage);
         scoreTableBody.innerHTML = '';
@@ -3116,152 +3205,7 @@
         }
     }
 
-    // FITUR BARU: Cetak Token ke PDF
-    window.printTokenToPDF = () => {
-        const consolidatedTokens = Array.from(consolidatedTokensMap.values()).sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
-        
-        if (consolidatedTokens.length === 0) {
-            closeCopyPrintModal();
-            return showNotification('Tidak ada data token untuk dicetak.', true);
-        }
-
-        const timestamp = new Date().toLocaleString('id-ID');
-        const header = `<tr><th>NO</th><th>MAPEL</th><th>KELAS</th><th>TOKEN</th><th>WAKTU DIBUKA</th><th>WAKTU DITUTUP</th><th>DURASI</th></tr>`;
-        let rows = '';
-
-        consolidatedTokens.forEach((data, index) => {
-            rows += `
-                <tr>
-                    <td>${index + 1}</td>
-                    <td style="text-align: left;">${escapeHtmlAttributeForJsString(data.subject)}</td>
-                    <td>${data.kelas}</td>
-                    <td style="font-family: monospace; font-weight: bold; font-size: 1.1em;">${data.token}</td>
-                    <td>${formatDisplayTime(data.startTime)}</td>
-                    <td>${formatDisplayTime(data.endTime)}</td>
-                    <td>${data.durationMinutes} Menit</td>
-                </tr>
-            `;
-        });
-
-        const printWindow = window.open('', '', 'height=600,width=900');
-        printWindow.document.write(`
-            <html>
-                <head>
-                    <title>Daftar Token Ujian</title>
-                    <style>
-                        body { font-family: 'Arial', sans-serif; font-size: 12px; }
-                        h2 { text-align: center; margin-bottom: 5px; }
-                        p { text-align: center; margin-top: 0; color: #555; }
-                        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                        th, td { border: 1px solid #333; padding: 8px; text-align: center; }
-                        th { background-color: #f2f2f2; }
-                        
-                        @media print {
-                            @page { 
-                                size: landscape; 
-                                margin: 0; 
-                            }
-                            body { 
-                                margin: 1cm 1cm 1cm 3cm; 
-                                -webkit-print-color-adjust: exact;
-                            }
-                        }
-                    </style>
-                </head>
-                <body>
-                    <h2>DAFTAR TOKEN UJIAN</h2>
-                    <p>Dicetak pada: ${timestamp}</p>
-                    <table>
-                        <thead>${header}</thead>
-                        <tbody>${rows}</tbody>
-                    </table>
-                    <script>
-                        window.onload = function() { window.print(); window.close(); }
-                    <\/script>
-                </body>
-            </html>
-        `);
-        printWindow.document.close();
-        closeCopyPrintModal();
-    };
-
-    window.printScoreToPDF = () => {
-        if (!filteredScores || filteredScores.length === 0) {
-            closeCopyPrintModal(); 
-            return showNotification('Tidak ada data nilai untuk dicetak.', true);
-        }
-
-        const relevantTokens = tokenCache.filter(t => getNumericClass(t.kelas) === window.currentScoreGradeFilter);
-        const subjects = [...new Set(relevantTokens.map(t => t.subject))].sort();
-        const timestamp = new Date().toLocaleString('id-ID');
-
-        let tableHeader = `<tr><th>NO</th><th>NAMA SISWA</th><th>KELAS</th>${subjects.map(s => `<th>${generateAbbreviation(s)}</th>`).join('')}</tr>`;
-        let tableRows = '';
-
-        filteredScores.forEach((student, index) => {
-            let rowContent = `<td>${index + 1}</td><td>${student.name}</td><td>${student.class}</td>`;
-            subjects.forEach(subject => {
-                let score = '-';
-                const tokenInfo = Array.from(consolidatedTokensMap.values()).find(t => t.subject === subject && getNumericClass(t.kelas) === getNumericClass(student.class));
-                if (tokenInfo) {
-                    for(const fbKey of Array.from(tokenInfo.firebaseKeys)) {
-                        if(submittedExamsCache[fbKey]?.[padStudentId(student.id)]?.isSubmitted) {
-                            const answerData = studentAnswersCache[fbKey]?.[padStudentId(student.id)];
-                            const bankSoal = bankSoalCache[`kelas${getNumericClass(tokenInfo.kelas)}`]?.[tokenInfo.tahunAjaran.replace(/\//g, '-')]?.[tokenInfo.ujianName.replace(/\s+/g, '-')]?.[`Kelas-${tokenInfo.kelas}`]?.[tokenInfo.subject.replace(/\s+/g, '-')];
-                            if (answerData && bankSoal?.kunjab) {
-                                score = calculateScore(answerData.answers, bankSoal.kunjab);
-                                break;
-                            }
-                        }
-                    }
-                }
-                rowContent += `<td>${score}</td>`;
-            });
-            tableRows += `<tr>${rowContent}</tr>`;
-        });
-
-        const printWindow = window.open('', '', 'height=600,width=800');
-        printWindow.document.write(`
-            <html>
-                <head>
-                    <title>Rekap Nilai Kelas ${window.currentScoreGradeFilter}</title>
-                    <style>
-                        body { font-family: 'Arial', sans-serif; font-size: 12px; }
-                        h2 { text-align: center; margin-bottom: 5px; }
-                        p { text-align: center; margin-top: 0; color: #555; }
-                        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                        th, td { border: 1px solid #333; padding: 6px 8px; text-align: center; }
-                        th { background-color: #f2f2f2; }
-                        td:nth-child(2) { text-align: left; }
-                        
-                        @media print {
-                            @page { 
-                                size: landscape; 
-                                margin: 0; 
-                            }
-                            body { 
-                                margin: 1cm; 
-                                -webkit-print-color-adjust: exact;
-                            }
-                        }
-                    </style>
-                </head>
-                <body>
-                    <h2>REKAP NILAI UJIAN - KELAS ${window.currentScoreGradeFilter}</h2>
-                    <p>Dicetak pada: ${timestamp}</p>
-                    <table>
-                        <thead>${tableHeader}</thead>
-                        <tbody>${tableRows}</tbody>
-                    </table>
-                    <script>
-                        window.onload = function() { window.print(); window.close(); }
-                    <\/script>
-                </body>
-            </html>
-        `);
-        printWindow.document.close();
-        closeCopyPrintModal(); 
-    };
+    // FUNGSI PRINT PDF (printTokenToPDF & printScoreToPDF) TELAH DIHAPUS
 
     window.promptResetStudent = (key, id, name, sClass) => { studentKeyForAction = key; studentIdForAction = id; studentNameForAction = unescape(name); studentClassForAction = sClass; document.getElementById('resetStudentNameDisplay').innerText = unescape(name); document.getElementById('resetStudentIdDisplay').innerText = id; document.getElementById('resetStudentModal').style.display = 'flex'; };
     
@@ -3390,7 +3334,7 @@
 
     function renderShuffleSettingsTable() { shuffleSettingsTableBody.innerHTML = `<tr><td>Acak Urutan Soal</td><td style="color:${shuffleSettingsCache.soal?'green':'red'};font-weight:bold;">${shuffleSettingsCache.soal?'ON':'OFF'}</td><td><label class="switch"><input type="checkbox" onchange="toggleShuffleSetting('soal')" ${shuffleSettingsCache.soal?'checked':''}><span class="slider"></span></label></td></tr><tr><td>Acak Urutan Pilihan Ganda</td><td style="color:${shuffleSettingsCache.pilgan?'green':'red'};font-weight:bold;">${shuffleSettingsCache.pilgan?'ON':'OFF'}</td><td><label class="switch"><input type="checkbox" onchange="toggleShuffleSetting('pilgan')" ${shuffleSettingsCache.pilgan?'checked':''}><span class="slider"></span></label></td></tr>`; }
 
-    window.toggleShuffleSetting = async (setting) => { const path = `acaksoalpilgan/${setting}`; const newValue = !shuffleSettingsCache[setting]; loadingOverlay.style.display = 'flex'; try { await update(ref(db), { [path]: newValue }); showNotification(`Pengaturan '${setting}' berhasil diperbarui.`); await loadShuffleSettings(); renderShuffleSettingsTable(); } catch (error) { showNotification(`Gagal memperbarui pengaturan: ${error.message}`, true); } finally { loadingOverlay.style.display = 'none'; } };
+    window.toggleShuffleSetting = async (setting) => { const path = `acaksoalpilgan/${setting}`; const newValue = !shuffleSettingsCache[setting]; loadingOverlay.style.display = 'flex'; try { await update(ref(db, { [path]: newValue })); showNotification(`Pengaturan '${setting}' berhasil diperbarui.`); await loadShuffleSettings(); renderShuffleSettingsTable(); } catch (error) { showNotification(`Gagal memperbarui pengaturan: ${error.message}`, true); } finally { loadingOverlay.style.display = 'none'; } };
 
     function loadPublicSettings() { return new Promise(r => onValue(ref(db, 'publicSettings'), s => { publicSettingsCache=s.val()||{kelas7:{e:0,u:''},kelas8:{e:0,u:''},kelas9:{e:0,u:''},susulan:{e:0,l:{}}}; cleanUpOldSusulanExams(); r(); }, {onlyOnce:!0})); }
 
