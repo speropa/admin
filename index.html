@@ -200,10 +200,10 @@
       white-space: nowrap;
     }
 
-    /* CSS BARU UNTUK HEADER VERTIKAL - DIPERBAIKI */
+    /* CSS HEADER VERTIKAL */
     th.vertical-header {
-        height: 110px; /* DIKURANGI DARI 150px JADI 110px */
-        vertical-align: bottom; /* Teks dimulai dari bawah */
+        height: 110px;
+        vertical-align: bottom;
         padding: 10px 4px;
         text-align: center;
         line-height: 1.2;
@@ -215,22 +215,19 @@
         white-space: nowrap;
         display: inline-block;
         text-align: left;
-        font-family: 'Inter', sans-serif; /* Pastikan font sama */
-        font-weight: bold; /* Pastikan ketebalan sama */
-        font-size: 13px; /* Ukuran disesuaikan sedikit agar rapi */
+        font-family: 'Inter', sans-serif;
+        font-weight: bold;
+        font-size: 13px;
         letter-spacing: 0.3px;
-        max-height: 100px; /* Batasi tinggi teks */
+        max-height: 100px;
     }
 
-    /* --- KEMBALI KE TAMPILAN FULL WIDTH (STANDARD) --- */
-    /* 1. Pastikan tabel menggunakan lebar penuh */
     #scoreTable {
         width: 100% !important; 
         margin: 0;
         border-bottom: 1px solid #e0e0e0;
     }
 
-    /* 2. Reset container agar scrollbar normal */
     #scoreSection .table-responsive {
         display: block;
         width: 100%;
@@ -239,25 +236,22 @@
         text-align: left;
     }
 
-    /* 3. Kolom Nama Siswa: Tetap beri min-width agar tidak hancur, tapi biarkan melebar (hapus max-width) */
     #scoreTable th:nth-child(2), 
     #scoreTable td:nth-child(2) {
-        min-width: 200px; /* Lebar minimal aman */
-        max-width: none; /* Biarkan melebar mengisi sisa layar */
+        min-width: 200px;
+        max-width: none;
         white-space: normal; 
         text-align: left; 
     }
 
-    /* 4. Pastikan kolom Nilai rapi (kecil-kecil) */
     #scoreTable th:nth-child(n+4), 
     #scoreTable td:nth-child(n+4) {
-        width: 40px; /* Lebar tetap untuk kolom nilai */
+        width: 40px;
         min-width: 40px;
         text-align: center;
         padding: 5px;
     }
 
-    /* Pastikan header No, Nama, Kelas tetap horizontal */
     #scoreTable th:nth-child(1),
     #scoreTable th:nth-child(2),
     #scoreTable th:nth-child(3) {
@@ -1473,6 +1467,9 @@
     const THIRTY_DAYS_IN_MS = 30 * 24 * 60 * 60 * 1000;
     const FIFTEEN_MINUTES_IN_MS = 15 * 60 * 1000;
     const ONE_WEEK_IN_MS = 7 * 24 * 60 * 60 * 1000;
+    // Tambahkan konstanta Grace Period untuk Tampilan Dashboard (30 Menit)
+    const DASHBOARD_DISPLAY_GRACE_MS = 30 * 60 * 1000;
+
     const VALID_ROMBELS = ['7A', '7B', '7C', '7D', '7E', '7F', '8A', '8B', '8C', '8D', '8E', '8F', '9A', '9B', '9C', '9D', '9E', '9F'];
     const defaultLocationCoordinate = "-7.8589546,110.2655596";
 
@@ -3446,7 +3443,16 @@
     function updateDashboard() { if(document.getElementById('dashboardSection').style.display === 'block') { updateHighlightCards(); renderProgressCards(); } }
 
     function updateHighlightCards() {
-        const activeTokens = Array.from(consolidatedTokensMap.values()).filter(t => t.isActive || t.isForceActive);
+        // TAMPILKAN JIKA: Force Active OR (Sekarang < (Waktu Selesai + Grace Period))
+        const activeTokens = Array.from(consolidatedTokensMap.values()).filter(t => {
+            if (t.isForceActive) return true;
+            const endTime = new Date(t.endTime).getTime();
+            const startTime = new Date(t.startTime).getTime();
+            const now = Date.now();
+            // Harus sudah mulai, dan belum lewat grace period
+            return (now >= startTime && now < (endTime + DASHBOARD_DISPLAY_GRACE_MS));
+        });
+
         const activeTokenKeys = new Set(activeTokens.flatMap(t => Array.from(t.firebaseKeys)));
         let onlineCount = 0;
         for (const tokenKey in tokenAccessStatus) { Object.values(tokenAccessStatus[tokenKey]).forEach(s => { if(s?.isLoggedIn) onlineCount++; }); }
@@ -3462,7 +3468,16 @@
     function renderProgressCards() {
         progressCardsContainer.innerHTML = '';
         Object.values(countdownIntervals).forEach(clearInterval);
-        const activeTokens = Array.from(consolidatedTokensMap.values()).filter(t => t.isActive || t.isForceActive);
+        
+        // GUNAKAN LOGIKA FILTER YANG SAMA DENGAN HIGHLIGHT CARDS
+        const activeTokens = Array.from(consolidatedTokensMap.values()).filter(t => {
+            if (t.isForceActive) return true;
+            const endTime = new Date(t.endTime).getTime();
+            const startTime = new Date(t.startTime).getTime();
+            const now = Date.now();
+            return (now >= startTime && now < (endTime + DASHBOARD_DISPLAY_GRACE_MS));
+        });
+
         if(activeTokens.length === 0) return progressCardsContainer.innerHTML = '<p>Tidak ada ujian yang sedang aktif.</p>';
         activeTokens.forEach(token => {
             const studentsInClass = studentCache.filter(s => getNumericClass(s.class) === getNumericClass(token.kelas));
@@ -3488,13 +3503,43 @@
                 <div class="progress-card-footer"><div class="status-text" id="status-${token.key}"></div><button class="text-button light-blue" style="padding:5px 10px;font-size:0.8em;" onclick="navigateToStudentManagement('${getNumericClass(token.kelas)}')">Kelola</button></div>`;
             progressCardsContainer.appendChild(card);
             const statusEl = document.getElementById(`status-${token.key}`);
-            if (token.isForceActive) { statusEl.innerHTML = "<span class='forced'>PAKSA AKTIF</span>"; } else { countdownIntervals[token.key] = setInterval(() => { const dist = new Date(token.endTime) - new Date(); if (dist < 0) { clearInterval(countdownIntervals[token.key]); statusEl.innerHTML = "<span class='expired'>WAKTU HABIS</span>"; return; } statusEl.innerHTML = `<span class="countdown">${formatSecondsToHMS(Math.floor(dist/1000))}</span>`; }, 1000); }
+            
+            if (token.isForceActive) { 
+                statusEl.innerHTML = "<span class='forced'>PAKSA AKTIF</span>"; 
+            } else { 
+                countdownIntervals[token.key] = setInterval(() => { 
+                    const dist = new Date(token.endTime) - new Date(); 
+                    if (dist < 0) { 
+                        clearInterval(countdownIntervals[token.key]);
+                        // Cek apakah masih dalam grace period untuk menampilkan teks "Monitoring"
+                        if (Math.abs(dist) < DASHBOARD_DISPLAY_GRACE_MS) {
+                             statusEl.innerHTML = "<span class='expired'>WAKTU HABIS (Monitoring)</span>";
+                        } else {
+                             statusEl.innerHTML = "<span class='expired'>WAKTU HABIS</span>"; 
+                        }
+                        return; 
+                    } 
+                    statusEl.innerHTML = `<span class="countdown">${formatSecondsToHMS(Math.floor(dist/1000))}</span>`; 
+                }, 1000); 
+            }
         });
     }
 
     function createProgressBar(label, value, total, color) { const p = total > 0 ? (value / total) * 100 : 0; return `<div class="progress-item"><div class="progress-text-info"><span>${label}</span><span>${value}/${total} (${Math.round(p)}%)</span></div><div class="progress-bar-container"><div class="progress-bar-fill" style="width:${p}%;background-color:${color};">${p > 15 ? `${Math.round(p)}%` : ''}</div></div></div>`; }
     window.navigateToStudentManagement = (kelas) => {
-        const token = Array.from(consolidatedTokensMap.values()).find(t => getNumericClass(t.kelas) === kelas && (t.isActive || t.isForceActive));
+        // Cari token yang aktif ATAU dalam grace period agar tombol 'Kelola' memilih token yang benar
+        const token = Array.from(consolidatedTokensMap.values()).find(t => {
+            const isTargetClass = getNumericClass(t.kelas) === kelas;
+            if (!isTargetClass) return false;
+            
+            if (t.isForceActive) return true;
+            
+            const endTime = new Date(t.endTime).getTime();
+            const now = Date.now();
+            // Pilih token jika aktif atau dalam grace period
+            return (t.isActive || (now >= new Date(t.startTime).getTime() && now < (endTime + DASHBOARD_DISPLAY_GRACE_MS)));
+        });
+
         lastSelectedTokens[kelas] = token ? `${token.token}_${token.kelas}` : 'DEFAULT';
         localStorage.setItem('lastSelectedTokens', JSON.stringify(lastSelectedTokens));
         showSection('studentStatusSection');
