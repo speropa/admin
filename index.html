@@ -2333,15 +2333,25 @@
     
         const tokenKeysForDisplay = [];
         let anySelected = false;
+
+        // --- PERBAIKAN BUG: Validasi Token Tersimpan ---
+        // Cek apakah token yang ada di localStorage BENAR-BENAR ADA di data Firebase saat ini.
         Object.values(lastSelectedTokens).forEach(id => {
             if (id !== 'DEFAULT') {
-                anySelected = true;
                 const [token, kelas] = id.split('_');
+                // Cari apakah token ini valid/eksis di consolidatedTokensMap
                 const consolidated = Array.from(consolidatedTokensMap.values()).find(t => t.token === token && t.kelas === kelas);
-                if (consolidated) tokenKeysForDisplay.push(...Array.from(consolidated.firebaseKeys));
+                
+                if (consolidated) {
+                    // Hanya tandai 'terpilih' jika datanya valid ditemukan
+                    anySelected = true;
+                    tokenKeysForDisplay.push(...Array.from(consolidated.firebaseKeys));
+                }
             }
         });
 
+        // Jika tidak ada yang valid terpilih (atau token yang disimpan sudah expired/dihapus)
+        // Maka tampilkan pesan awal (Initial Message) dan sembunyikan tabel
         if (!anySelected) {
             studentStatusInitialMessage.style.display = 'block';
             studentStatusTableContainer.style.display = 'none';
@@ -3572,11 +3582,28 @@
     function populateExamSelectionDropdowns() {
         const gradeDropdowns = { '7': grade7TokenSelect, '8': grade8TokenSelect, '9': grade9TokenSelect };
         Object.values(gradeDropdowns).forEach(d => d.innerHTML = '<option value="DEFAULT">[Kosong]</option>');
+        
+        // Populate options
         Array.from(consolidatedTokensMap.values()).sort((a,b) => a.subject.localeCompare(b.subject)).forEach(t => {
             const dropdown = gradeDropdowns[getNumericClass(t.kelas)];
             if(dropdown) dropdown.innerHTML += `<option value="${t.token}_${t.kelas}">${t.subject} (Kls ${t.kelas}) - ${t.isActive || t.isForceActive ? '(Aktif)' : ''}</option>`;
         });
-        Object.entries(gradeDropdowns).forEach(([grade, dropdown]) => dropdown.value = lastSelectedTokens[grade] || 'DEFAULT');
+
+        // --- PERBAIKAN BUG: Validasi Dropdown Value ---
+        // Cek apakah value yang tersimpan di lastSelectedTokens ada di dalam opsi dropdown.
+        // Jika tidak ada (misal token dihapus tapi masih nyangkut di localStorage), set ke DEFAULT.
+        Object.entries(gradeDropdowns).forEach(([grade, dropdown]) => {
+            const savedValue = lastSelectedTokens[grade];
+            // Cek apakah opsi dengan value tersebut benar-benar ada di dropdown
+            if (savedValue && dropdown.querySelector(`option[value="${savedValue}"]`)) {
+                dropdown.value = savedValue;
+            } else {
+                // Jika tidak ada, reset ke DEFAULT agar tidak blank
+                dropdown.value = 'DEFAULT';
+                // Opsional: Perbarui cache memory (localStorage akan diperbarui saat user klik Simpan nanti)
+                lastSelectedTokens[grade] = 'DEFAULT';
+            }
+        });
     }
 
     window.saveSelectedExamTokens = () => { lastSelectedTokens = { '7': grade7TokenSelect.value, '8': grade8TokenSelect.value, '9': grade9TokenSelect.value }; localStorage.setItem('lastSelectedTokens', JSON.stringify(lastSelectedTokens)); showNotification('Pilihan token disimpan.'); window.showSection('studentStatusSection'); };
