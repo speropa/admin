@@ -3465,11 +3465,9 @@
             <div class="highlight-card"><span class="icon total-users"><i class="fas fa-users"></i></span><div class="info"><h3>${studentCache.length}</h3><p>Total Peserta</p></div></div>`;
     }
 
+    // FUNGSI INI DIMODIFIKASI AGAR TIDAK BERKEDIP (RE-RENDER CERDAS)
     function renderProgressCards() {
-        progressCardsContainer.innerHTML = '';
-        Object.values(countdownIntervals).forEach(clearInterval);
-        
-        // GUNAKAN LOGIKA FILTER YANG SAMA DENGAN HIGHLIGHT CARDS
+        // Filter token aktif
         const activeTokens = Array.from(consolidatedTokensMap.values()).filter(t => {
             if (t.isForceActive) return true;
             const endTime = new Date(t.endTime).getTime();
@@ -3478,7 +3476,26 @@
             return (now >= startTime && now < (endTime + DASHBOARD_DISPLAY_GRACE_MS));
         });
 
-        if(activeTokens.length === 0) return progressCardsContainer.innerHTML = '<p>Tidak ada ujian yang sedang aktif.</p>';
+        if(activeTokens.length === 0) {
+            progressCardsContainer.innerHTML = '<p>Tidak ada ujian yang sedang aktif.</p>';
+            Object.values(countdownIntervals).forEach(clearInterval);
+            countdownIntervals = {};
+            return;
+        }
+
+        // 1. Hapus kartu yang sudah tidak aktif dari DOM
+        const activeKeys = new Set(activeTokens.map(t => t.key));
+        const existingCards = progressCardsContainer.querySelectorAll('.progress-card');
+        existingCards.forEach(card => {
+            const key = card.id.replace('card-', '');
+            if (!activeKeys.has(key)) {
+                if(countdownIntervals[key]) clearInterval(countdownIntervals[key]);
+                delete countdownIntervals[key];
+                card.remove();
+            }
+        });
+
+        // 2. Buat baru atau Update yang sudah ada
         activeTokens.forEach(token => {
             const studentsInClass = studentCache.filter(s => getNumericClass(s.class) === getNumericClass(token.kelas));
             let submitted = 0, working = 0;
@@ -3491,38 +3508,80 @@
                  if(isSubmitted) submitted++;
                  else if (isLoggedIn) working++;
             });
-            const card = document.createElement('div');
-            card.className = 'progress-card';
-            card.innerHTML = `
-                <div class="progress-card-header"><h4>${token.subject} - KLS ${token.kelas}</h4><span class="token-code">${token.token}</span></div>
-                <div class="progress-card-body">
-                    ${createProgressBar('Submit', submitted, studentsInClass.length, '#27ae60')}
-                    ${createProgressBar('Mengerjakan', working, studentsInClass.length, '#f39c12')}
-                    ${createProgressBar('Belum Login', studentsInClass.length - submitted - working, studentsInClass.length, '#bdc3c7')}
-                </div>
-                <div class="progress-card-footer"><div class="status-text" id="status-${token.key}"></div><button class="text-button light-blue" style="padding:5px 10px;font-size:0.8em;" onclick="navigateToStudentManagement('${getNumericClass(token.kelas)}')">Kelola</button></div>`;
-            progressCardsContainer.appendChild(card);
-            const statusEl = document.getElementById(`status-${token.key}`);
-            
-            if (token.isForceActive) { 
-                statusEl.innerHTML = "<span class='forced'>PAKSA AKTIF</span>"; 
-            } else { 
-                countdownIntervals[token.key] = setInterval(() => { 
-                    const dist = new Date(token.endTime) - new Date(); 
-                    if (dist < 0) { 
-                        clearInterval(countdownIntervals[token.key]);
-                        // Cek apakah masih dalam grace period untuk menampilkan teks "Monitoring"
-                        if (Math.abs(dist) < DASHBOARD_DISPLAY_GRACE_MS) {
-                             statusEl.innerHTML = "<span class='expired'>WAKTU HABIS (Monitoring)</span>";
-                        } else {
-                             statusEl.innerHTML = "<span class='expired'>WAKTU HABIS</span>"; 
-                        }
-                        return; 
-                    } 
-                    statusEl.innerHTML = `<span class="countdown">${formatSecondsToHMS(Math.floor(dist/1000))}</span>`; 
-                }, 1000); 
+
+            // Hitung konten body (Progress Bar)
+            const bodyContent = `
+                ${createProgressBar('Submit', submitted, studentsInClass.length, '#27ae60')}
+                ${createProgressBar('Mengerjakan', working, studentsInClass.length, '#f39c12')}
+                ${createProgressBar('Belum Login', studentsInClass.length - submitted - working, studentsInClass.length, '#bdc3c7')}
+            `;
+
+            let card = document.getElementById(`card-${token.key}`);
+
+            if (!card) {
+                // JIKA KARTU BELUM ADA: BUAT BARU
+                card = document.createElement('div');
+                card.className = 'progress-card';
+                card.id = `card-${token.key}`;
+                // Simpan state force active untuk pengecekan perubahan nanti
+                card.dataset.forceActive = token.isForceActive; 
+
+                card.innerHTML = `
+                    <div class="progress-card-header"><h4>${token.subject} - KLS ${token.kelas}</h4><span class="token-code">${token.token}</span></div>
+                    <div class="progress-card-body" id="body-${token.key}">
+                        ${bodyContent}
+                    </div>
+                    <div class="progress-card-footer">
+                        <div class="status-text" id="status-${token.key}"></div>
+                        <button class="text-button light-blue" style="padding:5px 10px;font-size:0.8em;" onclick="navigateToStudentManagement('${getNumericClass(token.kelas)}')">Kelola</button>
+                    </div>`;
+                progressCardsContainer.appendChild(card);
+                
+                // Jalankan timer hanya saat kartu dibuat
+                startCardTimer(token);
+
+            } else {
+                // JIKA KARTU SUDAH ADA: UPDATE HANYA BAGIAN BODY (PROGRES)
+                const bodyEl = document.getElementById(`body-${token.key}`);
+                if(bodyEl) bodyEl.innerHTML = bodyContent;
+
+                // Cek jika status Force Active berubah, reset timer
+                if (card.dataset.forceActive !== String(token.isForceActive)) {
+                    card.dataset.forceActive = token.isForceActive;
+                    startCardTimer(token);
+                }
             }
         });
+    }
+
+    // Fungsi Helper Baru untuk Timer agar stabil
+    function startCardTimer(token) {
+        const statusEl = document.getElementById(`status-${token.key}`);
+        if (!statusEl) return;
+
+        // Bersihkan interval lama jika ada
+        if (countdownIntervals[token.key]) clearInterval(countdownIntervals[token.key]);
+
+        if (token.isForceActive) {
+            statusEl.innerHTML = "<span class='forced'>PAKSA AKTIF</span>";
+        } else {
+            const updateTimer = () => {
+                const dist = new Date(token.endTime) - new Date();
+                if (dist < 0) {
+                    clearInterval(countdownIntervals[token.key]);
+                    if (Math.abs(dist) < DASHBOARD_DISPLAY_GRACE_MS) {
+                         statusEl.innerHTML = "<span class='expired'>WAKTU HABIS (Monitoring)</span>";
+                    } else {
+                         statusEl.innerHTML = "<span class='expired'>WAKTU HABIS</span>"; 
+                    }
+                } else {
+                    statusEl.innerHTML = `<span class="countdown">${formatSecondsToHMS(Math.floor(dist/1000))}</span>`;
+                }
+            };
+            
+            updateTimer(); // Jalankan sekali di awal agar tidak delay 1 detik
+            countdownIntervals[token.key] = setInterval(updateTimer, 1000);
+        }
     }
 
     function createProgressBar(label, value, total, color) { const p = total > 0 ? (value / total) * 100 : 0; return `<div class="progress-item"><div class="progress-text-info"><span>${label}</span><span>${value}/${total} (${Math.round(p)}%)</span></div><div class="progress-bar-container"><div class="progress-bar-fill" style="width:${p}%;background-color:${color};">${p > 15 ? `${Math.round(p)}%` : ''}</div></div></div>`; }
