@@ -872,6 +872,10 @@
       </div>
       <div id="studentStatusSection" class="dashboard-section container">
         <h1 style="text-align: left; margin-bottom: 20px; color: #34495e;">Status Peserta</h1>
+        
+        <!-- ELEMENT BARU: INFORMASI TOKEN TERPILIH -->
+        <div id="selectedExamInfo" style="margin-bottom: 20px; padding: 15px; background-color: #e3f2fd; border-left: 5px solid #2196F3; border-radius: 4px; display: none;"></div>
+        
         <div class="controls-header">
             <div class="filters-group" style="flex-grow: 1; justify-content: flex-start; align-items: flex-end; width: 100%;">
                 <input type="text" id="studentStatusSearchInput" placeholder="Cari Siswa (ID, Nama, atau Kelas)..." style="flex-grow: 1;" />
@@ -2331,9 +2335,14 @@
         const tokenKeysForDisplay = [];
         let anySelected = false;
 
+        // --- UPDATE TAMPILAN INFORMASI TOKEN TERPILIH ---
+        const selectedExamInfoDiv = document.getElementById('selectedExamInfo');
+        let infoHtml = '<h4 style="margin: 0 0 8px 0; color: #0d47a1; font-size: 1em;"> <i class="fas fa-info-circle"></i> Filter Ujian Aktif:</h4><div style="display: flex; flex-wrap: wrap; gap: 10px;">';
+        let hasInfoToDisplay = false;
+
         // --- PERBAIKAN BUG: Validasi Token Tersimpan ---
         // Cek apakah token yang ada di localStorage BENAR-BENAR ADA di data Firebase saat ini.
-        Object.values(lastSelectedTokens).forEach(id => {
+        Object.entries(lastSelectedTokens).forEach(([grade, id]) => {
             if (id !== 'DEFAULT') {
                 const [token, kelas] = id.split('_');
                 // Cari apakah token ini valid/eksis di consolidatedTokensMap
@@ -2343,9 +2352,31 @@
                     // Hanya tandai 'terpilih' jika datanya valid ditemukan
                     anySelected = true;
                     tokenKeysForDisplay.push(...Array.from(consolidated.firebaseKeys));
+                    
+                    // Tambahkan info ke panel
+                    hasInfoToDisplay = true;
+                    infoHtml += `
+                        <div style="background: white; padding: 6px 12px; border-radius: 4px; border: 1px solid #bbdefb; font-size: 0.9em; display: flex; align-items: center; gap: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                            <span style="font-weight: bold; color: #1565c0; background-color: #e3f2fd; padding: 2px 6px; border-radius: 3px;">Kelas ${grade}</span>
+                            <span style="font-weight: 500; color: #333;">${consolidated.subject}</span>
+                            <span style="color: #7f8c8d; font-size: 0.85em;">•</span>
+                            <span style="color: #e67e22; font-weight: bold; font-family: monospace; font-size: 1.05em;">${consolidated.token}</span>
+                        </div>
+                    `;
                 }
             }
         });
+
+        infoHtml += '</div>';
+
+        if (selectedExamInfoDiv) {
+            if (hasInfoToDisplay) {
+                selectedExamInfoDiv.innerHTML = infoHtml;
+                selectedExamInfoDiv.style.display = 'block';
+            } else {
+                selectedExamInfoDiv.style.display = 'none';
+            }
+        }
 
         // Jika tidak ada yang valid terpilih (atau token yang disimpan sudah expired/dihapus)
         // Maka tampilkan pesan awal (Initial Message) dan sembunyikan tabel
@@ -3526,6 +3557,7 @@
                 // Simpan state force active untuk pengecekan perubahan nanti
                 card.dataset.forceActive = token.isForceActive; 
 
+                // --- PERBAIKAN TOMBOL KELOLA: Tambahkan parameter token spesifik ---
                 card.innerHTML = `
                     <div class="progress-card-header"><h4>${token.subject} - KLS ${token.kelas}</h4><span class="token-code">${token.token}</span></div>
                     <div class="progress-card-body" id="body-${token.key}">
@@ -3533,7 +3565,7 @@
                     </div>
                     <div class="progress-card-footer">
                         <div class="status-text" id="status-${token.key}"></div>
-                        <button class="text-button light-blue" style="padding:5px 10px;font-size:0.8em;" onclick="navigateToStudentManagement('${getNumericClass(token.kelas)}')">Kelola</button>
+                        <button class="text-button light-blue" style="padding:5px 10px;font-size:0.8em;" onclick="navigateToStudentManagement('${getNumericClass(token.kelas)}', '${escape(token.token)}')">Kelola</button>
                     </div>`;
                 progressCardsContainer.appendChild(card);
                 
@@ -3585,22 +3617,53 @@
     }
 
     function createProgressBar(label, value, total, color) { const p = total > 0 ? (value / total) * 100 : 0; return `<div class="progress-item"><div class="progress-text-info"><span>${label}</span><span>${value}/${total} (${Math.round(p)}%)</span></div><div class="progress-bar-container"><div class="progress-bar-fill" style="width:${p}%;background-color:${color};">${p > 15 ? `${Math.round(p)}%` : ''}</div></div></div>`; }
-    window.navigateToStudentManagement = (kelas) => {
-        // Cari token yang aktif ATAU dalam grace period agar tombol 'Kelola' memilih token yang benar
+    
+    // --- PERBAIKAN FUNGSI NAVIGASI: Menerima parameter token spesifik ---
+    window.navigateToStudentManagement = (kelasRaw, tokenString) => {
+        // Pastikan kelas berupa string ('7', '8', atau '9')
+        const kelas = String(kelasRaw);
+        const specificToken = tokenString ? unescape(tokenString) : null;
+
+        // Cari token yang TEPAT sesuai yang diklik (Class Match AND Token Match)
+        // Jika tidak ada tokenString (fallback), cari sembarang yang aktif
         const token = Array.from(consolidatedTokensMap.values()).find(t => {
             const isTargetClass = getNumericClass(t.kelas) === kelas;
             if (!isTargetClass) return false;
             
+            // Logika Baru: Jika ada token spesifik, harus cocok persis
+            if (specificToken) {
+                return t.token === specificToken;
+            }
+
+            // Fallback (Logika Lama): Cari sembarang yang aktif
             if (t.isForceActive) return true;
-            
             const endTime = new Date(t.endTime).getTime();
             const now = Date.now();
-            // Pilih token jika aktif atau dalam grace period
             return (t.isActive || (now >= new Date(t.startTime).getTime() && now < (endTime + DASHBOARD_DISPLAY_GRACE_MS)));
         });
 
-        lastSelectedTokens[kelas] = token ? `${token.token}_${token.kelas}` : 'DEFAULT';
+        const newValue = token ? `${token.token}_${token.kelas}` : 'DEFAULT';
+
+        // 1. Update Penyimpanan (LocalStorage & Variabel Global)
+        lastSelectedTokens[kelas] = newValue;
         localStorage.setItem('lastSelectedTokens', JSON.stringify(lastSelectedTokens));
+
+        // 2. UPDATE FISIK DROPDOWN DOM (PENTING AGAR TIDAK KONFLIK)
+        // Kita paksa elemen select untuk berubah nilainya sesuai pilihan dashboard
+        const dropdown = document.getElementById(`grade${kelas}TokenSelect`);
+        if (dropdown) {
+            // Kita coba set value. Jika opsi belum ada (misal belum diload), 
+            // value akan tetap kosong, tapi populateExamSelectionDropdowns nanti akan 
+            // menggunakan lastSelectedTokens karena DOM value kosong/tidak valid.
+            // Namun jika opsi sudah ada, ini akan menyinkronkan tampilan.
+            dropdown.value = newValue;
+            
+            // Trik tambahan: update atribut value agar terbaca oleh logika 'currentValue'
+            // jika dropdown sedang tidak dirender ulang
+            const option = dropdown.querySelector(`option[value="${newValue}"]`);
+            if (option) option.selected = true;
+        }
+
         showSection('studentStatusSection');
     }
 
