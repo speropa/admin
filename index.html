@@ -2353,7 +2353,7 @@
                     anySelected = true;
                     tokenKeysForDisplay.push(...Array.from(consolidated.firebaseKeys));
                     
-                    // Tambahkan info ke panel
+                    // Tambahkan info ke panel DENGAN TOMBOL HAPUS (X)
                     hasInfoToDisplay = true;
                     infoHtml += `
                         <div style="background: white; padding: 6px 12px; border-radius: 4px; border: 1px solid #bbdefb; font-size: 0.9em; display: flex; align-items: center; gap: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
@@ -2361,6 +2361,7 @@
                             <span style="font-weight: 500; color: #333;">${consolidated.subject}</span>
                             <span style="color: #7f8c8d; font-size: 0.85em;">•</span>
                             <span style="color: #e67e22; font-weight: bold; font-family: monospace; font-size: 1.05em;">${consolidated.token}</span>
+                            <button onclick="clearExamFilter('${grade}')" style="background: none; border: none; cursor: pointer; color: #ef5350; padding: 2px 0 2px 8px; margin: 0; font-size: 1.1em; display: flex; align-items: center; transition: color 0.2s;" onmouseover="this.style.color='#c62828'" onmouseout="this.style.color='#ef5350'" title="Hapus Filter Kelas ${grade}"><i class="fas fa-times"></i></button>
                         </div>
                     `;
                 }
@@ -2532,6 +2533,20 @@
              const allSelected = studentsForPage.length > 0 && studentsForPage.every(s => selectedStatusKeys.has(s.key));
              selectAllCheckbox.checked = allSelected;
         }
+    };
+
+    // --- FUNGSI BARU: HAPUS FILTER UJIAN TERTENTU ---
+    window.clearExamFilter = (grade) => {
+        // 1. Reset data di memory dan localStorage
+        lastSelectedTokens[grade] = 'DEFAULT';
+        localStorage.setItem('lastSelectedTokens', JSON.stringify(lastSelectedTokens));
+
+        // 2. Reset dropdown di tab Status Ujian agar sinkron
+        const dropdown = document.getElementById(`grade${grade}TokenSelect`);
+        if (dropdown) dropdown.value = 'DEFAULT';
+
+        // 3. Render ulang tabel
+        renderStudentStatusTable(1);
     };
 
     window.toggleSelectAllStatus = (checkbox) => {
