@@ -3685,27 +3685,42 @@
 
     function populateExamSelectionDropdowns() {
         const gradeDropdowns = { '7': grade7TokenSelect, '8': grade8TokenSelect, '9': grade9TokenSelect };
+        
+        // 1. Simpan Pilihan User SAAT INI (sebelum di-refresh)
+        // Ini menjaga agar pilihan tidak ter-reset jika user sedang memilih tapi belum klik Simpan
+        const currentSelections = {};
+        Object.keys(gradeDropdowns).forEach(grade => {
+            currentSelections[grade] = gradeDropdowns[grade].value;
+        });
+
+        // 2. Reset Dropdown
         Object.values(gradeDropdowns).forEach(d => d.innerHTML = '<option value="DEFAULT">[Kosong]</option>');
         
-        // Populate options
+        // 3. Isi Ulang Opsi
         Array.from(consolidatedTokensMap.values()).sort((a,b) => a.subject.localeCompare(b.subject)).forEach(t => {
             const dropdown = gradeDropdowns[getNumericClass(t.kelas)];
             if(dropdown) dropdown.innerHTML += `<option value="${t.token}_${t.kelas}">${t.subject} (Kls ${t.kelas}) - ${t.isActive || t.isForceActive ? '(Aktif)' : ''}</option>`;
         });
 
-        // --- PERBAIKAN BUG: Validasi Dropdown Value ---
-        // Cek apakah value yang tersimpan di lastSelectedTokens ada di dalam opsi dropdown.
-        // Jika tidak ada (misal token dihapus tapi masih nyangkut di localStorage), set ke DEFAULT.
+        // 4. Kembalikan Nilai (Logika Cerdas)
         Object.entries(gradeDropdowns).forEach(([grade, dropdown]) => {
-            const savedValue = lastSelectedTokens[grade];
-            // Cek apakah opsi dengan value tersebut benar-benar ada di dropdown
-            if (savedValue && dropdown.querySelector(`option[value="${savedValue}"]`)) {
+            const savedValue = lastSelectedTokens[grade]; // Nilai yang tersimpan (tombol Simpan)
+            const currentValue = currentSelections[grade]; // Nilai yang sedang dilihat user
+
+            // Cek apakah nilai tersebut valid (ada di daftar opsi yang baru dibuat)
+            const isCurrentValid = currentValue && dropdown.querySelector(`option[value="${currentValue}"]`);
+            const isSavedValid = savedValue && dropdown.querySelector(`option[value="${savedValue}"]`);
+
+            if (isCurrentValid) {
+                // PRIORITAS UTAMA: Pertahankan apa yang sedang dipilih user saat ini
+                // Meskipun belum disimpan, jangan diubah paksa agar tidak "lompat"
+                dropdown.value = currentValue;
+            } else if (isSavedValid) {
+                // PRIORITAS KEDUA: Jika user belum memilih (awal load), gunakan yang tersimpan
                 dropdown.value = savedValue;
             } else {
-                // Jika tidak ada, reset ke DEFAULT agar tidak blank
+                // FALLBACK: Jika semua tidak valid, set ke Default
                 dropdown.value = 'DEFAULT';
-                // Opsional: Perbarui cache memory (localStorage akan diperbarui saat user klik Simpan nanti)
-                lastSelectedTokens[grade] = 'DEFAULT';
             }
         });
     }
