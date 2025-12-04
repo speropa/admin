@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=0.67" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
   <style>
-    /* ... (CSS TIDAK BERUBAH DARI SEBELUMNYA) ... */
+    /* ... (CSS TIDAK BERUBAH) ... */
     html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; }
     body { font-family: 'Inter', sans-serif; background-color: #f4f7f6; display: flex; width: 100%; }
     .sidebar { width: 220px; background-color: #2c3e50; color: white; padding: 20px; box-shadow: 2px 0 10px rgba(0,0,0,0.1); display: none; flex-direction: column; align-items: center; position: sticky; top: 0; height: 100vh; overflow-y: auto; flex-shrink: 0; z-index: 20; box-sizing: border-box; transition: width 0.3s ease; }
@@ -754,19 +754,23 @@
     import { getDatabase, ref, push, onValue, update, remove, get, set } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
     import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, EmailAuthProvider, reauthenticateWithCredential, setPersistence, inMemoryPersistence } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyBAKwT7JY_HGnvK6h3u30-dfgRPXfef8l8",
-  authDomain: "abc-a13ea.firebaseapp.com",
-  databaseURL: "https://abc-a13ea-default-rtdb.firebaseio.com",
-  projectId: "abc-a13ea",
-  storageBucket: "abc-a13ea.firebasestorage.app",
-  messagingSenderId: "1052966795599",
-  appId: "1:1052966795599:web:d4d331199ca9081321ed3a"
-};
+    // KONFIGURASI FIREBASE DIPERBARUI
+    const firebaseConfig = {
+      apiKey: "AIzaSyBAKwT7JY_HGnvK6h3u30-dfgRPXfef8l8",
+      authDomain: "abc-a13ea.firebaseapp.com",
+      databaseURL: "https://abc-a13ea-default-rtdb.firebaseio.com",
+      projectId: "abc-a13ea",
+      storageBucket: "abc-a13ea.firebasestorage.app",
+      messagingSenderId: "1052966795599",
+      appId: "1:1052966795599:web:d4d331199ca9081321ed3a"
+    };
     
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getDatabase(app);
+
+    // Variabel yang hilang telah ditambahkan di sini:
+    const defaultLocationCoordinate = '-7.868779, 110.284737'; // Default Koordinat SMPN 2 Pajangan
 
     const THIRTY_DAYS_IN_MS = 30 * 24 * 60 * 60 * 1000;
     const FIFTEEN_MINUTES_IN_MS = 15 * 60 * 1000;
