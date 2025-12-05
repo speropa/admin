@@ -2488,13 +2488,23 @@
         });
     }
 
-    window.saveSelectedExamTokens = () => { lastSelectedTokens = { '7': grade7TokenSelect.value, '8': grade8TokenSelect.value, '9': grade9TokenSelect.value }; localStorage.setItem('lastSelectedTokens', JSON.stringify(lastSelectedTokens)); showNotification('Pilihan token disimpan.'); window.showSection('studentStatusSection'); };
+    window.saveSelectedExamTokens = () => { 
+        lastSelectedTokens = { '7': grade7TokenSelect.value, '8': grade8TokenSelect.value, '9': grade9TokenSelect.value }; 
+        localStorage.setItem('lastSelectedTokens', JSON.stringify(lastSelectedTokens)); 
+        showNotification('Pilihan token disimpan.'); 
+        window.showSection('studentStatusSection'); 
+    };
 
     async function loadBankSoal() {
         bankSoalCache = {};
         try {
-            const snapshot = await get(ref(db, 'ujian'));
-            if (snapshot.exists()) { const data = snapshot.val(); ['7', '8', '9'].forEach(g => { bankSoalCache[`kelas${g}`] = data; }); }
+            // MODIFIKASI: Mengambil dari 'daftar_ujian' (Metadata & Kunci Jawaban saja)
+            // Ini jauh lebih hemat kuota karena TIDAK mendownload teks soal.
+            const snapshot = await get(ref(db, 'daftar_ujian'));
+            if (snapshot.exists()) { 
+                const data = snapshot.val(); 
+                ['7', '8', '9'].forEach(g => { bankSoalCache[`kelas${g}`] = data; }); 
+            }
         } catch (e) { console.error("Gagal load bank soal:", e); }
     }
 
@@ -2529,9 +2539,21 @@
         const infoDiv = document.getElementById(`${prefix}BankSoalInfo`);
 
         if (!kelas || !tahunAjaran || !ujianName || !mapel) { infoDiv.textContent = 'Lengkapi pilihan untuk melihat detail bank soal.'; infoDiv.className = 'bank-soal-info'; return; }
+        
         const bankSoalData = bankSoalCache[`kelas${kelas}`]?.[tahunAjaran.replace(/\//g, '-')]?.[ujianName.replace(/\s+/g, '-')]?.[`Kelas-${kelas}`]?.[mapel.replace(/\s+/g, '-')];
-        if (bankSoalData) { const soalCount = bankSoalData.soal ? bankSoalData.soal.length - 1 : 0; const kunjab = bankSoalData.kunjab || 'Tidak tersedia'; infoDiv.innerHTML = `Bank soal ditemukan: <b>${soalCount} soal</b>.<br>Kunci: ${kunjab}`; infoDiv.className = 'bank-soal-info found'; } 
-        else { infoDiv.textContent = 'Bank soal tidak ditemukan untuk pilihan ini.'; infoDiv.className = 'bank-soal-info not-found'; }
+        
+        if (bankSoalData) { 
+            // MODIFIKASI: Menggunakan properti 'jumlahSoal' dari struktur daftar_ujian
+            // Karena kita tidak lagi mendownload array 'soal', kita tidak bisa hitung .length nya
+            const soalCount = bankSoalData.jumlahSoal || (bankSoalData.soal ? bankSoalData.soal.length - 1 : 0); 
+            const kunjab = bankSoalData.kunjab || 'Tidak tersedia'; 
+            
+            infoDiv.innerHTML = `Bank soal ditemukan: <b>${soalCount} soal</b>.<br>Kunci: ${kunjab}`; 
+            infoDiv.className = 'bank-soal-info found'; 
+        } else { 
+            infoDiv.textContent = 'Bank soal tidak ditemukan untuk pilihan ini.'; 
+            infoDiv.className = 'bank-soal-info not-found'; 
+        }
     }
 
     window.openGenericConfirmModal = (title, message, onConfirm) => { document.getElementById('genericConfirmTitle').innerText = title; document.getElementById('genericConfirmMessage').innerText = message; currentConfirmAction = onConfirm; document.getElementById('genericConfirmModal').style.display = 'flex'; };
