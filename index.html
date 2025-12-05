@@ -1182,26 +1182,56 @@
         loginError.innerText = "";
         loadingOverlay.style.display = 'flex'; 
 
-        try {
-            // Login ke SEMUA instance Auth
-            const promises = [
-                signInWithEmailAndPassword(authAturan, email, password),
-                signInWithEmailAndPassword(auth7, email, password),
-                signInWithEmailAndPassword(auth8, email, password),
-                signInWithEmailAndPassword(auth9, email, password)
-            ];
+        // Fungsi pembungkus untuk menangkap error per server
+        const attemptLogin = async (authInstance, serverName) => {
+            try {
+                await signInWithEmailAndPassword(authInstance, email, password);
+                return { status: 'success', server: serverName };
+            } catch (error) {
+                console.error(`Login error on ${serverName}:`, error);
+                // Abaikan error jika user sudah login (re-auth scenario) tapi token refresh issue
+                if (error.code === 'auth/operation-not-allowed') {
+                    return { status: 'error', server: serverName, msg: 'Email/Password Login belum aktif di Firebase Console.' };
+                }
+                return { status: 'error', server: serverName, msg: error.message };
+            }
+        };
 
-            await Promise.all(promises);
+        try {
+            // Login ke SEMUA instance Auth secara paralel namun terdeteksi
+            const results = await Promise.all([
+                attemptLogin(authAturan, "Server Aturan"),
+                attemptLogin(auth7, "Server Kelas 7"),
+                attemptLogin(auth8, "Server Kelas 8"),
+                attemptLogin(auth9, "Server Kelas 9")
+            ]);
             
+            const failures = results.filter(r => r.status === 'error');
+            
+            if (failures.length > 0) {
+                // Jika ada yang gagal
+                const errorDetails = failures.map(f => `${f.server}: ${f.msg}`).join('\n');
+                console.error("Login Failures:", failures);
+                
+                // Jika Server UTAMA (Aturan) gagal, kita blokir login
+                if (failures.some(f => f.server === "Server Aturan")) {
+                    throw new Error("Gagal login ke Server Utama (Aturan). Cek password atau konfigurasi.\n" + errorDetails);
+                } else {
+                    // Jika server kelas gagal, beri peringatan tapi biarkan lanjut (atau blokir tergantung kebijakan)
+                    // Saat ini kita biarkan lanjut tapi beri notifikasi
+                    alert("PERINGATAN: Login berhasil ke Admin Utama, tapi gagal terhubung ke beberapa server kelas:\n" + errorDetails + "\n\nData dari server tersebut tidak akan muncul.");
+                }
+            }
+
             // Set persistence hanya contoh pada authAturan, firebase handle internal session biasanya
             await setPersistence(authAturan, inMemoryPersistence);
 
             if (rememberAccount) { saveAccountToStorage(email, password); }
         } catch (error) {
             console.error(error);
-            loginError.innerText = "Email atau password salah (atau gagal sinkronisasi ke semua server).";
+            loginError.innerText = error.message || "Terjadi kesalahan saat login.";
             loadingOverlay.style.display = 'none'; 
-            // Force logout if partial login
+            // Force logout if partial login to prevent inconsistent state
             signOut(authAturan); signOut(auth7); signOut(auth8); signOut(auth9);
         }
     };
