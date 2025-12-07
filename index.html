@@ -666,13 +666,6 @@
             <button class="text-button blue-gray" onclick="performBackup()"><i class="fas fa-download"></i> Unduh Data Backup (Semua DB)</button>
             <button class="text-button orange" onclick="openRestorePasswordModal()"><i class="fas fa-upload"></i> Unggah & Pulihkan Data</button>
         </div>
-
-        <!-- FITUR RESET PABRIK -->
-        <div style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">
-            <h3 style="color: #e74c3c;">Zona Bahaya</h3>
-            <p style="color: #555; font-size: 0.9em;">Tindakan ini akan menghapus <strong>SELURUH DATA</strong> pada database Kelas 7, 8, dan 9 (Siswa, Token, Nilai, Bank Soal, dll). Database Aturan tidak akan terhapus.</p>
-            <button class="text-button red" onclick="openFactoryResetModal()"><i class="fas fa-radiation"></i> Reset Pabrik (Hapus Data Kelas 7, 8, 9)</button>
-        </div>
       </div>
     </div>
   </div>
@@ -736,32 +729,6 @@
   <div id="setMinDurationModal" class="modal"><div class="modal-content"><h4>Atur Durasi Minimal Kirim Jawaban</h4><label for="minDurationMinutesInput">Durasi Sisa Minimal (menit):</label><input type="number" id="minDurationMinutesInput" placeholder="Contoh: 30" required /><p id="minDurationError" class="error"></p><div style="text-align: center; margin-top: 10px;"><button onclick="setMinDurationAndActivate()" class="confirm-button">Ganti & Aktifkan</button><button onclick="aktifkanMinDuration()" class="text-button green">Aktifkan Saja</button><button onclick="nonaktifkanMinDuration()" class="cancel-button">Nonaktifkan</button><button onclick="closeSetMinDurationModal()" class="gray text-button" style="margin-top: 10px;">Batal</button></div></div></div>
   <div id="genericConfirmModal" class="modal"><div class="modal-content"><h4 id="genericConfirmTitle"></h4><p id="genericConfirmMessage"></p><div class="modal-buttons"><button onclick="closeGenericConfirmModal()" class="cancel-button">Batal</button><button id="genericConfirmButton" class="confirm-button" onclick="handleGenericConfirm()">Konfirmasi</button></div></div></div>
   
-  <div id="factoryResetModal" class="modal">
-    <div class="modal-content">
-        <h4 style="color: #c0392b;"><i class="fas fa-exclamation-triangle"></i> Konfirmasi Reset Pabrik</h4>
-        <p style="color: #e74c3c; font-weight: bold;">PERINGATAN: Tindakan ini TIDAK DAPAT DIBATALKAN.</p>
-        <p>Anda akan menghapus SEMUA DATA di:</p>
-        <ul style="color: #333; text-align: left;">
-            <li>Database Kelas 7</li>
-            <li>Database Kelas 8</li>
-            <li>Database Kelas 9</li>
-        </ul>
-        <p>Data di Database Aturan (Admin) akan tetap aman.</p>
-        <div>
-            <label for="factoryResetPassword">Password Login Admin:</label>
-            <div class="password-input-container">
-                <input type="password" id="factoryResetPassword" placeholder="Masukkan Password Admin">
-                <i class="fas fa-eye toggle-password"></i>
-            </div>
-            <p id="factoryResetPasswordError" class="error"></p>
-        </div>
-        <div class="modal-buttons">
-            <button onclick="closeFactoryResetModal()" class="cancel-button">Batal</button>
-            <button onclick="confirmFactoryReset()" class="confirm-button" style="background-color: #c0392b;">Ya, Hapus Semuanya</button>
-        </div>
-    </div>
-  </div>
-
   <div id="printCardModal" class="modal">
     <div class="modal-content" style="max-width: 95%; width: 1200px; height: 90vh; display: flex; flex-direction: column; padding: 0; overflow: hidden;">
       <div style="padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; background-color: #f8f9fa;">
@@ -1140,6 +1107,9 @@
                     // Auto Clean Up 30 Hari
                     if (data.createdAt && (Date.now() - data.createdAt) > THIRTY_DAYS_IN_MS) {
                         remove(ref(db, 'tokens/' + data.key));
+                        remove(ref(db, 'exam_access_status/' + data.key));
+                        remove(ref(db, 'submitted_exams/' + data.key));
+                        remove(ref(db, 'student_answers/' + data.key));
                         return;
                     }
                     tokensList.push(data);
@@ -1354,8 +1324,7 @@
             { id: 'deleteAnswerPassword', action: window.confirmDeleteAnswer },
             { id: 'emptyStudentsPassword', action: window.confirmEmptyStudents },
             { id: 'adminPasswordConfirmation', action: window.confirmEmptyTokens },
-            { id: 'restoreAdminPassword', action: window.checkRestoreAdminPassword },
-            { id: 'factoryResetPassword', action: window.confirmFactoryReset }
+            { id: 'restoreAdminPassword', action: window.checkRestoreAdminPassword }
         ];
 
         confirmationPasswordInputs.forEach(item => {
@@ -2485,39 +2454,37 @@
                     if (new Date() > new Date(tokenInfo.endTime)) { isExpired = true; }
                     for(const fbKey of Array.from(tokenInfo.firebaseKeys)) {
                         const studentIdPadded = padStudentId(student.id);
+                        
+                        // Cek apakah siswa sudah submit di token ini
                         if(submittedExamsCache[fbKey]?.[padStudentId(student.id)]?.isSubmitted) {
+                            
+                            // --- PERBAIKAN DI SINI ---
+                            // Sebelumnya salah: const answerData = studentAnswersCache[padStudentId(student.id)];
+                            // SEKARANG BENAR: Ambil dari dalam fbKey (Token Key) dulu
                             const answerData = studentAnswersCache[fbKey]?.[padStudentId(student.id)];
                             
                             // --- PERBAIKAN LOGIKA PENGAMBILAN BANK SOAL ---
                             const gradeNum = getNumericClass(tokenInfo.kelas);
                             const yearKey = tokenInfo.tahunAjaran.replace(/\//g, '-');
                             
-                            // 1. Akses Level Tahun
                             const bankSoalYear = bankSoalCache[`kelas${gradeNum}`]?.[yearKey];
                             
-                            // 2. Akses Level Ujian (Coba dengan spasi atau dengan tanda hubung)
-                            let bankSoalUjian = bankSoalYear?.[tokenInfo.ujianName]; // Coba nama asli "STS GANJIL"
-                            if (!bankSoalUjian) bankSoalUjian = bankSoalYear?.[tokenInfo.ujianName.replace(/\s+/g, '-')]; // Coba nama slug "STS-GANJIL"
+                            let bankSoalUjian = bankSoalYear?.[tokenInfo.ujianName];
+                            if (!bankSoalUjian) bankSoalUjian = bankSoalYear?.[tokenInfo.ujianName.replace(/\s+/g, '-')];
                             
-                            // 3. Akses Level Kelas (HARUS numeric, misal "Kelas-8" BUKAN "Kelas-8A")
                             const bankSoalGrade = bankSoalUjian?.[`Kelas-${gradeNum}`];
 
-                            // 4. Akses Level Mapel (Coba dengan spasi atau dengan tanda hubung)
                             let bankSoal = bankSoalGrade?.[tokenInfo.subject];
                             if (!bankSoal) bankSoal = bankSoalGrade?.[tokenInfo.subject.replace(/\s+/g, '-')];
                             
-                            // --- END PERBAIKAN ---
-
                             let kunjabStr = bankSoal?.kunjab;
 
                             // Jika kunjab string tidak ada, generate dari array soal
-                            // Kita handle jika 'soal' berupa Array ATAU Object (Firebase quirk)
                             if (!kunjabStr && bankSoal?.soal) {
                                 let soalList = [];
                                 if (Array.isArray(bankSoal.soal)) {
                                     soalList = bankSoal.soal;
                                 } else if (typeof bankSoal.soal === 'object') {
-                                    // Jika firebase menyimpan sebagai object dengan index numeric
                                     soalList = Object.values(bankSoal.soal);
                                 }
                                 
@@ -2529,6 +2496,7 @@
 
                             if (answerData && kunjabStr) {
                                 score = calculateScore(answerData.answers, kunjabStr);
+                                // Jika sudah ketemu nilai di salah satu token (jika ada duplikat token), break
                                 break;
                             }
                         }
@@ -2543,44 +2511,6 @@
         });
         renderPaginationControls(scorePaginationDiv, page, Math.ceil(filteredScores.length / selectedItemsPerPage), 'renderScoreTable');
     }; 
-
-    // --- FITUR RESET PABRIK ---
-    window.openFactoryResetModal = () => {
-        document.getElementById('factoryResetPassword').value = '';
-        document.getElementById('factoryResetPasswordError').innerText = '';
-        document.getElementById('factoryResetModal').style.display = 'flex';
-    };
-
-    window.closeFactoryResetModal = () => {
-        document.getElementById('factoryResetModal').style.display = 'none';
-    };
-
-    window.confirmFactoryReset = async () => {
-        const password = document.getElementById('factoryResetPassword').value;
-        await reauthenticateAndExecute(password, 'factoryResetPasswordError', async () => {
-            loadingOverlay.style.display = 'flex';
-            try {
-                // Menghapus data di root DB Kelas 7, 8, dan 9
-                const promises = [
-                    set(ref(db7), null),
-                    set(ref(db8), null),
-                    set(ref(db9), null)
-                ];
-                await Promise.all(promises);
-                
-                showNotification('Reset Pabrik Berhasil! Database Kelas 7, 8, dan 9 telah dikosongkan.');
-                closeFactoryResetModal();
-                
-                // Refresh halaman setelah beberapa detik agar UI bersih
-                setTimeout(() => location.reload(), 2000);
-            } catch (error) {
-                document.getElementById('factoryResetPasswordError').innerText = "Gagal melakukan reset: " + error.message;
-            } finally {
-                loadingOverlay.style.display = 'none';
-            }
-        });
-    };
-    // --- END FITUR RESET PABRIK ---
 
     function calculateScore(studentAnswersInput, answerKeyString) {
         if (!answerKeyString || !studentAnswersInput) return 0;
