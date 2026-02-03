@@ -745,7 +745,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
-    import { getDatabase, ref, push, onValue, update, remove, get, set, off, child, query, orderByChild, startAt } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
+    import { getDatabase, ref, push, onValue, update, remove, get, set, off, child, query, orderByChild, startAt, limitToLast } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
     import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, EmailAuthProvider, reauthenticateWithCredential, setPersistence, inMemoryPersistence } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
 
     // --- KONFIGURASI MULTI-FIREBASE ---
@@ -820,6 +820,9 @@
     const ONE_WEEK_IN_MS = 7 * 24 * 60 * 60 * 1000;
     const VALID_ROMBELS = ['7A', '7B', '7C', '7D', '7E', '7F', '8A', '8B', '8C', '8D', '8E', '8F', '9A', '9B', '9C', '9D', '9E', '9F'];
     const DASHBOARD_DISPLAY_GRACE_MS = 30 * 60 * 1000; 
+    
+    // Variabel Global untuk URL Bank Soal
+    let globalBankSoalUrl = '';
 
     // Helper untuk memilih Database berdasarkan Kelas
     function getDbForGrade(gradeInput) {
@@ -992,15 +995,13 @@
             if (authInstance.currentUser) { resolve(authInstance.currentUser); return; }
             
             const unsubscribe = onAuthStateChanged(authInstance, (user) => {
-                // Kita tunggu sampai user benar-benar ada (karena kita tahu authAturan sudah login)
-                // atau fallback jika null terus (bisa ditambahkan timeout jika perlu, tapi firebase biasanya cepat)
                 if (user) {
                     unsubscribe();
                     resolve(user);
                 }
             });
             
-            // Safety timeout: jika dalam 5 detik tidak ada user di instance ini, lanjut saja (hindari hanging)
+            // Safety timeout
             setTimeout(() => {
                 unsubscribe();
                 resolve(authInstance.currentUser); 
@@ -1040,11 +1041,7 @@
         try {
             const snapshot = await get(ref(dbAturan, 'adminbanksoal/url')); // DB ATURAN
             if (snapshot.exists()) {
-                const url = snapshot.val();
-                const iframe = document.getElementById('bankSoalFrame');
-                if (iframe && url) {
-                    iframe.src = url;
-                }
+                globalBankSoalUrl = snapshot.val();
             }
         } catch (error) { console.error("Gagal memuat URL Bank Soal:", error); }
     }
@@ -1098,7 +1095,7 @@
 
         dbs.forEach(({ db, label }) => {
             // Gunakan QUERY untuk token, tapi ambil SEMUA history (sesuai request user untuk hapus manual)
-            const tokenQuery = query(ref(db, 'tokens'), orderByChild('createdAt'));
+            const tokenQuery = query(ref(db, 'tokens'), orderByChild('createdAt'), limitToLast(20));
             
             onValue(tokenQuery, (snapshot) => {
                 const tokensList = [];
@@ -1516,7 +1513,47 @@
             closeEmptyStudentsModal();
         });
     };
-    // ---------------------------------------------
+
+    // --- ADDED: Missing promptEmptyTokens Function and dependencies ---
+    window.promptEmptyTokens = () => {
+        document.getElementById('adminPasswordConfirmation').value = '';
+        document.getElementById('adminPasswordConfirmationError').innerText = '';
+        document.getElementById('emptyTokensModal').style.display = 'flex';
+    };
+
+    window.closeEmptyTokensModal = () => {
+        document.getElementById('emptyTokensModal').style.display = 'none';
+    };
+
+    window.confirmEmptyTokens = async () => {
+        const password = document.getElementById('adminPasswordConfirmation').value;
+        await reauthenticateAndExecute(password, 'adminPasswordConfirmationError', async () => {
+            loadingOverlay.style.display = 'flex';
+            try {
+                // Hapus data token dan ujian terkait di semua DB (7, 8, 9)
+                const updates = {};
+                updates['tokens'] = null;
+                updates['exam_access_status'] = null;
+                updates['submitted_exams'] = null;
+                updates['student_answers'] = null;
+
+                const promises = [
+                    update(ref(db7), updates),
+                    update(ref(db8), updates),
+                    update(ref(db9), updates)
+                ];
+                
+                await Promise.all(promises);
+                showNotification('Semua token dan data ujian berhasil dihapus!');
+                closeEmptyTokensModal();
+            } catch (e) {
+                showNotification('Gagal: ' + e.message, true);
+            } finally {
+                loadingOverlay.style.display = 'none';
+            }
+        });
+    };
+    // ------------------------------------------------------------------
 
     window.attachEventListeners = function() {
         document.getElementById('tokenSearchSubject').addEventListener('keyup', renderTokenTable);
@@ -1585,6 +1622,8 @@
         window.attachEventListeners(); 
     });
     
+    // ... rest of the code ...
+
     // FUNGSI LOAD DATA JAWABAN MANUAL (Multi-DB aware) - OPTIMIZED FOR DAY 7
     window.loadScoresForGrade = async (grade) => {
         loadingOverlay.style.display = 'flex';
@@ -1659,7 +1698,22 @@
         document.querySelectorAll('#dashboardContent > .container, #dashboardContent > div > .container').forEach(s => s.style.display = 'none');
         document.getElementById(sectionId).style.display = 'block';
 
-        if (sectionId === 'bankSoalSection') { document.getElementById(sectionId).style.display = 'flex'; }
+        if (sectionId === 'bankSoalSection') { 
+            document.getElementById(sectionId).style.display = 'flex';
+            
+            // --- LAZY LOAD BANK SOAL IFRAME ---
+            const iframe = document.getElementById('bankSoalFrame');
+            if (iframe && !iframe.getAttribute('src')) {
+                if (globalBankSoalUrl) {
+                    iframe.src = globalBankSoalUrl;
+                } else {
+                     // Jika URL belum terload, coba load lagi
+                     loadAndSetBankSoalUrl().then(() => {
+                         if (globalBankSoalUrl) iframe.src = globalBankSoalUrl;
+                     });
+                }
+            }
+        }
 
         document.querySelectorAll('.sidebar-nav button').forEach(b => b.classList.remove('active'));
         const activeBtn = document.querySelector(`.sidebar-nav button[data-section-id="${sectionId}"]`);
