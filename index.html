@@ -86,7 +86,13 @@
     #scoreTableBody td:nth-child(1), #scoreTableBody td:nth-child(3), #scoreTableBody td:nth-child(n+4) { text-align: center; }
     #minDurationSettingsTableBody td, #shuffleSettingsTableBody td { text-align: center; }
     .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; overflow-y: auto; padding: 20px 0; }
-    .modal-content { background: #fff; padding: 30px; border-radius: 10px; width: 90%; max-width: 450px; box-sizing: border-box; box-shadow: 0 8px 16px rgba(0,0,0,0.2); text-align: left; margin: auto; }
+    .modal-content { background: #fff; padding: 30px; border-radius: 10px; width: 90%; max-width: 450px; box-sizing: border-box; box-shadow: 0 8px 16px rgba(0,0,0,0.2); text-align: left; margin: auto; position: relative; }
+    
+    /* CSS BARU UNTUK MULTI MODAL */
+    .modal-container-flex { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; align-items: flex-start; width: 100%; max-width: 1400px; padding: 20px; box-sizing: border-box; }
+    .modal-container-flex .modal-content { margin: 0; width: 100%; max-width: 400px; flex-shrink: 0; }
+    /* AKHIR CSS BARU */
+
     .modal h4 { color: #2c3e50; margin-top: 0; margin-bottom: 20px; font-size: 1.5em; text-align: center; }
     .modal p { margin-bottom: 20px; color: #34495e; }
     .modal .modal-buttons { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
@@ -105,8 +111,9 @@
     .modal button.orange:hover { background-color: #FB8C00; }
     .modal button.purple { background-color: #9b59b6; color: white; }
     .modal button.purple:hover { background-color: #8e44ad; }
-    .modal-close-btn { background: transparent; border: none; font-size: 1.5rem; color: #95a5a6; cursor: pointer; transition: color 0.2s ease, transform 0.2s ease; padding: 4px 8px; line-height: 1; }
-    .modal-close-btn:hover { color: #e74c3c; transform: scale(1.1); }
+    .modal-close-btn { background: transparent !important; border: none !important; font-size: 1.5rem; color: #e74c3c !important; cursor: pointer; transition: color 0.2s ease, transform 0.2s ease; padding: 0 !important; margin: 0 !important; line-height: 1; box-shadow: none !important; min-width: 0 !important; }
+    .modal-close-btn:hover { background: transparent !important; color: #c0392b !important; transform: scale(1.1); box-shadow: none !important; }
+    .modal-close-btn:active { box-shadow: none !important; transform: scale(0.9); }
     .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.8); display: flex; justify-content: center; align-items: center; z-index: 99999; }
     .spinner { border: 5px solid rgba(0, 0, 0, 0.1); width: 40px; height: 40px; border-radius: 50%; border-left-color: #3498db; animation: spin 1s ease infinite; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -346,6 +353,7 @@
                 <th>NO</th>
                 <th>MAPEL</th>
                 <th>KELAS</th>
+                <th>UJIAN/T.A.</th>
                 <th>TOKEN</th>
                 <th class="time-cell">DIBUKA</th>
                 <th class="time-cell">DITUTUP</th>
@@ -677,8 +685,16 @@
       <button class="icon-button" onclick="clearSelection()" style="background: rgba(255,255,255,0.2); width: 30px; height: 30px;" title="Batalkan Pilihan"><i class="fas fa-times" style="color: white;"></i></button>
   </div>
 
-  <div id="addTokenModal" class="modal"><div class="modal-content"><h4>Tambah Token Baru</h4><form id="addTokenForm"><label for="addKelas">Kelas</label><select id="addKelas" required><option value="" disabled selected>-- Pilih Kelas --</option><option value="7">Kelas 7</option><option value="8">Kelas 8</option><option value="9">Kelas 9</option></select><label for="addTahunAjaran">Tahun Ajaran</label><select id="addTahunAjaran" required disabled></select><label for="addUjianName">Nama Ujian</label><select id="addUjianName" required disabled></select><label for="addMapel">Mata Pelajaran</label><select id="addMapel" required disabled></select><div id="addBankSoalInfo" class="bank-soal-info">Pilih mata pelajaran untuk melihat detail bank soal.</div><label for="addToken">Token Ujian (Base Token)</label><input type="text" id="addToken" placeholder="Huruf/Angka Kapital" required /><label>Waktu Token Dibuka</label><input type="datetime-local" id="addStartTime" required /><label>Waktu Token Ditutup</label><input type="datetime-local" id="addEndTime" required /><p id="addErrorMsg" class="error"></p><div class="modal-buttons"><button type="button" onclick="closeAddTokenModal()" class="cancel-button">Batal</button><button type="submit">Tambah Token</button></div></form></div></div>
-  <div id="editModal" class="modal"><div class="modal-content"><h4>Edit Token</h4><form id="modalForm"><label for="editKelas">Kelas</label><input type="text" id="editKelas" placeholder="Berupa angka saja" required /><label for="editTahunAjaran">Tahun Ajaran</label><select id="editTahunAjaran" required></select><label for="editUjianName">Nama Ujian</label><select id="editUjianName" required></select><label for="editMapel">Mata Pelajaran</label><select id="editMapel" required></select><div id="editBankSoalInfo" class="bank-soal-info"></div><label>Token Ujian</label><input type="text" id="editToken" required /><label>Waktu Token Dibuka</label><input type="datetime-local" id="editStartTime" required /><label>Waktu Token Ditutup</label><input type="datetime-local" id="editEndTime" required /><p id="editErrorMsg" class="error"></p><div class="modal-buttons"><button type="button" onclick="closeEditModal()" class="cancel-button">Batal</button><button type="submit">Simpan</button></div></form></div></div>
+  <!-- STRUKTUR MODAL BARU (MENDUKUNG MULTI INSTANCE) -->
+  <div id="addTokenModal" class="modal">
+      <div id="addTokenModalContainer" class="modal-container-flex"></div>
+  </div>
+  
+  <div id="editModal" class="modal">
+      <div id="editTokenModalContainer" class="modal-container-flex"></div>
+  </div>
+  <!-- AKHIR STRUKTUR MODAL BARU -->
+
   <div id="addStudentModal" class="modal"><div class="modal-content"><h4>Tambah Peserta Baru</h4><form id="addStudentForm"><p id="addStudentErrorMsg" class="error"></p><label for="newStudentId">ID Siswa</label><input type="text" id="newStudentId" placeholder="Contoh: 001" required /><label for="newStudentName">Nama Siswa</label><input type="text" id="newStudentName" placeholder="Nama Lengkap Siswa" required /><label for="newStudentClass">Kelas</label><input type="text" id="newStudentClass" placeholder="Contoh: 7A, 8B, 9C" required /><label for="newStudentRoom">Ruang</label><input type="text" id="newStudentRoom" placeholder="Contoh: 01, 02, dsb" required /><div class="modal-buttons"><button type="button" onclick="closeAddStudentModal()" class="cancel-button">Batal</button><button type="submit">Tambah</button></div></form></div></div>
   <div id="deleteModal" class="modal"><div class="modal-content"><h4 style="text-align:center;">Hapus Token</h4><p>Yakin ingin menghapus token ini?</p><div class="modal-buttons"><button onclick="closeDeleteModal()" class="cancel-button">Batal</button><button onclick="confirmDelete()" class="confirm-button">Hapus</button></div></div></div>
   <div id="forceActiveModal" class="modal"><div class="modal-content"><h4>Aktifkan Token Secara Paksa?</h4><p>Token ini akan dapat diakses kapanpun, mengabaikan jadwal yang ada.</p><div class="modal-buttons"><button onclick="closeForceActiveModal()" class="cancel-button">Batal</button><button onclick="confirmForceActive()" class="confirm-button">Ya, Aktifkan</button></div></div></div>
@@ -860,6 +876,7 @@
     
     let consolidatedTokensMap = new Map();
     let countdownIntervals = {};
+    const editFormContexts = new Map(); // Untuk menyimpan currentConsolidatedTokenInfo dari masing-masing form edit yang aktif
     
     // === OPTIMIZATION: DYNAMIC LISTENER TRACKER ===
     // Menyimpan daftar listener aktif agar bisa dimatikan (off)
@@ -869,7 +886,7 @@
         '9': { access: {}, submitted: {} }
     };
 
-    let currentConsolidatedTokenInfo = null;
+    let currentConsolidatedTokenInfo = null; // Digunakan global HANYA untuk aksi non-multi-form
     let currentStudentKey = null;
     let deleteStudentKey = null;
     let studentKeyForAction = null;
@@ -1514,7 +1531,6 @@
         });
     };
 
-    // --- ADDED: Missing promptEmptyTokens Function and dependencies ---
     window.promptEmptyTokens = () => {
         document.getElementById('adminPasswordConfirmation').value = '';
         document.getElementById('adminPasswordConfirmationError').innerText = '';
@@ -1553,7 +1569,356 @@
             }
         });
     };
-    // ------------------------------------------------------------------
+
+    // =====================================================================
+    // FUNGSI MULTI-MODAL (TAMBAH & EDIT TOKEN) BARU 
+    // =====================================================================
+
+    // Generator HTML untuk masing-masing form (scoped by uid)
+    function generateTokenFormHTML(type, uid) {
+        const isEdit = type === 'edit';
+        const title = isEdit ? 'Edit Token' : 'Tambah Token';
+        const submitText = isEdit ? 'Simpan' : 'Tambah Token';
+        
+        // Form Edit menggunakan input text (sesuai asli), Form Tambah menggunakan select
+        const kelasInputHtml = isEdit 
+            ? `<input type="text" id="kelas_${uid}" placeholder="Berupa angka saja" required />`
+            : `<select id="kelas_${uid}" required>
+                <option value="" disabled selected>-- Pilih Kelas --</option>
+                <option value="7">Kelas 7</option>
+                <option value="8">Kelas 8</option>
+                <option value="9">Kelas 9</option>
+               </select>`;
+
+        // Konfigurasi tombol bagian bawah
+        let bottomButtonsHtml = '';
+        if (isEdit) {
+            bottomButtonsHtml = `<button type="submit" onclick="submitSpecificTokenForm(event, '${type}', '${uid}')">${submitText}</button>`;
+        } else {
+            bottomButtonsHtml = `
+                <button type="submit" onclick="submitSpecificTokenForm(event, '${type}', '${uid}')">${submitText}</button>
+                <button type="button" onclick="duplicateTokenForm('${type}', '${uid}')" class="cancel-button"><i class="fas fa-copy"></i> Duplikat Token</button>
+            `;
+        }
+
+        return `
+            <button type="button" class="modal-close-btn" onclick="closeSpecificTokenForm('${type}', '${uid}')" title="Tutup Modal" style="position: absolute; top: 30px; right: 30px; font-size: 1.5em;"><i class="fas fa-times"></i></button>
+            <h4>${title}</h4>
+            <form id="form_${uid}" data-type="${type}">
+                <label for="kelas_${uid}">Kelas</label>
+                ${kelasInputHtml}
+                
+                <label for="tahunAjaran_${uid}">Tahun Ajaran</label>
+                <select id="tahunAjaran_${uid}" required disabled></select>
+                
+                <label for="ujianName_${uid}">Nama Ujian</label>
+                <select id="ujianName_${uid}" required disabled></select>
+                
+                <label for="mapel_${uid}">Mata Pelajaran</label>
+                <select id="mapel_${uid}" required disabled></select>
+                
+                <div id="bankSoalInfo_${uid}" class="bank-soal-info">${isEdit ? '' : 'Pilih mata pelajaran untuk melihat detail bank soal.'}</div>
+                
+                <label for="token_${uid}">Token Ujian${!isEdit ? ' (Base Token)' : ''}</label>
+                <input type="text" id="token_${uid}" ${!isEdit ? 'placeholder="Huruf/Angka Kapital"' : ''} required />
+                
+                <label for="startTime_${uid}">Waktu Token Dibuka</label>
+                <input type="datetime-local" id="startTime_${uid}" required />
+                
+                <label for="endTime_${uid}">Waktu Token Ditutup</label>
+                <input type="datetime-local" id="endTime_${uid}" required />
+                
+                <p id="errorMsg_${uid}" class="error"></p>
+                <div class="modal-buttons">
+                    ${bottomButtonsHtml}
+                </div>
+            </form>
+        `;
+    }
+
+    // Membuka modal Tambah Token
+    window.openAddTokenModal = () => { 
+        document.getElementById('addTokenModalContainer').innerHTML = ''; 
+        spawnTokenForm('add');
+        document.getElementById('addTokenModal').style.display = 'flex'; 
+    };
+
+    // Membuka modal Edit Token
+    window.editTokenConsolidated = (baseToken, kelas) => {
+        const tokenInfo = Array.from(consolidatedTokensMap.values()).find(t => t.token === unescape(baseToken) && t.kelas === kelas);
+        if (!tokenInfo) return;
+        
+        const container = document.getElementById('editTokenModalContainer');
+        if (container.children.length >= 3) {
+            showNotification('Maksimal 3 form edit yang dapat ditampilkan bersamaan.', true);
+            return;
+        }
+
+        spawnTokenForm('edit', null, tokenInfo);
+        document.getElementById('editModal').style.display = 'flex';
+    };
+
+    // Fungsi utama untuk men-generate form ke dalam kontainer
+    function spawnTokenForm(type, sourceData = null, tokenInfoContext = null) {
+        const containerId = type === 'add' ? 'addTokenModalContainer' : 'editTokenModalContainer';
+        const container = document.getElementById(containerId);
+        
+        if (container.children.length >= 3) {
+            showNotification('Maksimal 3 modal yang dapat ditampilkan bersamaan.', true);
+            return;
+        }
+
+        const uid = generateRandomKey(6);
+        const content = document.createElement('div');
+        content.className = 'modal-content';
+        content.id = `modal-content-${uid}`;
+        
+        // Simpan context khusus untuk edit
+        if (type === 'edit') {
+            editFormContexts.set(uid, tokenInfoContext);
+        }
+
+        content.innerHTML = generateTokenFormHTML(type, uid);
+        container.appendChild(content);
+
+        // Bind event listeners lokal untuk form ini
+        const form = document.getElementById(`form_${uid}`);
+        const kelasInput = document.getElementById(`kelas_${uid}`);
+        const taSel = document.getElementById(`tahunAjaran_${uid}`);
+        const ujianSel = document.getElementById(`ujianName_${uid}`);
+        const mapelSel = document.getElementById(`mapel_${uid}`);
+
+        kelasInput.addEventListener('change', () => scopedPopulateDropdowns(uid));
+        kelasInput.addEventListener('keyup', () => { if(type === 'edit') scopedPopulateDropdowns(uid); }); // input text trigger
+        taSel.addEventListener('change', () => scopedPopulateDropdowns(uid));
+        ujianSel.addEventListener('change', () => scopedPopulateDropdowns(uid));
+        mapelSel.addEventListener('change', () => scopedDisplayBankSoal(uid));
+
+        // Jika ada data sumber (hasil duplikat) atau initial load dari DB (Edit)
+        let initialData = sourceData;
+        if (type === 'edit' && !sourceData && tokenInfoContext) {
+            initialData = {
+                kelas: tokenInfoContext.kelas,
+                ta: tokenInfoContext.tahunAjaran,
+                ujian: tokenInfoContext.ujianName,
+                mapel: tokenInfoContext.subject,
+                token: tokenInfoContext.token,
+                startTime: tokenInfoContext.startTime,
+                endTime: tokenInfoContext.endTime
+            };
+        }
+
+        if (initialData) {
+            kelasInput.value = initialData.kelas;
+            scopedPopulateDropdowns(uid, initialData.ta, initialData.ujian, initialData.mapel);
+            document.getElementById(`token_${uid}`).value = initialData.token;
+            document.getElementById(`startTime_${uid}`).value = initialData.startTime;
+            document.getElementById(`endTime_${uid}`).value = initialData.endTime;
+        } else {
+            scopedPopulateDropdowns(uid);
+        }
+    }
+
+    // Fungsi Duplikat Modal
+    window.duplicateTokenForm = (type, sourceUid) => {
+        // Ambil data state saat ini dari form sumber
+        const sourceData = {
+            kelas: document.getElementById(`kelas_${sourceUid}`).value,
+            ta: document.getElementById(`tahunAjaran_${sourceUid}`).value,
+            ujian: document.getElementById(`ujianName_${sourceUid}`).value,
+            mapel: document.getElementById(`mapel_${sourceUid}`).value,
+            token: document.getElementById(`token_${sourceUid}`).value,
+            startTime: document.getElementById(`startTime_${sourceUid}`).value,
+            endTime: document.getElementById(`endTime_${sourceUid}`).value,
+        };
+
+        if (type === 'add') {
+            spawnTokenForm('add', sourceData);
+        } else if (type === 'edit') {
+            const context = editFormContexts.get(sourceUid);
+            spawnTokenForm('edit', sourceData, context); // Pass the same DB binding context
+        }
+    };
+
+    // Fungsi Tutup 1 Modal Spesifik
+    window.closeSpecificTokenForm = (type, uid) => {
+        const content = document.getElementById(`modal-content-${uid}`);
+        if (content) content.remove();
+
+        if (type === 'edit') {
+            editFormContexts.delete(uid);
+        }
+
+        const containerId = type === 'add' ? 'addTokenModalContainer' : 'editTokenModalContainer';
+        const modalId = type === 'add' ? 'addTokenModal' : 'editModal';
+        const container = document.getElementById(containerId);
+        
+        // Jika tidak ada form tersisa, tutup overlay keseluruhan
+        if (container.children.length === 0) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+    };
+
+    // Helper untuk Dropdown (terisolasi per form)
+    function scopedPopulateDropdowns(uid, forcedTa = null, forcedUjian = null, forcedMapel = null) {
+        const kelasVal = document.getElementById(`kelas_${uid}`).value;
+        const taSel = document.getElementById(`tahunAjaran_${uid}`);
+        const ujianSel = document.getElementById(`ujianName_${uid}`);
+        const mapelSel = document.getElementById(`mapel_${uid}`);
+        
+        // Maintain user selected values during cascading updates
+        const selectedTa = forcedTa || taSel.value;
+        const selectedUjian = forcedUjian || ujianSel.value;
+        const selectedMapel = forcedMapel || mapelSel.value;
+
+        const resetSelect = (select, placeholder) => { select.innerHTML = `<option value="" disabled selected>${placeholder}</option>`; select.disabled = true; };
+
+        if (!kelasVal) { resetSelect(taSel, '-- Pilih Tahun Ajaran --'); resetSelect(ujianSel, '-- Pilih Nama Ujian --'); resetSelect(mapelSel, '-- Pilih Mata Pelajaran --'); scopedDisplayBankSoal(uid); return; }
+        
+        const bankSoalKelas = bankSoalCache[`kelas${getNumericClass(kelasVal)}`] || {};
+        
+        resetSelect(taSel, '-- Pilih Tahun Ajaran --');
+        Object.keys(bankSoalKelas).sort().reverse().forEach(thn => { taSel.innerHTML += `<option value="${thn.replace(/-/g, '/')}">${thn.replace(/-/g, '/')}</option>`; });
+        taSel.disabled = Object.keys(bankSoalKelas).length === 0;
+        if (selectedTa && taSel.querySelector(`option[value="${selectedTa}"]`)) taSel.value = selectedTa;
+
+        resetSelect(ujianSel, '-- Pilih Nama Ujian --');
+        if (taSel.value && bankSoalKelas[taSel.value.replace(/\//g, '-')]) { Object.keys(bankSoalKelas[taSel.value.replace(/\//g, '-')]).sort().forEach(ujian => { ujianSel.innerHTML += `<option value="${ujian.replace(/-/g, ' ')}">${ujian.replace(/-/g, ' ')}</option>`; }); ujianSel.disabled = false; }
+        if (selectedUjian && ujianSel.querySelector(`option[value="${selectedUjian}"]`)) ujianSel.value = selectedUjian;
+
+        resetSelect(mapelSel, '-- Pilih Mata Pelajaran --');
+        const numericClass = getNumericClass(kelasVal);
+        if (taSel.value && ujianSel.value && bankSoalKelas[taSel.value.replace(/\//g, '-')]?.[ujianSel.value.replace(/\s+/g, '-')]?.[`Kelas-${numericClass}`]) { Object.keys(bankSoalKelas[taSel.value.replace(/\//g, '-')][ujianSel.value.replace(/\s+/g, '-')][`Kelas-${numericClass}`]).sort().forEach(mapel => { mapelSel.innerHTML += `<option value="${mapel.replace(/-/g, ' ')}">${mapel.replace(/-/g, ' ')}</option>`; }); mapelSel.disabled = false; }
+        if (selectedMapel && mapelSel.querySelector(`option[value="${selectedMapel}"]`)) mapelSel.value = selectedMapel;
+        
+        scopedDisplayBankSoal(uid);
+    }
+
+    // Helper untuk Info Bank Soal (terisolasi per form)
+    function scopedDisplayBankSoal(uid) {
+        const kelas = document.getElementById(`kelas_${uid}`).value;
+        const ta = document.getElementById(`tahunAjaran_${uid}`).value;
+        const ujian = document.getElementById(`ujianName_${uid}`).value;
+        const mapel = document.getElementById(`mapel_${uid}`).value;
+        const infoDiv = document.getElementById(`bankSoalInfo_${uid}`);
+
+        if (!kelas || !ta || !ujian || !mapel) { infoDiv.textContent = 'Lengkapi pilihan untuk melihat detail bank soal.'; infoDiv.className = 'bank-soal-info'; return; }
+        
+        const numericClass = getNumericClass(kelas);
+        const bankSoalData = bankSoalCache[`kelas${numericClass}`]?.[ta.replace(/\//g, '-')]?.[ujian.replace(/\s+/g, '-')]?.[`Kelas-${numericClass}`]?.[mapel.replace(/\s+/g, '-')];
+        
+        if (bankSoalData) { 
+            const soalCount = bankSoalData.jumlahSoal || (bankSoalData.soal ? bankSoalData.soal.length - 1 : 0); 
+            let kunjab = bankSoalData.kunjab;
+            if (!kunjab && bankSoalData.soal && Array.isArray(bankSoalData.soal)) {
+                 kunjab = bankSoalData.soal.filter(item => item && item.kunciJawaban).map(item => item.kunciJawaban).join(',');
+                 if(kunjab.length > 20) kunjab = kunjab.substring(0, 20) + "... (Otomatis)"; else kunjab += " (Otomatis)";
+            } else { kunjab = kunjab || 'Tidak tersedia'; }
+            infoDiv.innerHTML = `Bank soal ditemukan: <b>${soalCount} soal</b>.<br>Kunci: ${kunjab}`; 
+            infoDiv.className = 'bank-soal-info found'; 
+        } else { 
+            infoDiv.textContent = 'Bank soal tidak ditemukan untuk pilihan ini.'; 
+            infoDiv.className = 'bank-soal-info not-found'; 
+        }
+    }
+
+    // Eksekusi Submit Form (Tambah & Edit)
+    window.submitSpecificTokenForm = async (e, type, uid) => {
+        e.preventDefault();
+        
+        // Pengecekan built-in validation HTML (required)
+        const formEl = document.getElementById(`form_${uid}`);
+        if (!formEl.checkValidity()) { formEl.reportValidity(); return; }
+
+        const kelas = document.getElementById(`kelas_${uid}`).value.trim();
+        const tahunAjaran = document.getElementById(`tahunAjaran_${uid}`).value;
+        const ujianName = document.getElementById(`ujianName_${uid}`).value;
+        const subject = document.getElementById(`mapel_${uid}`).value;
+        const tokenStr = document.getElementById(`token_${uid}`).value.trim().toUpperCase();
+        const startTime = document.getElementById(`startTime_${uid}`).value;
+        const endTime = document.getElementById(`endTime_${uid}`).value;
+        const errorMsg = document.getElementById(`errorMsg_${uid}`);
+        errorMsg.innerText = "";
+        
+        if (!kelas || !tahunAjaran || !ujianName || !subject || !tokenStr || !startTime || !endTime) { return errorMsg.innerText = "Semua field harus diisi!"; }
+        
+        const startTimeObj = new Date(startTime);
+        const endTimeObj = new Date(endTime);
+        if (startTimeObj >= endTimeObj) return errorMsg.innerText = "Waktu buka harus sebelum waktu tutup!";
+        
+        const durationMinutes = Math.round((endTimeObj.getTime() - startTimeObj.getTime()) / 60000);
+        
+        if (type === 'add') {
+            if (tokenCache.some(item => item.token === tokenStr && getNumericClass(item.kelas) === getNumericClass(kelas))) { return errorMsg.innerText = "Token sudah ada untuk kelas ini!"; }
+            loadingOverlay.style.display = 'flex';
+            const data = { subject, kelas, token: tokenStr, tahunAjaran, ujianName, startTime, endTime, durationMinutes, createdAt: Date.now(), isActive: false, isForceActive: false };
+            try {
+                const targetDb = getDbForGrade(kelas);
+                await push(ref(targetDb, 'tokens'), data);
+                showNotification('Token berhasil ditambahkan ke Server ' + getNumericClass(kelas));
+                closeSpecificTokenForm('add', uid);
+            } catch (err) { errorMsg.innerText = "Gagal menyimpan token: " + err.message; } finally { loadingOverlay.style.display = 'none'; }
+        
+        } else if (type === 'edit') {
+            const contextInfo = editFormContexts.get(uid);
+            if (!contextInfo) return errorMsg.innerText = "Error: Konteks form hilang.";
+            
+            const oldKelas = contextInfo.kelas;
+            const oldToken = contextInfo.token;
+            
+            if (tokenCache.some(item => item.token === tokenStr && item.kelas === kelas && !(item.token === oldToken && item.kelas === oldKelas))) { return errorMsg.innerText = "Token sudah ada untuk kelas ini!"; }
+
+            loadingOverlay.style.display = 'flex';
+            const updatedData = { ...contextInfo, kelas, tahunAjaran, ujianName, subject, token: tokenStr, startTime, endTime, durationMinutes };
+            delete updatedData.firebaseKeys;
+            delete updatedData.firebaseGroups;
+            delete updatedData.key;
+            
+            try {
+                const oldDbGrade = getNumericClass(oldKelas);
+                const newDbGrade = getNumericClass(kelas);
+
+                if (oldDbGrade !== newDbGrade) {
+                    const oldDb = getDbForGrade(oldKelas);
+                    const newDb = getDbForGrade(kelas);
+                    const deletePromises = Array.from(contextInfo.firebaseKeys).map(fbKey => remove(ref(oldDb, `tokens/${fbKey}`)));
+                    await Promise.all(deletePromises);
+                    await push(ref(newDb, 'tokens'), updatedData);
+                    showNotification(`Token dipindahkan dari Server ${oldDbGrade} ke ${newDbGrade}!`);
+                } else {
+                    const targetDb = getDbForGrade(oldKelas);
+                    const updatePromises = Array.from(contextInfo.firebaseKeys).map(fbKey => { 
+                        return update(ref(targetDb, `tokens/${fbKey}`), updatedData); 
+                    });
+                    await Promise.all(updatePromises);
+                    showNotification('Token berhasil diedit!');
+                }
+                closeSpecificTokenForm('edit', uid);
+            } catch (err) { errorMsg.innerText = "Gagal menyimpan: " + err.message; } finally { loadingOverlay.style.display = 'none'; }
+        }
+    };
+
+    // Fungsi penutupan global (dipanggil jika user klik background luar modal)
+    window.closeAddTokenModal = () => { 
+        document.getElementById('addTokenModalContainer').innerHTML = '';
+        document.getElementById('addTokenModal').style.display = 'none'; 
+    };
+    window.closeEditModal = () => { 
+        document.getElementById('editTokenModalContainer').innerHTML = '';
+        editFormContexts.clear();
+        document.getElementById('editModal').style.display = 'none'; 
+    };
+
+    // Global click handler untuk menutup modal dari luar box
+    window.onclick = (event) => { 
+        if (event.target.classList.contains('modal')) {
+            if (event.target.id === 'addTokenModal') window.closeAddTokenModal();
+            else if (event.target.id === 'editModal') window.closeEditModal();
+            else event.target.style.display = 'none'; 
+        }
+    };
+    // =====================================================================
+
 
     window.attachEventListeners = function() {
         document.getElementById('tokenSearchSubject').addEventListener('keyup', renderTokenTable);
@@ -1566,19 +1931,8 @@
         const studentStatusSearchInput = document.getElementById('studentStatusSearchInput');
         if (studentStatusSearchInput) { studentStatusSearchInput.addEventListener('keyup', () => renderStudentStatusTable(1)); }
         
-        document.getElementById('addTokenForm').addEventListener('submit', handleAddToken);
-        document.getElementById('modalForm').addEventListener('submit', handleEditToken);
+        // Form token dinamis sekarang menghandle form submission masing-masing.
         document.getElementById('addStudentForm').addEventListener('submit', handleAddStudent);
-        
-        document.getElementById('addKelas').addEventListener('change', (e) => populateTokenModalDropdowns('add', e.target.value));
-        document.getElementById('addTahunAjaran').addEventListener('change', (e) => populateTokenModalDropdowns('add', document.getElementById('addKelas').value, e.target.value));
-        document.getElementById('addUjianName').addEventListener('change', (e) => populateTokenModalDropdowns('add', document.getElementById('addKelas').value, document.getElementById('addTahunAjaran').value, e.target.value));
-        document.getElementById('addMapel').addEventListener('change', () => displayBankSoalInfo('add'));
-
-        document.getElementById('editKelas').addEventListener('change', (e) => populateTokenModalDropdowns('edit', e.target.value));
-        document.getElementById('editTahunAjaran').addEventListener('change', (e) => populateTokenModalDropdowns('edit', document.getElementById('editKelas').value, e.target.value));
-        document.getElementById('editUjianName').addEventListener('change', (e) => populateTokenModalDropdowns('edit', document.getElementById('editKelas').value, document.getElementById('editTahunAjaran').value, e.target.value));
-        document.getElementById('editMapel').addEventListener('change', () => displayBankSoalInfo('edit'));
 
         window.loadSavedAccounts();
 
@@ -1792,10 +2146,13 @@
             // Perlu escape token untuk mencegah XSS dan masalah JS argument
             const tokenDisplayHtml = `${data.token} <span class="token-status ${statusClass}" onclick="promptToggleForceActive('${escape(data.token)}', '${data.kelas}', ${isCurrentlyActive})">(${statusText})</span>`;
             
+            const ujianTaDisplay = `<div style="white-space: normal; line-height: 1.3;"><b>${escapeHtmlAttributeForJsString(data.ujianName || '-')}</b><br><span style="font-size: 0.85em; color: #7f8c8d;">${escapeHtmlAttributeForJsString(data.tahunAjaran || '-')}</span></div>`;
+
             row.innerHTML = `
                 <td>${index + 1}</td>
                 <td class="mapel-cell"><div class="subject-display">${escapeHtmlAttributeForJsString(data.subject)}</div></td>
                 <td>${data.kelas}</td>
+                <td>${ujianTaDisplay}</td>
                 <td>${tokenDisplayHtml}</td>
                 <td class="time-cell">${formatDisplayTime(data.startTime)}</td>
                 <td class="time-cell">${formatDisplayTime(data.endTime)}</td>
@@ -1871,114 +2228,6 @@
             manageTokenListeners();
         } catch(e) { showNotification('Gagal: ' + e.message, true); } finally { loadingOverlay.style.display = 'none'; closeForceInactiveModal(); }
     };
-    
-    async function handleAddToken(e) {
-        e.preventDefault();
-        const kelas = document.getElementById('addKelas').value;
-        const tahunAjaran = document.getElementById('addTahunAjaran').value;
-        const ujianName = document.getElementById('addUjianName').value;
-        const subject = document.getElementById('addMapel').value;
-        const token = document.getElementById('addToken').value.trim().toUpperCase();
-        const startTime = document.getElementById('addStartTime').value;
-        const endTime = document.getElementById('addEndTime').value;
-        const errorMsg = document.getElementById('addErrorMsg');
-        errorMsg.innerText = "";
-        
-        if (!kelas || !tahunAjaran || !ujianName || !subject || !token || !startTime || !endTime) { return errorMsg.innerText = "Semua field harus diisi!"; }
-        const startTimeObj = new Date(startTime);
-        const endTimeObj = new Date(endTime);
-        if (startTimeObj >= endTimeObj) return errorMsg.innerText = "Waktu buka harus sebelum waktu tutup!";
-        
-        // Cek duplikasi di cache global
-        if (tokenCache.some(item => item.token === token && getNumericClass(item.kelas) === getNumericClass(kelas))) { return errorMsg.innerText = "Token sudah ada untuk kelas ini!"; }
-        
-        loadingOverlay.style.display = 'flex';
-        const durationMinutes = Math.round((endTimeObj.getTime() - startTimeObj.getTime()) / 60000);
-        const data = { subject, kelas, token, tahunAjaran, ujianName, startTime, endTime, durationMinutes, createdAt: Date.now(), isActive: false, isForceActive: false };
-        
-        try {
-            // PILIH DB BERDASARKAN KELAS
-            const targetDb = getDbForGrade(kelas);
-            await push(ref(targetDb, 'tokens'), data);
-            
-            showNotification('Token berhasil ditambahkan ke Server ' + getNumericClass(kelas));
-            closeAddTokenModal();
-            // Listener tokens akan update rawTokens -> onDataReceived -> manageTokenListeners
-        } catch (err) { errorMsg.innerText = "Gagal menyimpan token: " + err.message; } finally { loadingOverlay.style.display = 'none'; }
-    }
-    
-    window.editTokenConsolidated = (baseToken, kelas) => {
-        const token = Array.from(consolidatedTokensMap.values()).find(t => t.token === unescape(baseToken) && t.kelas === kelas);
-        if (!token) return;
-        currentConsolidatedTokenInfo = token;
-        const modalPrefix = 'edit';
-        document.getElementById(`${modalPrefix}Kelas`).value = token.kelas;
-        document.getElementById(`${modalPrefix}Token`).value = token.token;
-        document.getElementById(`${modalPrefix}StartTime`).value = token.startTime;
-        document.getElementById(`${modalPrefix}EndTime`).value = token.endTime;
-        document.getElementById(`${modalPrefix}ErrorMsg`).innerText = "";
-        populateTokenModalDropdowns(modalPrefix, token.kelas, token.tahunAjaran, token.ujianName, token.subject);
-        document.getElementById('editModal').style.display = 'flex';
-    };
-
-    async function handleEditToken(e) {
-      e.preventDefault();
-      const newKelas = document.getElementById('editKelas').value.trim();
-      const tahunAjaran = document.getElementById('editTahunAjaran').value;
-      const ujianName = document.getElementById('editUjianName').value;
-      const subject = document.getElementById('editMapel').value;
-      const token = document.getElementById('editToken').value.trim().toUpperCase();
-      const startTime = document.getElementById('editStartTime').value;
-      const endTime = document.getElementById('editEndTime').value;
-      const errorMsg = document.getElementById('editErrorMsg');
-      errorMsg.innerText = "";
-      
-      if (!newKelas || !tahunAjaran || !ujianName || !subject || !token || !startTime || !endTime) return errorMsg.innerText = "Semua field harus diisi!";
-      const startTimeObj = new Date(startTime);
-      const endTimeObj = new Date(endTime);
-      if (startTimeObj >= endTimeObj) return errorMsg.innerText = "Waktu buka harus sebelum waktu tutup!";
-      if (!currentConsolidatedTokenInfo) return errorMsg.innerText = "Error: Informasi token tidak ditemukan.";
-      const oldKelas = currentConsolidatedTokenInfo.kelas;
-      const oldToken = currentConsolidatedTokenInfo.token;
-      
-      if (tokenCache.some(item => item.token === token && item.kelas === newKelas && !(item.token === oldToken && item.kelas === oldKelas))) { return errorMsg.innerText = "Token sudah ada untuk kelas ini!"; }
-
-      loadingOverlay.style.display = 'flex';
-      const durationMinutes = Math.round((endTimeObj.getTime() - startTimeObj.getTime()) / 60000);
-      const updatedData = { ...currentConsolidatedTokenInfo, kelas: newKelas, tahunAjaran, ujianName, subject, token, startTime, endTime, durationMinutes };
-      delete updatedData.firebaseKeys;
-      delete updatedData.firebaseGroups;
-      delete updatedData.key; // Key baru akan digenerate jika pindah DB
-      
-      try {
-          // Jika kelas berubah (misal dari 7A ke 8A), harus pindah DB
-          const oldDbGrade = getNumericClass(oldKelas);
-          const newDbGrade = getNumericClass(newKelas);
-
-          if (oldDbGrade !== newDbGrade) {
-              const oldDb = getDbForGrade(oldKelas);
-              const newDb = getDbForGrade(newKelas);
-              
-              // Hapus di DB lama
-              const deletePromises = Array.from(currentConsolidatedTokenInfo.firebaseKeys).map(fbKey => remove(ref(oldDb, `tokens/${fbKey}`)));
-              await Promise.all(deletePromises);
-
-              // Tambah ke DB baru
-              await push(ref(newDb, 'tokens'), updatedData);
-              showNotification(`Token dipindahkan dari Server ${oldDbGrade} ke ${newDbGrade}!`);
-          } else {
-              // DB sama, update biasa
-              const targetDb = getDbForGrade(oldKelas);
-              const updatePromises = Array.from(currentConsolidatedTokenInfo.firebaseKeys).map(fbKey => { 
-                  return update(ref(targetDb, `tokens/${fbKey}`), updatedData); 
-              });
-              await Promise.all(updatePromises);
-              showNotification('Token berhasil diedit!');
-          }
-          closeEditModal();
-          // manageTokenListeners will automatically run on next token update
-      } catch (err) { errorMsg.innerText = "Gagal menyimpan: " + err.message; } finally { loadingOverlay.style.display = 'none'; }
-    }
 
     window.promptDeleteConsolidated = (baseToken, kelas) => {
         const token = Array.from(consolidatedTokensMap.values()).find(t => t.token === unescape(baseToken) && t.kelas === kelas);
@@ -2753,79 +3002,14 @@
         } catch (e) { console.error("Gagal load bank soal (Critical):", e); }
     }
 
-    function populateTokenModalDropdowns(prefix, kelas, tahunAjaran, ujianName, selectedMapel) {
-        const tahunAjaranSelect = document.getElementById(`${prefix}TahunAjaran`);
-        const ujianNameSelect = document.getElementById(`${prefix}UjianName`);
-        const mapelSelect = document.getElementById(`${prefix}Mapel`);
-        const resetSelect = (select, placeholder) => { select.innerHTML = `<option value="" disabled selected>${placeholder}</option>`; select.disabled = true; };
-
-        if (!kelas) { resetSelect(tahunAjaranSelect, '-- Pilih Tahun Ajaran --'); resetSelect(ujianNameSelect, '-- Pilih Nama Ujian --'); resetSelect(mapelSelect, '-- Pilih Mata Pelajaran --'); return; }
-        
-        const bankSoalKelas = bankSoalCache[`kelas${getNumericClass(kelas)}`] || {};
-        
-        resetSelect(tahunAjaranSelect, '-- Pilih Tahun Ajaran --');
-        Object.keys(bankSoalKelas).sort().reverse().forEach(thn => { tahunAjaranSelect.innerHTML += `<option value="${thn.replace(/-/g, '/')}">${thn.replace(/-/g, '/')}</option>`; });
-        tahunAjaranSelect.disabled = Object.keys(bankSoalKelas).length === 0;
-        if (tahunAjaran) tahunAjaranSelect.value = tahunAjaran;
-
-        resetSelect(ujianNameSelect, '-- Pilih Nama Ujian --');
-        if (tahunAjaran && bankSoalKelas[tahunAjaran.replace(/\//g, '-')]) { Object.keys(bankSoalKelas[tahunAjaran.replace(/\//g, '-')]).sort().forEach(ujian => { ujianNameSelect.innerHTML += `<option value="${ujian.replace(/-/g, ' ')}">${ujian.replace(/-/g, ' ')}</option>`; }); ujianNameSelect.disabled = false; }
-        if (ujianName) ujianNameSelect.value = ujianName;
-
-        resetSelect(mapelSelect, '-- Pilih Mata Pelajaran --');
-        const numericClass = getNumericClass(kelas);
-        
-        if (tahunAjaran && ujianName && bankSoalKelas[tahunAjaran.replace(/\//g, '-')]?.[ujianName.replace(/\s+/g, '-')]?.[`Kelas-${numericClass}`]) { Object.keys(bankSoalKelas[tahunAjaran.replace(/\//g, '-')][ujianName.replace(/\s+/g, '-')][`Kelas-${numericClass}`]).sort().forEach(mapel => { mapelSelect.innerHTML += `<option value="${mapel.replace(/-/g, ' ')}">${mapel.replace(/-/g, ' ')}</option>`; }); mapelSelect.disabled = false; }
-        if (selectedMapel) mapelSelect.value = selectedMapel;
-        displayBankSoalInfo(prefix);
-    }
-    
-    function displayBankSoalInfo(prefix) {
-        const kelas = document.getElementById(`${prefix}Kelas`).value;
-        const tahunAjaran = document.getElementById(`${prefix}TahunAjaran`).value;
-        const ujianName = document.getElementById(`${prefix}UjianName`).value;
-        const mapel = document.getElementById(`${prefix}Mapel`).value;
-        const infoDiv = document.getElementById(`${prefix}BankSoalInfo`);
-
-        if (!kelas || !tahunAjaran || !ujianName || !mapel) { infoDiv.textContent = 'Lengkapi pilihan untuk melihat detail bank soal.'; infoDiv.className = 'bank-soal-info'; return; }
-        
-        const numericClass = getNumericClass(kelas);
-        const bankSoalData = bankSoalCache[`kelas${numericClass}`]?.[tahunAjaran.replace(/\//g, '-')]?.[ujianName.replace(/\s+/g, '-')]?.[`Kelas-${numericClass}`]?.[mapel.replace(/\s+/g, '-')];
-        
-        if (bankSoalData) { 
-            const soalCount = bankSoalData.jumlahSoal || (bankSoalData.soal ? bankSoalData.soal.length - 1 : 0); 
-            
-            let kunjab = bankSoalData.kunjab;
-            if (!kunjab && bankSoalData.soal && Array.isArray(bankSoalData.soal)) {
-                 kunjab = bankSoalData.soal
-                    .filter(item => item && item.kunciJawaban)
-                    .map(item => item.kunciJawaban)
-                    .join(',');
-                 if(kunjab.length > 20) kunjab = kunjab.substring(0, 20) + "... (Otomatis)";
-                 else kunjab += " (Otomatis)";
-            } else {
-                kunjab = kunjab || 'Tidak tersedia';
-            }
-            
-            infoDiv.innerHTML = `Bank soal ditemukan: <b>${soalCount} soal</b>.<br>Kunci: ${kunjab}`; 
-            infoDiv.className = 'bank-soal-info found'; 
-        } else { 
-            infoDiv.textContent = 'Bank soal tidak ditemukan untuk pilihan ini.'; 
-            infoDiv.className = 'bank-soal-info not-found'; 
-        }
-    }
-
+    // Tampilkan detail Bank Soal untuk modal spesifik
     window.openGenericConfirmModal = (title, message, onConfirm) => { document.getElementById('genericConfirmTitle').innerText = title; document.getElementById('genericConfirmMessage').innerText = message; currentConfirmAction = onConfirm; document.getElementById('genericConfirmModal').style.display = 'flex'; };
     window.closeGenericConfirmModal = () => { document.getElementById('genericConfirmModal').style.display = 'none'; currentConfirmAction = null; };
     window.handleGenericConfirm = () => { if (currentConfirmAction) currentConfirmAction(); closeGenericConfirmModal(); };
     
     // UI Helpers (Restore)
-    window.onclick = (event) => { if (event.target.classList.contains('modal')) event.target.style.display = 'none'; };
-    window.openAddTokenModal = () => { document.getElementById('addTokenForm').reset(); populateTokenModalDropdowns('add'); document.getElementById('addTokenModal').style.display = 'flex'; };
-    window.closeAddTokenModal = () => document.getElementById('addTokenModal').style.display = 'none';
     window.openAddStudentModal = () => { document.getElementById('addStudentForm').reset(); document.getElementById('addStudentModal').style.display = 'flex'; };
     window.closeAddStudentModal = () => document.getElementById('addStudentModal').style.display = 'none';
-    window.closeEditModal = () => document.getElementById('editModal').style.display = 'none';
     window.closeDeleteModal = () => document.getElementById('deleteModal').style.display = 'none';
     window.closeForceActiveModal = () => document.getElementById('forceActiveModal').style.display = 'none';
     window.closeForceInactiveModal = () => document.getElementById('forceInactiveModal').style.display = 'none';
@@ -2864,7 +3048,7 @@
     window.copyTableToClipboard = () => {
         let textToCopy = '';
         if (currentTableIdToCopy === 'tokenTable') {
-            const header = `NO\tMAPEL\tKELAS\tTOKEN\tDIBUKA\tDITUTUP\tDURASI\n`;
+            const header = `NO\tMAPEL\tKELAS\tUJIAN/T.A.\tTOKEN\tDIBUKA\tDITUTUP\tDURASI\n`;
             let body = '';
             let consolidatedTokens = Array.from(consolidatedTokensMap.values()).sort((a, b) => {
                 const timeA = new Date(a.startTime).getTime();
@@ -2877,7 +3061,8 @@
                 return classA - classB;
             });
             consolidatedTokens.forEach((data, index) => {
-                body += `${index + 1}\t${data.subject}\t${data.kelas}\t${data.token}\t${formatDisplayTime(data.startTime)}\t${formatDisplayTime(data.endTime)}\t${data.durationMinutes} menit\n`;
+                const ujianTaText = `${data.ujianName || '-'} (${data.tahunAjaran || '-'})`;
+                body += `${index + 1}\t${data.subject}\t${data.kelas}\t${ujianTaText}\t${data.token}\t${formatDisplayTime(data.startTime)}\t${formatDisplayTime(data.endTime)}\t${data.durationMinutes} menit\n`;
             });
             textToCopy = header + body;
         } else if (currentTableIdToCopy === 'scoreTable') {
