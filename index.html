@@ -1059,13 +1059,18 @@
             const snapshot = await get(ref(dbAturan, 'adminbanksoal/url')); // DB ATURAN
             if (snapshot.exists()) {
                 globalBankSoalUrl = snapshot.val();
+                // Langsung pasang URL ke iframe agar dimuat di background
+                const iframe = document.getElementById('bankSoalFrame');
+                if (iframe && !iframe.getAttribute('src')) {
+                    iframe.src = globalBankSoalUrl;
+                }
             }
         } catch (error) { console.error("Gagal memuat URL Bank Soal:", error); }
     }
     
     async function loadAndSetPrintCardUrl() {
         const frame = document.getElementById('printCardFrame');
-        if (frame) { frame.src = 'https://speropa.github.io/cetakkartu'; }
+        if (frame && !frame.getAttribute('src')) { frame.src = 'https://speropa.github.io/cetakkartu'; }
     }
     
     async function loadOneTimeData() {
