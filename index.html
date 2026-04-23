@@ -1981,8 +1981,8 @@
                 <label for="startTime_${uid}">Waktu Token Dibuka</label>
                 <input type="datetime-local" id="startTime_${uid}" required />
                 
-                <label for="endTime_${uid}">Waktu Token Ditutup</label>
-                <input type="datetime-local" id="endTime_${uid}" required />
+                <label for="durasi_${uid}">Durasi Ujian (Menit)</label>
+                <input type="number" id="durasi_${uid}" placeholder="Contoh: 120" required min="1" />
                 
                 <p id="errorMsg_${uid}" class="error"></p>
                 <div class="modal-buttons">
@@ -2054,7 +2054,8 @@
                 mapel: tokenInfoContext.subject,
                 token: tokenInfoContext.token,
                 startTime: tokenInfoContext.startTime,
-                endTime: tokenInfoContext.endTime
+                endTime: tokenInfoContext.endTime,
+                durationMinutes: tokenInfoContext.durationMinutes
             };
         }
 
@@ -2063,21 +2064,37 @@
             scopedPopulateDropdowns(uid, initialData.ta, initialData.ujian, initialData.mapel);
             document.getElementById(`token_${uid}`).value = initialData.token;
             document.getElementById(`startTime_${uid}`).value = initialData.startTime;
-            document.getElementById(`endTime_${uid}`).value = initialData.endTime;
+            
+            let durasi = initialData.durationMinutes;
+            if (!durasi && initialData.startTime && initialData.endTime) {
+                durasi = Math.round((new Date(initialData.endTime).getTime() - new Date(initialData.startTime).getTime()) / 60000);
+            }
+            document.getElementById(`durasi_${uid}`).value = durasi || '';
         } else {
             scopedPopulateDropdowns(uid);
         }
     }
 
     window.duplicateTokenForm = (type, sourceUid) => {
+        const startTime = document.getElementById(`startTime_${sourceUid}`).value;
+        const durasi = parseInt(document.getElementById(`durasi_${sourceUid}`).value) || 0;
+        let endTime = '';
+        
+        if (startTime && durasi) {
+            const endObj = new Date(new Date(startTime).getTime() + durasi * 60000);
+            const pad = (n) => String(n).padStart(2, '0');
+            endTime = `${endObj.getFullYear()}-${pad(endObj.getMonth() + 1)}-${pad(endObj.getDate())}T${pad(endObj.getHours())}:${pad(endObj.getMinutes())}`;
+        }
+
         const sourceData = {
             kelas: document.getElementById(`kelas_${sourceUid}`).value,
             ta: document.getElementById(`tahunAjaran_${sourceUid}`).value,
             ujian: document.getElementById(`ujianName_${sourceUid}`).value,
             mapel: document.getElementById(`mapel_${sourceUid}`).value,
             token: document.getElementById(`token_${sourceUid}`).value,
-            startTime: document.getElementById(`startTime_${sourceUid}`).value,
-            endTime: document.getElementById(`endTime_${sourceUid}`).value,
+            startTime: startTime,
+            durationMinutes: durasi,
+            endTime: endTime
         };
 
         if (type === 'add') {
@@ -2195,17 +2212,20 @@
         const subject = document.getElementById(`mapel_${uid}`).value;
         const tokenStr = document.getElementById(`token_${uid}`).value.trim().toUpperCase();
         const startTime = document.getElementById(`startTime_${uid}`).value;
-        const endTime = document.getElementById(`endTime_${uid}`).value;
+        const durationMinutesRaw = document.getElementById(`durasi_${uid}`).value;
         const errorMsg = document.getElementById(`errorMsg_${uid}`);
         errorMsg.innerText = "";
         
-        if (!kelas || !tahunAjaran || !ujianName || !subject || !tokenStr || !startTime || !endTime) { return errorMsg.innerText = "Semua field harus diisi!"; }
+        if (!kelas || !tahunAjaran || !ujianName || !subject || !tokenStr || !startTime || !durationMinutesRaw) { return errorMsg.innerText = "Semua field harus diisi!"; }
+        
+        const durationMinutes = parseInt(durationMinutesRaw, 10);
+        if (isNaN(durationMinutes) || durationMinutes <= 0) return errorMsg.innerText = "Durasi harus lebih dari 0 menit!";
         
         const startTimeObj = new Date(startTime);
-        const endTimeObj = new Date(endTime);
-        if (startTimeObj >= endTimeObj) return errorMsg.innerText = "Waktu buka harus sebelum waktu tutup!";
+        const endTimeObj = new Date(startTimeObj.getTime() + durationMinutes * 60000);
         
-        const durationMinutes = Math.round((endTimeObj.getTime() - startTimeObj.getTime()) / 60000);
+        const pad = (n) => String(n).padStart(2, '0');
+        const endTime = `${endTimeObj.getFullYear()}-${pad(endTimeObj.getMonth() + 1)}-${pad(endTimeObj.getDate())}T${pad(endTimeObj.getHours())}:${pad(endTimeObj.getMinutes())}`;
         
         if (type === 'add') {
             if (tokenCache.some(item => item.token === tokenStr && getNumericClass(item.kelas) === getNumericClass(kelas))) { return errorMsg.innerText = "Token sudah ada untuk kelas ini!"; }
