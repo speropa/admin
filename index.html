@@ -1675,6 +1675,10 @@
                 setPersistence(auth9, browserLocalPersistence)
             ]);
 
+            // PERBAIKAN BUG SESI: Catat waktu SEBELUM Firebase melakukan signIn
+            // Agar saat onAuthStateChanged terpicu, waktu login sudah siap di memori
+            localStorage.setItem('adminLoginTime', Date.now());
+
             // PERBAIKAN: Eksekusi login secara PARALEL (Bersamaan) menggunakan Promise.all
             // Ini akan memangkas waktu dari 20 detik menjadi sekitar 2-4 detik.
             const failures = [];
@@ -1687,9 +1691,6 @@
 
             await Promise.all(loginTasks);
 
-            // Simpan waktu login saat ini untuk batas 1 hari (24 jam)
-            localStorage.setItem('adminLoginTime', Date.now());
-
             if (failures.length > 0) {
                 console.error("Login Failures:", failures);
                 alert("PERINGATAN: Login berhasil ke Admin Utama, tapi gagal terhubung ke beberapa server kelas:\n" + failures.join('\n') + "\n\nData dari server tersebut tidak akan muncul.");
@@ -1699,6 +1700,7 @@
             console.error(error);
             loginError.innerText = "Email atau password salah.";
             loadingOverlay.style.display = 'none'; 
+            localStorage.removeItem('adminLoginTime'); // Hapus kembali jika login ternyata gagal
             signOut(authAturan); signOut(auth7); signOut(auth8); signOut(auth9);
         }
     };
