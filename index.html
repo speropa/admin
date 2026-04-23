@@ -656,25 +656,6 @@
         </div>
 
         <div style="margin-top: 30px;">
-          <h3>ATUR KUNCI BLOKIR</h3>
-          <p style="text-align: left; font-size: 0.9em; color: #555; margin-top: 5px; margin-bottom: 15px;">
-            Atur kunci yang harus dimasukkan siswa ketika mereka terblokir karena membuka aplikasi bukan dengan aplikasi resmi.
-          </p>
-          <div class="table-responsive">
-            <table id="blockKeySettingsTable">
-              <thead>
-                <tr>
-                  <th>KUNCI</th>
-                  <th>STATUS</th>
-                  <th>AKSI</th>
-                </tr>
-              </thead>
-              <tbody id="blockKeySettingsTableBody"></tbody>
-            </table>
-          </div>
-        </div>
-
-        <div style="margin-top: 30px;">
           <h3>ATUR DURASI KIRIM JAWABAN</h3>
           <p style="text-align: left; font-size: 0.9em; color: #555; margin-top: 5px; margin-bottom: 15px;">
             Atur sisa durasi minimal yang harus dicapai siswa agar dapat mengirim jawaban (mengaktifkan tombol kirim jawaban).
@@ -884,7 +865,6 @@
   <div id="copyPrintModal" class="modal"><div class="modal-content"><h4 id="copyPrintModalTitle"></h4><div id="genericExportOptions"><button onclick="copyTableToClipboard()" class="confirm-button" style="width: 100%; margin-bottom: 10px;"><i class="fas fa-copy"></i> Salin Tabel</button><p style="font-size: 0.9em; color: #555; text-align: center;">Salin tabel kemudian paste ke Word atau Excel.</p></div><div id="scoreExportOptions" style="display: none; flex-direction: column; gap: 10px;"><ol style="font-size: 0.9em; color: #555; margin-bottom: 5px; margin-top: 0; padding-left: 20px;"><li>Salinlah tabel</li><li>Buka spreadsheet atau Ms. Excel</li><li>Paste dan edit sesuai keinginan</li></ol><button onclick="copyTableToClipboard()" class="text-button blue-gray" style="width: 100%; justify-content: center; padding: 12px;"><i class="fas fa-copy"></i> Salin Tabel</button></div><div id="tokenExportOptions" style="display: none; flex-direction: column; gap: 10px;"><ol style="font-size: 0.9em; color: #555; margin-bottom: 5px; margin-top: 0; padding-left: 20px;"><li>Salinlah tabel</li><li>Buka spreadsheet atau Ms. Excel</li><li>Paste dan edit sesuai keinginan</li></ol><button onclick="copyTableToClipboard()" class="text-button blue-gray" style="width: 100%; justify-content: center; padding: 12px;"><i class="fas fa-copy"></i> Salin Tabel</button></div><div style="text-align: right; margin-top: 20px;"><button onclick="closeCopyPrintModal()" class="cancel-button">Batal</button></div></div></div>
   <div id="setlokasiModal" class="modal"><div class="modal-content" style="text-align: center;"><h4>Pengaturan Lokasi</h4><button onclick="aktifkanLokasi()" class="confirm-button">Aktifkan</button><button onclick="openGantiRadiusModal()" class="warning-button">Ganti Radius</button><button onclick="nonaktifkanLokasi()" class="cancel-button">Nonaktifkan</button><button onclick="closeSetlokasiModal()" class="gray text-button" style="margin-top: 10px;">Batal</button></div></div>
   <div id="gantiRadiusModal" class="modal"><div class="modal-content"><h4>Ganti Radius Lokasi (meter)</h4><label for="radiusMeter">Radius (meter):</label><input type="number" id="radiusMeter" placeholder="Contoh: 75" required /><div style="text-align: center; margin-top: 10px;"><button onclick="closeGantiRadiusModal()" class="cancel-button">Batal</button><button onclick="gantiRadiusDanAktifkan()" class="confirm-button">Ganti & Aktifkan</button></div></div></div>
-  <div id="setBlockKeyModal" class="modal"><div class="modal-content"><h4>Atur Kunci Blokir</h4><label for="blockKeyInput">Kunci (Otomatis Kapital):</label><input type="text" id="blockKeyInput" placeholder="Contoh: BUKA" required oninput="this.value = this.value.toUpperCase()" /><div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;"><label for="blockKeyStatusToggle">Status Kunci:</label><label class="switch"><input type="checkbox" id="blockKeyStatusToggle"><span class="slider"></span></label></div><p id="blockKeySettingsError" class="error"></p><div class="modal-buttons"><button onclick="closeSetBlockKeyModal()" class="cancel-button">Batal</button><button onclick="saveBlockKeySettings()" class="confirm-button">Simpan</button></div></div></div>
   <div id="accessDetailModal" class="modal"><div class="modal-content" style="max-width: 700px;"><h4 id="accessDetailTokenTitle">Detail Akses Token: [Token]</h4><div class="table-responsive"><table id="accessDetailTable"><thead><tr><th>NO</th><th>ID SISWA</th><th>NAMA SISWA</th><th>KELAS</th><th>STATUS AKSES</th><th>WAKTU AKSES PERTAMA</th></tr></thead><tbody id="accessDetailTableBody"></tbody></table></div><button onclick="closeAccessDetailModal()" style="margin-top: 20px;">Tutup</button></div></div>
   <div id="editStudentModal" class="modal"><div class="modal-content"><h4>Edit Data Siswa</h4><p id="editStudentErrorMsg" class="error"></p><label for="modalStudentId">ID Siswa</label><input type="text" id="modalStudentId" required /><label for="modalStudentName">Nama Siswa</label><input type="text" id="modalStudentName" required /><label for="modalStudentClass">Kelas</label><input type="text" id="modalStudentClass" placeholder="Contoh: 7A, 7B, 7C" required /><label for="modalStudentRoom">Ruang</label><input type="text" id="modalStudentRoom" placeholder="Contoh: 01, 02, dsb" required /><div class="modal-buttons"><button type="button" onclick="closeEditStudentModal()" class="cancel-button">Batal</button><button onclick="confirmEditStudent()">Simpan</button></div></div></div>
   <div id="deleteStudentConfirmModal" class="modal"><div class="modal-content"><h4 style="text-align:center;">Hapus Siswa</h4><p>Yakin ingin menghapus siswa ini?</p><div class="modal-buttons"><button onclick="closeDeleteStudentConfirmModal()" class="cancel-button">Batal</button><button onclick="confirmDeleteStudent()" class="confirm-button">Hapus</button></div></div></div>
@@ -1094,8 +1074,6 @@
     let allowedRadiusMeterAdmin = 75;
     let currentLocationKeyAdmin = ''; 
     let keyLastGeneratedAdmin = 0; 
-    let isBlockKeyEnabledAdmin = false;
-    let currentBlockKeyAdmin = "BUKA";
     let minSubmitDurationSecondsAdmin = 30 * 60; 
     let isMinDurationEnabledAdmin = false;
     let shuffleSettingsCache = { soal: true, pilgan: true };
@@ -1153,7 +1131,6 @@
     const scoreTableBody = document.getElementById('scoreTableBody');
     const scoreTableMessage = document.getElementById('scoreTableMessage');
     const locationSettingsTableBody = document.getElementById('locationSettingsTableBody');
-    const blockKeySettingsTableBody = document.getElementById('blockKeySettingsTableBody');
     const minDurationSettingsTableBody = document.getElementById('minDurationSettingsTableBody'); 
     const shuffleSettingsTableBody = document.getElementById('shuffleSettingsTableBody');
 
@@ -1229,6 +1206,17 @@
     
     onAuthStateChanged(authAturan, async (user) => {
         if (user) {
+            // --- Pengecekan Sesi 1 Hari (24 Jam) ---
+            const loginTime = localStorage.getItem('adminLoginTime');
+            const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+            if (!loginTime || (Date.now() - parseInt(loginTime, 10)) > ONE_DAY_MS) {
+                showNotification('Sesi Anda telah habis (24 jam). Silakan login ulang.', true);
+                signOut(authAturan); signOut(auth7); signOut(auth8); signOut(auth9);
+                localStorage.removeItem('adminLoginTime');
+                return; // Hentikan proses, biarkan kembali ke halaman login
+            }
+            // ---------------------------------------
+
             loadingOverlay.style.display = 'flex';
             
             try {
@@ -1262,7 +1250,7 @@
     
     async function loadOneTimeData() {
         itemsPerPageSelect.value = selectedItemsPerPage;
-        const oneTimePromises = [loadBankSoal(), loadSetlokasiSettings(), loadBlockKeySettings(), loadMinDurationSettings(), loadShuffleSettings(), loadLastSelectedTokens(), loadPublicSettings()];
+        const oneTimePromises = [loadBankSoal(), loadSetlokasiSettings(), loadMinDurationSettings(), loadShuffleSettings(), loadLastSelectedTokens(), loadPublicSettings()];
         await Promise.all(oneTimePromises);
     }
     
@@ -1706,6 +1694,9 @@
 
             await Promise.all(loginTasks);
 
+            // Simpan waktu login saat ini untuk batas 1 hari (24 jam)
+            localStorage.setItem('adminLoginTime', Date.now());
+
             if (failures.length > 0) {
                 console.error("Login Failures:", failures);
                 alert("PERINGATAN: Login berhasil ke Admin Utama, tapi gagal terhubung ke beberapa server kelas:\n" + failures.join('\n') + "\n\nData dari server tersebut tidak akan muncul.");
@@ -1713,7 +1704,7 @@
 
         } catch (error) {
             console.error(error);
-            loginError.innerText = error.message || "Terjadi kesalahan saat login.";
+            loginError.innerText = "Email atau password salah.";
             loadingOverlay.style.display = 'none'; 
             signOut(authAturan); signOut(auth7); signOut(auth8); signOut(auth9);
         }
@@ -2420,7 +2411,7 @@
             'dashboardSection': updateDashboard,
             'bankSoalSection': () => {},
             'tokenSection': renderTokenTable,
-            'rulesSection': () => { updateSetlokasiStatusDisplay(); renderBlockKeySettingsTable(); renderMinDurationSettingsTable(); renderShuffleSettingsTable(); },
+            'rulesSection': () => { updateSetlokasiStatusDisplay(); renderMinDurationSettingsTable(); renderShuffleSettingsTable(); },
             'setSelectClassSection': () => { renderPublicSettingsControls(); renderActiveButtonsInfo(); },
             'examStatusSelectionSection': populateExamSelectionDropdowns,
             'studentStatusSection': () => renderStudentStatusTable(currentPageStatus),
@@ -3047,7 +3038,6 @@
     // DB ATURAN ONLY
     function loadSetlokasiSettings() { return new Promise(r => onValue(ref(dbAturan, 'setlokasi'), s => { const val=s.val()||{}; isLocationEnabledAdmin=val.isLocationEnabled||!1; allowedRadiusMeterAdmin=(val.allowedRadiusKm||0.075)*1000; currentLocationKeyAdmin=val.currentKey||''; keyLastGeneratedAdmin=val.keyLastGenerated||0; if(isLocationEnabledAdmin && Date.now()-keyLastGeneratedAdmin > FIFTEEN_MINUTES_IN_MS) update(ref(dbAturan,'setlokasi'),{currentKey:generateRandomKey(5),keyLastGenerated:Date.now()}); r(); }, {onlyOnce:!0})); }
     
-    function loadBlockKeySettings() { return new Promise(r => onValue(ref(dbAturan, 'block_key_settings'), s => { const val = s.val() || {}; isBlockKeyEnabledAdmin = val.isEnabled || false; currentBlockKeyAdmin = val.key || "BUKA"; r(); }, { onlyOnce: true })); }
     function loadMinDurationSettings() { return new Promise(r => onValue(ref(dbAturan, 'min_duration_settings'), s => { const val=s.val()||{}; isMinDurationEnabledAdmin=val.isMinDurationEnabled||!1; minSubmitDurationSecondsAdmin=val.minDurationSeconds||1800; r(); }, {onlyOnce:!0})); }
     
     function loadShuffleSettings() { return new Promise(r => onValue(ref(dbAturan, 'acaksoalpilgan'), s => { shuffleSettingsCache=s.val()||{soal:!0,pilgan:!0}; r(); }, {onlyOnce:!0})); }
@@ -3068,10 +3058,7 @@
     
     function cleanUpOldSusulanExams() { if (!publicSettingsCache.susulan?.list) return; const updates = {}; Object.entries(publicSettingsCache.susulan.list).forEach(([id, exam]) => { if (Date.now() - exam.createdAt > ONE_WEEK_IN_MS) updates[id] = null; }); if(Object.keys(updates).length > 0) update(ref(dbAturan, 'publicSettings/susulan/list'), updates); }
 
-    function renderActiveButtonsInfo() { activeButtonsInfoList.innerHTML = ''; ['kelas7', 'kelas8', 'kelas9'].forEach(k => { const info = publicSettingsCache[k]; const li = document.createElement('li'); li.className = 'info-list-item'; li.innerHTML = `<div><span class="status-indicator ${info.enabled ? 'on' : 'off'}"></span><strong>${k.charAt(0).toUpperCase() + k.slice(1)}:</strong> ${info.enabled ? 'Aktif' : 'Nonaktif'}</div>${info.url ? `<div class="link-info">Link: <a href="${info.url}" target="_blank">${info.url}</a></div>` : ''}`; activeButtonsInfoList.appendChild(li); }); const susulanInfo = publicSettingsCache.susulan; const headerLi = document.createElement('li'); headerLi.className = 'info-list-item'; headerLi.innerHTML = `<div><span class="status-indicator ${susulanInfo.enabled ? 'on' : 'off'}"></span><strong>Ujian Susulan:</strong> ${susulanInfo.enabled ? 'Aktif' : 'Nonaktif'}</div>`; activeButtonsInfoList.appendChild(headerLi); if (susulanInfo.enabled && susulanInfo.list) { Object.entries(susulanInfo.list).forEach(([id, item]) => { const itemLi = document.createElement('li'); itemLi.className = 'info-list-item'; itemLi.style.paddingLeft = '20px'; itemLi.innerHTML = `<div><span>${item.name}</span><button class="icon-button delete-button" onclick="deleteSusulanUjian('${id}')" title="Hapus"><i class="fas fa-trash-alt"></i></button></div><div class="link-info">Link: <a href="${item.url}" target="_blank">${item.url}</a></div>`; activeButtonsInfoList.appendChild(itemLi); }); } }
-
     function updateSetlokasiStatusDisplay() { const statusText = isLocationEnabledAdmin ? 'ON' : 'OFF'; const statusColor = isLocationEnabledAdmin ? 'green' : 'red'; locationSettingsTableBody.innerHTML = `<tr><td>${currentLocationKeyAdmin}</td><td>${defaultLocationCoordinate}</td><td>${allowedRadiusMeterAdmin}m</td><td style="color:${statusColor};font-weight:bold;">${statusText}</td><td><button class="icon-button" onclick="openSetlokasiModal()"><i class="fas fa-map-marker-alt"></i></button></td></tr>`; }
-    function renderBlockKeySettingsTable() { const statusText = isBlockKeyEnabledAdmin ? 'ON' : 'OFF'; const statusColor = isBlockKeyEnabledAdmin ? 'green' : 'red'; blockKeySettingsTableBody.innerHTML = `<tr><td>${currentBlockKeyAdmin}</td><td style="color:${statusColor};font-weight:bold;">${statusText}</td><td><button class="icon-button edit" onclick="openSetBlockKeyModal()"><i class="fas fa-edit"></i></button></td></tr>`; }
     function renderMinDurationSettingsTable() { const statusText = isMinDurationEnabledAdmin ? 'ON' : 'OFF'; const statusColor = isMinDurationEnabledAdmin ? 'green' : 'red'; const displayString = `${formatSecondsToHMS(minSubmitDurationSecondsAdmin)} (${minSubmitDurationSecondsAdmin/60} menit)`; minDurationSettingsTableBody.innerHTML = `<tr><td>${displayString}</td><td style="color:${statusColor};font-weight:bold;">${statusText}</td><td><button class="icon-button edit" onclick="openSetMinDurationModal()"><i class="fas fa-edit"></i></button></td></tr>`; }
     
     window.openSetlokasiModal = () => document.getElementById('setlokasiModal').style.display = 'flex';
@@ -3081,10 +3068,6 @@
     window.aktifkanLokasi = async () => { await update(ref(dbAturan, 'setlokasi'), { isLocationEnabled: true }); showNotification('Lokasi diaktifkan.'); closeSetlokasiModal(); await loadSetlokasiSettings(); updateSetlokasiStatusDisplay(); };
     window.nonaktifkanLokasi = async () => { await update(ref(dbAturan, 'setlokasi'), { isLocationEnabled: false }); showNotification('Lokasi dinonaktifkan.'); closeSetlokasiModal(); await loadSetlokasiSettings(); updateSetlokasiStatusDisplay(); };
     window.gantiRadiusDanAktifkan = async () => { const r = parseInt(document.getElementById('radiusMeter').value); if(isNaN(r) || r<=0) return; await update(ref(dbAturan, 'setlokasi'), { allowedRadiusKm: r / 1000, isLocationEnabled: true }); showNotification(`Radius diubah jadi ${r}m & diaktifkan.`); closeGantiRadiusModal(); await loadSetlokasiSettings(); updateSetlokasiStatusDisplay(); };
-
-    window.openSetBlockKeyModal = () => { document.getElementById('blockKeyInput').value = currentBlockKeyAdmin; document.getElementById('blockKeyStatusToggle').checked = isBlockKeyEnabledAdmin; document.getElementById('blockKeySettingsError').innerText = ""; document.getElementById('setBlockKeyModal').style.display = 'flex'; };
-    window.closeSetBlockKeyModal = () => document.getElementById('setBlockKeyModal').style.display = 'none';
-    window.saveBlockKeySettings = async () => { const keyInput = document.getElementById('blockKeyInput').value.trim().toUpperCase(); const isEnabled = document.getElementById('blockKeyStatusToggle').checked; const errorMsg = document.getElementById('blockKeySettingsError'); errorMsg.innerText = ""; if (!keyInput) { errorMsg.innerText = "Kunci tidak boleh kosong."; return; } loadingOverlay.style.display = 'flex'; try { await update(ref(dbAturan, 'block_key_settings'), { key: keyInput, isEnabled: isEnabled }); showNotification('Pengaturan kunci blokir berhasil disimpan.'); closeSetBlockKeyModal(); await loadBlockKeySettings(); renderBlockKeySettingsTable(); } catch (error) { showNotification("Gagal menyimpan: " + error.message, true); } finally { loadingOverlay.style.display = 'none'; } };
 
     window.openSetMinDurationModal = () => { document.getElementById('setMinDurationModal').style.display = 'flex'; document.getElementById('minDurationMinutesInput').value = minSubmitDurationSecondsAdmin / 60; };
     window.closeSetMinDurationModal = () => document.getElementById('setMinDurationModal').style.display = 'none';
@@ -3332,6 +3315,7 @@
     window.confirmLogout = () => { 
         sidebar.style.display = 'none'; 
         signOut(authAturan); signOut(auth7); signOut(auth8); signOut(auth9);
+        localStorage.removeItem('adminLoginTime');
         localStorage.clear(); 
         location.reload(); 
     };
