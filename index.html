@@ -1609,6 +1609,33 @@
                 const r = ref(targetDb, `exam_access_status/${key}`);
                 const callback = onValue(r, (snapshot) => {
                     const val = snapshot.val() || {};
+                    
+                    // --- TAMBAHAN: Logika Auto-Resume Waktu Ujian ---
+                    let autoUpdates = {};
+                    let hasAutoUpdates = false;
+                    for (const stuId in val) {
+                        const data = val[stuId];
+                        // Jika siswa sudah login lagi, tapi masih punya status lastResetTime (habis direset)
+                        if (data.isLoggedIn && data.lastResetTime && data.examStartTime) {
+                            const timeOffline = Date.now() - data.lastResetTime;
+                            // Geser examStartTime ke depan agar waktu yang ditinggalkan tidak hilang
+                            const newExamStartTime = data.examStartTime + timeOffline;
+                            
+                            autoUpdates[`${stuId}/examStartTime`] = newExamStartTime;
+                            autoUpdates[`${stuId}/lastResetTime`] = null; // Bersihkan flag reset
+                            hasAutoUpdates = true;
+                            
+                            // Update lokal sementara agar UI tidak berkedip
+                            val[stuId].examStartTime = newExamStartTime;
+                            delete val[stuId].lastResetTime;
+                        }
+                    }
+                    if (hasAutoUpdates) {
+                        // Jalankan sinkronisasi waktu di background
+                        update(r, autoUpdates).catch(err => console.error("Gagal auto-resume waktu:", err));
+                    }
+                    // ------------------------------------------------
+
                     tokenAccessStatus[key] = val;
                     if(window.requestAnimationFrame) window.requestAnimationFrame(updateAllDependentUI);
                     else updateAllDependentUI();
@@ -2808,19 +2835,23 @@
             let activeFbKey = null;
             let examStartTime = null;
             let durationMinutes = null;
+            let lastResetTime = null;
 
             tokenKeysForDisplay.forEach(fbKey => {
                 const token = tokenCache.find(t => t.key === fbKey);
                 if (token && getNumericClass(token.kelas) === getNumericClass(student.class)) {
                     const accessData = tokenAccessStatus[fbKey]?.[studentIdPadded];
                     if (submittedExamsCache[fbKey]?.[studentIdPadded]?.isSubmitted) isSubmittedAny = true;
-                    if (accessData?.isLoggedIn) {
-                        isLoggedInAny = true;
-                        activeFbKey = fbKey;
-                        examStartTime = accessData.examStartTime;
-                        durationMinutes = token.durationMinutes;
+                    if (accessData) {
+                        if (accessData.examStartTime) {
+                            examStartTime = accessData.examStartTime;
+                            durationMinutes = token.durationMinutes;
+                            activeFbKey = fbKey;
+                        }
+                        if (accessData.lastResetTime) lastResetTime = accessData.lastResetTime;
+                        if (accessData.isLoggedIn) isLoggedInAny = true;
+                        if (accessData.accessCount > 0) hasAccessedAny = true;
                     }
-                    if (accessData?.accessCount > 0) hasAccessedAny = true;
                 }
             });
             
@@ -2835,6 +2866,15 @@
             let sisaWaktuHtml = '<td style="text-align: center; color: #7f8c8d;">-</td>';
             if (status === 'Sudah submit') {
                 sisaWaktuHtml = '<td style="text-align: center; color: #27ae60; font-weight: bold;">Selesai</td>';
+            } else if (status === 'Belum Login (reset)' && examStartTime && durationMinutes && lastResetTime) {
+                // Tampilkan waktu yang di-pause (Kuning) dan TIDAK masuk ke interval auto-submit
+                const targetEndTime = examStartTime + (durationMinutes * 60 * 1000);
+                const remainingMs = targetEndTime - lastResetTime;
+                if (remainingMs > 0) {
+                    sisaWaktuHtml = `<td style="text-align: center; color: #f39c12; font-weight: bold;" title="Waktu Dijeda">${formatSecondsToHMS(Math.floor(remainingMs / 1000))} (Jeda)</td>`;
+                } else {
+                    sisaWaktuHtml = `<td style="text-align: center; color: #e74c3c; font-weight: bold;">00:00:00</td>`;
+                }
             } else if (status === 'Sedang mengerjakan' && examStartTime && durationMinutes) {
                 const targetEndTime = examStartTime + (durationMinutes * 60 * 1000);
                 sisaWaktuHtml = `<td style="text-align: center;"><span class="live-student-timer" data-endtime="${targetEndTime}" data-student-id="${student.id}" data-class="${student.class}" data-token-key="${activeFbKey}" style="font-family: monospace; font-size: 1.1em; font-weight: bold; color: #d35400;">--:--:--</span></td>`;
@@ -3007,7 +3047,10 @@
                     const group = token ? token.firebaseGroup : getNumericClass(item.student.class);
                     
                     if (updatesByDb[group]) {
-                        if (pendingBulkActionType === 'RESET') { updatesByDb[group][`exam_access_status/${fbKey}/${studentIdPadded}/isLoggedIn`] = false; } 
+                        if (pendingBulkActionType === 'RESET') { 
+                            updatesByDb[group][`exam_access_status/${fbKey}/${studentIdPadded}/isLoggedIn`] = false; 
+                            updatesByDb[group][`exam_access_status/${fbKey}/${studentIdPadded}/lastResetTime`] = Date.now();
+                        } 
                         else if (pendingBulkActionType === 'SUBMIT') { updatesByDb[group][`submitted_exams/${fbKey}/${studentIdPadded}`] = { isSubmitted: true, timestamp: Date.now() }; updatesByDb[group][`exam_access_status/${fbKey}/${studentIdPadded}/isLoggedIn`] = false; } 
                         else if (pendingBulkActionType === 'DELETE') { updatesByDb[group][`submitted_exams/${fbKey}/${studentIdPadded}`] = null; updatesByDb[group][`student_answers/${fbKey}/${studentIdPadded}`] = null; updatesByDb[group][`exam_access_status/${fbKey}/${studentIdPadded}`] = null; }
                     }
@@ -3116,7 +3159,10 @@
             const targetDb = getDbForGrade(studentGrade);
             const updates = {};
             const studentIdPadded = padStudentId(studentIdForAction);
-            for (const fbKey of consolidatedToken.firebaseKeys) { updates[`exam_access_status/${fbKey}/${studentIdPadded}/isLoggedIn`] = false; }
+            for (const fbKey of consolidatedToken.firebaseKeys) { 
+                updates[`exam_access_status/${fbKey}/${studentIdPadded}/isLoggedIn`] = false; 
+                updates[`exam_access_status/${fbKey}/${studentIdPadded}/lastResetTime`] = Date.now();
+            }
             await update(ref(targetDb), updates);
             showNotification(`Status login siswa ${studentIdForAction} berhasil direset untuk ujian yang dipilih.`);
         } catch (error) { showNotification("Gagal mereset: " + error.message, true); } finally { loadingOverlay.style.display = 'none'; closeResetStudentModal(); }
