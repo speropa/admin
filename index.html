@@ -3189,7 +3189,8 @@
         const pilganStatus = shuffleSettingsCache.pilgan ? 'ON' : 'OFF';
         const pilganColor = shuffleSettingsCache.pilgan ? '#27ae60' : '#e74c3c';
 
-        const durasiStatus = isMinDurationEnabledAdmin ? 'ON' : 'OFF';
+        const durasiMenit = Math.floor(minSubmitDurationSecondsAdmin / 60);
+        const durasiStatus = isMinDurationEnabledAdmin ? `${durasiMenit}m (ON)` : `${durasiMenit}m (OFF)`;
         const durasiColor = isMinDurationEnabledAdmin ? '#27ae60' : '#e74c3c';
 
         highlightCardsContainer.innerHTML = `
