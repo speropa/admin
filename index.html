@@ -2382,15 +2382,40 @@
 
             const fetchPromises = relevantTokens.map(async token => {
                 try {
-                    const [answersSnap, submittedSnap] = await Promise.all([
-                        get(ref(targetDb, `student_answers/${token.key}`)),
-                        get(ref(targetDb, `submitted_exams/${token.key}`))
-                    ]);
+                    // 1. Download info 'submitted_exams' terlebih dahulu
+                    const submittedSnap = await get(ref(targetDb, `submitted_exams/${token.key}`));
+                    const submittedVal = submittedSnap.val() || {};
+                    
+                    // 2. Kumpulkan ID siswa yang sudah submit tapi belum dihitung nilainya
+                    const fetchMissingAnswers = [];
+                    const missingStudentIds = [];
+
+                    for (const studentId in submittedVal) {
+                        if (submittedVal[studentId].isSubmitted && submittedVal[studentId].nilai === undefined) {
+                            missingStudentIds.push(studentId);
+                            // Siapkan pengambilan data jawaban HANYA untuk siswa ini
+                            fetchMissingAnswers.push(get(ref(targetDb, `student_answers/${token.key}/${studentId}`)));
+                        }
+                    }
+                    
+                    // 3. Download 'student_answers' HANYA untuk ID siswa yang kosong tersebut
+                    let answersVal = null;
+                    if (fetchMissingAnswers.length > 0) {
+                        answersVal = {};
+                        const snaps = await Promise.all(fetchMissingAnswers);
+                        snaps.forEach((snap, idx) => {
+                            if(snap.exists()) {
+                                answersVal[missingStudentIds[idx]] = snap.val();
+                            }
+                        });
+                    }
                     
                     return { 
                         key: token.key, 
-                        answersVal: answersSnap.val(),
-                        submittedVal: submittedSnap.val()
+                        answersVal: answersVal,
+                        submittedVal: submittedVal,
+                        tokenData: token,
+                        targetDb: targetDb
                     };
                 } catch (e) {
                     console.warn(`Gagal fetch data token ${token.token}`, e);
@@ -2402,13 +2427,46 @@
             
             results.forEach(res => {
                 if (res) {
-                    if (res.answersVal) studentAnswersCache[res.key] = res.answersVal;
-                    if (res.submittedVal) submittedExamsCache[res.key] = res.submittedVal;
+                    let submittedData = res.submittedVal;
+                    
+                    // 4. Jika ada jawaban siswa baru yang barusan didownload, hitung nilainya
+                    if (res.answersVal) {
+                        const numericClass = getNumericClass(res.tokenData.kelas);
+                        const bankSoalArray = bsBankSoalCache[numericClass] || [];
+                        const targetTa = res.tokenData.tahunAjaran.replace(/\//g, '-');
+                        const bankSoalData = bankSoalArray.find(b => b.tahunAjaran === targetTa && b.ujian === res.tokenData.ujianName && b.mapel === res.tokenData.subject);
+                        let kunjab = bankSoalData?.kunjab;
+                        
+                        if (kunjab) {
+                            const updates = {};
+                            // Hanya loop pada siswa yang baru kita download jawabannya
+                            for (const studentId in res.answersVal) {
+                                const ans = res.answersVal[studentId]?.answers;
+                                if (ans) {
+                                    const calcScore = calculateScore(ans, kunjab);
+                                    // Simpan untuk dipatch ke Firebase
+                                    updates[`submitted_exams/${res.key}/${studentId}/nilai`] = calcScore;
+                                    // Update cache memori seketika
+                                    submittedData[studentId].nilai = calcScore;
+                                }
+                            }
+                            if (Object.keys(updates).length > 0) {
+                                // Eksekusi patch ke Firebase secara asinkron
+                                update(ref(res.targetDb), updates).catch(err => console.error("Gagal patch nilai otomatis:", err));
+                            }
+                        }
+                        
+                        // Simpan ke memori lokal jika sewaktu-waktu dibutuhkan
+                        if (!studentAnswersCache[res.key]) studentAnswersCache[res.key] = {};
+                        Object.assign(studentAnswersCache[res.key], res.answersVal);
+                    }
+                    
+                    submittedExamsCache[res.key] = submittedData;
                 }
             });
             
             window.currentScoreGradeFilter = grade;
-            showNotification(`Data nilai kelas ${grade} berhasil dimuat lengkap.`, false);
+            showNotification(`Data nilai kelas ${grade} berhasil dimuat.`, false);
             
             renderScoreTable(1);
         } catch (error) {
@@ -3532,20 +3590,26 @@
                     const tokenInfo = Array.from(consolidatedTokensMap.values()).find(t => t.subject === subject && getNumericClass(t.kelas) === getNumericClass(student.class));
                     if(tokenInfo){
                         for(const fbKey of Array.from(tokenInfo.firebaseKeys)){
-                             if(submittedExamsCache[fbKey]?.[padStudentId(student.id)]?.isSubmitted) {
-                                 const answerData = studentAnswersCache[fbKey]?.[padStudentId(student.id)];
-                                 const numericClass = getNumericClass(tokenInfo.kelas);
-                                 
-                                 const bankSoalArray = bsBankSoalCache[numericClass] || [];
-                                 const targetTa = tokenInfo.tahunAjaran.replace(/\//g, '-');
-                                 const bankSoalData = bankSoalArray.find(b => b.tahunAjaran === targetTa && b.ujian === tokenInfo.ujianName && b.mapel === tokenInfo.subject);
-                                 
-                                 let kunjab = bankSoalData?.kunjab;
-
-                                 if (answerData && kunjab) {
-                                     score = calculateScore(answerData.answers, kunjab);
+                             const studentIdPadded = padStudentId(student.id);
+                             if(submittedExamsCache[fbKey]?.[studentIdPadded]?.isSubmitted) {
+                                 const submitData = submittedExamsCache[fbKey][studentIdPadded];
+                                 if (submitData.nilai !== undefined) {
+                                     // Gunakan nilai yang sudah ada di submitted_exams (TANPA perlu hitung ulang)
+                                     score = submitData.nilai;
                                  } else {
-                                     score = 'Tersimpan'; 
+                                     // Fallback jika kunjab error sehingga tidak sempat ter-patch
+                                     const answerData = studentAnswersCache[fbKey]?.[studentIdPadded];
+                                     const numericClass = getNumericClass(tokenInfo.kelas);
+                                     const bankSoalArray = bsBankSoalCache[numericClass] || [];
+                                     const targetTa = tokenInfo.tahunAjaran.replace(/\//g, '-');
+                                     const bankSoalData = bankSoalArray.find(b => b.tahunAjaran === targetTa && b.ujian === tokenInfo.ujianName && b.mapel === tokenInfo.subject);
+                                     let kunjab = bankSoalData?.kunjab;
+
+                                     if (answerData && kunjab) {
+                                         score = calculateScore(answerData.answers, kunjab);
+                                     } else {
+                                         score = 'Tersimpan'; 
+                                     }
                                  }
                                  break;
                              }
@@ -3632,20 +3696,28 @@
                     if (new Date() > new Date(tokenInfo.endTime)) { isExpired = true; }
                     for(const fbKey of Array.from(tokenInfo.firebaseKeys)) {
                         const studentIdPadded = padStudentId(student.id);
-                        if(submittedExamsCache[fbKey]?.[padStudentId(student.id)]?.isSubmitted) {
-                            const answerData = studentAnswersCache[fbKey]?.[padStudentId(student.id)];
-                            const numericClass = getNumericClass(tokenInfo.kelas);
+                        if(submittedExamsCache[fbKey]?.[studentIdPadded]?.isSubmitted) {
+                            const submitData = submittedExamsCache[fbKey][studentIdPadded];
                             
-                            const bankSoalArray = bsBankSoalCache[numericClass] || [];
-                            const targetTa = tokenInfo.tahunAjaran.replace(/\//g, '-');
-                            const bankSoalData = bankSoalArray.find(b => b.tahunAjaran === targetTa && b.ujian === tokenInfo.ujianName && b.mapel === tokenInfo.subject);
-                            
-                            let kunjab = bankSoalData?.kunjab;
-
-                            if (answerData && kunjab) {
-                                score = calculateScore(answerData.answers, kunjab);
+                            if (submitData.nilai !== undefined) {
+                                // Gunakan nilai yang sudah tersimpan!
+                                score = submitData.nilai;
                             } else {
-                                score = 'Tersimpan'; 
+                                // Fallback jika gagal patch
+                                const answerData = studentAnswersCache[fbKey]?.[studentIdPadded];
+                                const numericClass = getNumericClass(tokenInfo.kelas);
+                                
+                                const bankSoalArray = bsBankSoalCache[numericClass] || [];
+                                const targetTa = tokenInfo.tahunAjaran.replace(/\//g, '-');
+                                const bankSoalData = bankSoalArray.find(b => b.tahunAjaran === targetTa && b.ujian === tokenInfo.ujianName && b.mapel === tokenInfo.subject);
+                                
+                                let kunjab = bankSoalData?.kunjab;
+
+                                if (answerData && kunjab) {
+                                    score = calculateScore(answerData.answers, kunjab);
+                                } else {
+                                    score = 'Tersimpan'; 
+                                }
                             }
                             break;
                         }
