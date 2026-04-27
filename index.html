@@ -68,6 +68,9 @@
     #scoreTable th:nth-child(n+4), #scoreTable td:nth-child(n+4) { width: 40px; min-width: 40px; text-align: center; padding: 5px; }
     #scoreTable th:nth-child(1), #scoreTable th:nth-child(2), #scoreTable th:nth-child(3) { writing-mode: horizontal-tb; transform: none; height: auto; vertical-align: middle; }
     tr:nth-child(even) { background-color: #f9f9f9; }
+    tr.expired-row, tr.expired-row:nth-child(even) { background-color: #e9ecef !important; }
+    tr.expired-row td { color: #7f8c8d; }
+    tr.expired-row .token-status.off { color: #7f8c8d; }
     #tokenTableBody td, #studentTableBody td, #scoreTableBody td, #studentStatusTableBody td { white-space: nowrap; }
     #tokenTableBody td.mapel-cell { white-space: normal; overflow: visible; text-overflow: clip; max-width: 180px; }
     #tokenTableBody td.mapel-cell .subject-display { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; display: block; font-weight: bold; }
@@ -365,9 +368,6 @@
       <button id="tokenMenuBtn" data-section-id="tokenSection" onclick="handleMenuClick(this)" title="Token">
           <i class="fas fa-key"></i><span class="menu-text">Token</span>
       </button>
-      <button id="examStatusMenuBtn" data-section-id="examStatusSelectionSection" onclick="handleMenuClick(this)" title="Status Ujian">
-          <i class="fas fa-tasks"></i><span class="menu-text">Status Ujian</span>
-      </button>
       <button id="studentStatusMenuBtn" data-section-id="studentStatusSection" onclick="handleMenuClick(this)" title="Status Peserta">
           <i class="fas fa-user-check"></i><span class="menu-text">Status Peserta</span>
       </button>
@@ -542,33 +542,20 @@
           </table>
         </div>
       </div>
-      <div id="examStatusSelectionSection" class="dashboard-section container">
-        <h1 style="text-align: left; color: #34495e;">Status Ujian</h1>
-        <p style="font-size: 0.9em; color: #555; margin-top: 5px; margin-bottom: 15px;">
-          Pilihlah token ujian yang akan ditampilkan di menu Status Peserta.
-        </p>
-        <div style="margin-bottom: 15px;">
-          <label for="grade7TokenSelect" style="display: block; margin-bottom: 5px;">Kelas 7:</label>
-          <select id="grade7TokenSelect" style="width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #ddd;"></select>
-        </div>
-        <div style="margin-bottom: 15px;">
-          <label for="grade8TokenSelect" style="display: block; margin-bottom: 5px;">Kelas 8:</label>
-          <select id="grade8TokenSelect" style="width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #ddd;"></select>
-        </div>
-        <div style="margin-bottom: 20px;">
-          <label for="grade9TokenSelect" style="display: block; margin-bottom: 5px;">Kelas 9:</label>
-          <select id="grade9TokenSelect" style="width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #ddd;"></select>
-        </div>
-        <button onclick="saveSelectedExamTokens()" class="text-button green">Simpan</button>
-      </div>
+      
       <div id="studentStatusSection" class="dashboard-section container">
         <h1 style="text-align: left; margin-bottom: 20px; color: #34495e;">Status Peserta</h1>
          
         <div id="selectedExamInfo" style="margin-bottom: 20px; padding: 15px; background-color: #e3f2fd; border-left: 5px solid #2196F3; border-radius: 4px; display: none;"></div>
 
         <div class="controls-header">
-            <div class="filters-group" style="flex-grow: 1; justify-content: flex-start; align-items: flex-end; width: 100%;">
-                <input type="text" id="studentStatusSearchInput" placeholder="Cari Siswa (ID, Nama, atau Kelas)..." style="flex-grow: 1;" />
+            <div class="actions-group">
+                <button onclick="openExamStatusModal()" class="text-button light-blue">
+                    <i class="fas fa-filter"></i> Pilih Ujian (Monitor)
+                </button>
+            </div>
+            <div class="filters-group" style="flex-grow: 1; justify-content: flex-end; align-items: flex-end;">
+                <input type="text" id="studentStatusSearchInput" placeholder="Cari Siswa..." style="flex-grow: 1; max-width: 250px;" />
                 <select id="studentStatusFilterStatus" onchange="window.renderStudentStatusTable(1)" style="max-width: 180px; font-weight: bold;">
                     <option value="ALL">Semua Status</option>
                     <option value="BELUM_LOGIN">Belum Login</option>
@@ -578,7 +565,7 @@
             </div>
         </div>
         <p id="studentStatusInitialMessage">
-            Jika ingin melihat status peserta ujian, klik menu <button class="text-button light-blue" style="padding: 5px 10px; font-size: 0.9em; margin: 0 5px;" onclick="showSection('examStatusSelectionSection')">Status Ujian</button> dan pilih token ujian yang ingin ditampilkan.
+            Jika ingin melihat status peserta, klik tombol <button class="text-button light-blue" style="padding: 5px 10px; font-size: 0.9em; margin: 0 5px;" onclick="openExamStatusModal()">Pilih Ujian (Monitor)</button> terlebih dahulu.
         </p>
         <div class="table-responsive" id="studentStatusTableContainer" style="display: none;">
             <table id="studentStatusTable">
@@ -848,6 +835,33 @@
   
   <div id="editModal" class="modal">
       <div id="editTokenModalContainer" class="modal-container-flex"></div>
+  </div>
+
+  <!-- MODAL PILIH UJIAN (PENGGANTI MENU STATUS UJIAN) -->
+  <div id="examStatusModal" class="modal">
+    <div class="modal-content">
+      <button type="button" class="modal-close-btn" onclick="closeExamStatusModal()" title="Tutup" style="position: absolute; top: 20px; right: 20px; font-size: 1.5em;"><i class="fas fa-times"></i></button>
+      <h4>Pilih Ujian (Monitor)</h4>
+      <p style="font-size: 0.9em; color: #555; margin-bottom: 15px;">
+        Pilihlah token ujian yang akan ditampilkan di tabel Status Peserta.
+      </p>
+      <div style="margin-bottom: 15px;">
+        <label for="grade7TokenSelect" style="display: block; margin-bottom: 5px;">Kelas 7:</label>
+        <select id="grade7TokenSelect" style="width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #ddd;"></select>
+      </div>
+      <div style="margin-bottom: 15px;">
+        <label for="grade8TokenSelect" style="display: block; margin-bottom: 5px;">Kelas 8:</label>
+        <select id="grade8TokenSelect" style="width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #ddd;"></select>
+      </div>
+      <div style="margin-bottom: 20px;">
+        <label for="grade9TokenSelect" style="display: block; margin-bottom: 5px;">Kelas 9:</label>
+        <select id="grade9TokenSelect" style="width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #ddd;"></select>
+      </div>
+      <div class="modal-buttons">
+          <button onclick="closeExamStatusModal()" class="cancel-button">Batal</button>
+          <button onclick="saveSelectedExamTokens()" class="confirm-button">Simpan & Tampilkan</button>
+      </div>
+    </div>
   </div>
 
   <div id="addStudentModal" class="modal"><div class="modal-content"><h4>Tambah Peserta Baru</h4><form id="addStudentForm"><p id="addStudentErrorMsg" class="error"></p><label for="newStudentId">ID Siswa</label><input type="text" id="newStudentId" placeholder="Contoh: 001" required /><label for="newStudentName">Nama Siswa</label><input type="text" id="newStudentName" placeholder="Nama Lengkap Siswa" required /><label for="newStudentClass">Kelas</label><input type="text" id="newStudentClass" placeholder="Contoh: 7A, 8B, 9C" required /><label for="newStudentRoom">Ruang</label><input type="text" id="newStudentRoom" placeholder="Contoh: 01, 02, dsb" required /><div class="modal-buttons"><button type="button" onclick="closeAddStudentModal()" class="cancel-button">Batal</button><button type="submit">Tambah</button></div></form></div></div>
@@ -1193,22 +1207,20 @@
             setTimeout(() => {
                 unsubscribe();
                 resolve(authInstance.currentUser); 
-            }, 3000); // PERBAIKAN: Kurangi timeout dari 10 detik menjadi 3 detik agar auto-login jauh lebih cepat
+            }, 3000); 
         });
     };
     
     onAuthStateChanged(authAturan, async (user) => {
         if (user) {
-            // --- Pengecekan Sesi 1 Hari (24 Jam) ---
             const loginTime = localStorage.getItem('adminLoginTime');
             const ONE_DAY_MS = 24 * 60 * 60 * 1000;
             if (!loginTime || (Date.now() - parseInt(loginTime, 10)) > ONE_DAY_MS) {
                 showNotification('Sesi Anda telah habis (24 jam). Silakan login ulang.', true);
                 signOut(authAturan); signOut(auth7); signOut(auth8); signOut(auth9);
                 localStorage.removeItem('adminLoginTime');
-                return; // Hentikan proses, biarkan kembali ke halaman login
+                return; 
             }
-            // ---------------------------------------
 
             loadingOverlay.style.display = 'flex';
             
@@ -1221,11 +1233,9 @@
             await loadAndSetPrintCardUrl();
             await loadOneTimeData();
             
-            // --- INISIALISASI BANK SOAL NATIVE ---
             bsPopulateTahunAjaranDropdowns();
             await bsFetchGithubToken();
             bsAttachDataListeners();
-            // -------------------------------------
 
             setupRealtimeListeners();
         } else {
@@ -1283,7 +1293,13 @@
             const data = snapshot.val();
             for (const ta in data) for (const uj in data[ta]) for (const kl in data[ta][uj]) for (const mp in data[ta][uj][kl]) {
                 const b = data[ta][uj][kl][mp];
-                if (b) entries.push({ tahunAjaran: b.tahunAjaran || ta, ujian: b.namaUjian || uj.replace(/-/g, ' '), kelas: b.kelas || kl.replace('Kelas-', ''), mapel: b.mapel || mp.replace(/-/g, ' '), jmlSoal: b.jumlahSoal || 0, updateTerakhir: new Date(b.terakhirUpdate).toLocaleString('id-ID'), rawUpdateTimestamp: b.terakhirUpdate, keyTahun: ta, keyUjian: uj, keyKelas: kl, keyMapel: mp, originDbGrade: gradeKey });
+                if (b) {
+                    let kunjabStr = b.kunjab;
+                    if (!kunjabStr && b.soal && Array.isArray(b.soal)) {
+                        kunjabStr = b.soal.filter(item => item && item.kunciJawaban).map(item => item.kunciJawaban).join(',');
+                    }
+                    entries.push({ tahunAjaran: b.tahunAjaran || ta, ujian: b.namaUjian || uj.replace(/-/g, ' '), kelas: b.kelas || kl.replace('Kelas-', ''), mapel: b.mapel || mp.replace(/-/g, ' '), jmlSoal: b.jumlahSoal || 0, updateTerakhir: new Date(b.terakhirUpdate).toLocaleString('id-ID'), rawUpdateTimestamp: b.terakhirUpdate, keyTahun: ta, keyUjian: uj, keyKelas: kl, keyMapel: mp, originDbGrade: gradeKey, kunjab: kunjabStr });
+                }
             }
         }
         bsBankSoalCache[gradeKey] = entries;
@@ -1632,7 +1648,7 @@
         if (!visibleSection) return;
         
         updateDashboard();
-        populateExamSelectionDropdowns();
+        // populateExamSelectionDropdowns(); // Diupdate hanya saat membuka modal saja sekarang
 
         const actionMap = {
             'tokenSection': renderTokenTable,
@@ -1667,7 +1683,6 @@
         loadingOverlay.style.display = 'flex'; 
 
         try {
-            // PERBAIKAN: Atur sesi persisten secara paralel DULUAN sebelum melakukan login
             await Promise.all([
                 setPersistence(authAturan, browserLocalPersistence),
                 setPersistence(auth7, browserLocalPersistence),
@@ -1675,12 +1690,8 @@
                 setPersistence(auth9, browserLocalPersistence)
             ]);
 
-            // PERBAIKAN BUG SESI: Catat waktu SEBELUM Firebase melakukan signIn
-            // Agar saat onAuthStateChanged terpicu, waktu login sudah siap di memori
             localStorage.setItem('adminLoginTime', Date.now());
 
-            // PERBAIKAN: Eksekusi login secara PARALEL (Bersamaan) menggunakan Promise.all
-            // Ini akan memangkas waktu dari 20 detik menjadi sekitar 2-4 detik.
             const failures = [];
             const loginTasks = [
                 signInWithEmailAndPassword(authAturan, email, password),
@@ -1700,7 +1711,7 @@
             console.error(error);
             loginError.innerText = "Email atau password salah.";
             loadingOverlay.style.display = 'none'; 
-            localStorage.removeItem('adminLoginTime'); // Hapus kembali jika login ternyata gagal
+            localStorage.removeItem('adminLoginTime'); 
             signOut(authAturan); signOut(auth7); signOut(auth8); signOut(auth9);
         }
     };
@@ -2281,11 +2292,22 @@
         editFormContexts.clear();
         document.getElementById('editModal').style.display = 'none'; 
     };
+    
+    // FUNGSI MODAL STATUS UJIAN (BARU)
+    window.openExamStatusModal = () => {
+        populateExamSelectionDropdowns(); 
+        document.getElementById('examStatusModal').style.display = 'flex';
+    };
+    window.closeExamStatusModal = () => {
+        document.getElementById('examStatusModal').style.display = 'none';
+    };
+
 
     window.onclick = (event) => { 
         if (event.target.classList.contains('modal')) {
             if (event.target.id === 'addTokenModal') window.closeAddTokenModal();
             else if (event.target.id === 'editModal') window.closeEditModal();
+            else if (event.target.id === 'examStatusModal') window.closeExamStatusModal();
             else event.target.style.display = 'none'; 
         }
     };
@@ -2428,7 +2450,7 @@
             'tokenSection': renderTokenTable,
             'rulesSection': () => { updateSetlokasiStatusDisplay(); renderMinDurationSettingsTable(); renderShuffleSettingsTable(); },
             'setSelectClassSection': () => { renderPublicSettingsControls(); renderActiveButtonsInfo(); },
-            'examStatusSelectionSection': populateExamSelectionDropdowns,
+            // 'examStatusSelectionSection' dihapus dari sini karena sekarang sudah jadi Modal
             'studentStatusSection': () => renderStudentStatusTable(currentPageStatus),
             'studentSection': () => renderStudentManagementTable(currentPageManagement),
             'scoreSection': () => { }
@@ -2464,8 +2486,17 @@
             return classA - classB;
         });
         
+        const nowTime = Date.now();
+
         consolidatedTokens.forEach((data, index) => {
             const row = document.createElement('tr');
+            
+            // Logika untuk mendeteksi token kadaluarsa
+            const isExpired = !data.isForceActive && (nowTime >= new Date(data.endTime).getTime());
+            if (isExpired) {
+                row.classList.add('expired-row');
+            }
+
             const studentsInClass = studentCache.filter(s => getNumericClass(s.class) === getNumericClass(data.kelas));
             let sudahSubmitCount = 0;
             let sudahAksesCount = 0;
@@ -2946,9 +2977,12 @@
     window.saveSelectedExamTokens = () => { 
         lastSelectedTokens = { '7': grade7TokenSelect.value, '8': grade8TokenSelect.value, '9': grade9TokenSelect.value }; 
         localStorage.setItem('lastSelectedTokens', JSON.stringify(lastSelectedTokens)); 
-        showNotification('Pilihan token disimpan.'); 
+        showNotification('Pilihan ujian disimpan.'); 
         manageTokenListeners(); 
-        window.showSection('studentStatusSection'); 
+        
+        // Tutup modal dan langsung refresh tabel
+        closeExamStatusModal();
+        renderStudentStatusTable(1);
     };
 
     function populateExamSelectionDropdowns() {
@@ -3065,6 +3099,31 @@
 
     function renderPublicSettingsControls() { document.getElementById('kelas7Toggle').checked = publicSettingsCache.kelas7.enabled; document.getElementById('kelas7Url').value = publicSettingsCache.kelas7.url; document.getElementById('kelas8Toggle').checked = publicSettingsCache.kelas8.enabled; document.getElementById('kelas8Url').value = publicSettingsCache.kelas8.url; document.getElementById('kelas9Toggle').checked = publicSettingsCache.kelas9.enabled; document.getElementById('kelas9Url').value = publicSettingsCache.kelas9.url; document.getElementById('susulanToggle').checked = publicSettingsCache.susulan.enabled; }
     
+    function renderActiveButtonsInfo() {
+        const listEl = document.getElementById('activeButtonsInfoList');
+        if (!listEl) return;
+        listEl.innerHTML = '';
+        let hasActive = false;
+        const addInfo = (title, url) => {
+            listEl.innerHTML += `<li class="info-list-item"><div><span class="status-indicator on"></span>${title}</div><div class="link-info">${url ? `<a href="${url}" target="_blank">${url}</a>` : '<span style="color:#e74c3c;">URL belum diset</span>'}</div></li>`;
+        };
+        if (publicSettingsCache.kelas7?.enabled) { hasActive = true; addInfo('Kelas 7', publicSettingsCache.kelas7.url); }
+        if (publicSettingsCache.kelas8?.enabled) { hasActive = true; addInfo('Kelas 8', publicSettingsCache.kelas8.url); }
+        if (publicSettingsCache.kelas9?.enabled) { hasActive = true; addInfo('Kelas 9', publicSettingsCache.kelas9.url); }
+        if (publicSettingsCache.susulan?.enabled) {
+            hasActive = true;
+            const sList = publicSettingsCache.susulan.list || {};
+            if (Object.keys(sList).length > 0) {
+                Object.entries(sList).forEach(([id, exam]) => {
+                    listEl.innerHTML += `<li class="info-list-item"><div><span class="status-indicator on"></span>Susulan: ${exam.name}</div><div class="link-info" style="display:flex; align-items:center;">${exam.url ? `<a href="${exam.url}" target="_blank" style="margin-right:10px;">${exam.url}</a>` : '<span style="color:#e74c3c;margin-right:10px;">URL belum diset</span>'}<button class="delete-button" onclick="deleteSusulanUjian('${id}')" title="Hapus"><i class="fas fa-trash"></i></button></div></li>`;
+                });
+            } else {
+                addInfo('Susulan Aktif (Daftar kosong)', '');
+            }
+        }
+        if (!hasActive) listEl.innerHTML = '<li class="info-list-item" style="color:#7f8c8d;font-style:italic;">Tidak ada tombol yang aktif saat ini.</li>';
+    }
+
     window.savePublicSettings = async () => { loadingOverlay.style.display = 'flex'; try { await update(ref(dbAturan, 'publicSettings'), { kelas7: { enabled: document.getElementById('kelas7Toggle').checked, url: document.getElementById('kelas7Url').value.trim() }, kelas8: { enabled: document.getElementById('kelas8Toggle').checked, url: document.getElementById('kelas8Url').value.trim() }, kelas9: { enabled: document.getElementById('kelas9Toggle').checked, url: document.getElementById('kelas9Url').value.trim() }, 'susulan/enabled': document.getElementById('susulanToggle').checked }); showNotification('Pengaturan berhasil disimpan!'); await loadPublicSettings(); renderActiveButtonsInfo(); } catch (error) { showNotification('Gagal: ' + error.message, true); } finally { loadingOverlay.style.display = 'none'; } };
     
     window.addSusulanUjian = async () => { const name = document.getElementById('addSusulanName').value.trim(); const url = document.getElementById('addSusulanUrl').value.trim(); if (!name || !url) return showNotification('Nama dan URL tidak boleh kosong!', true); loadingOverlay.style.display = 'flex'; try { await push(ref(dbAturan, 'publicSettings/susulan/list'), { name, url, createdAt: Date.now() }); showNotification('Ujian susulan ditambahkan!'); document.getElementById('addSusulanName').value = ''; document.getElementById('addSusulanUrl').value = ''; await loadPublicSettings(); renderActiveButtonsInfo(); } catch (error) { showNotification('Gagal: ' + error.message, true); } finally { loadingOverlay.style.display = 'none'; } };
@@ -3093,19 +3152,96 @@
     function updateDashboard() { if(document.getElementById('dashboardSection').style.display === 'block') { updateHighlightCards(); renderProgressCards(); } }
 
     function updateHighlightCards() {
-        const activeTokens = Array.from(consolidatedTokensMap.values()).filter(t => {
-            if (t.isForceActive) return true;
-            const endTime = new Date(t.endTime).getTime();
-            const startTime = new Date(t.startTime).getTime();
-            const now = Date.now();
-            return (now >= startTime && now < (endTime + DASHBOARD_DISPLAY_GRACE_MS));
+        const now = Date.now();
+
+        // 1 & 2. Hitung Jumlah Token (Mendatang/Sedang Aktif) dan Token Nonaktif (Selesai) per kelas
+        let upcomingOrActiveTokens = { '7': 0, '8': 0, '9': 0 };
+        let expiredTokens = { '7': 0, '8': 0, '9': 0 };
+
+        Array.from(consolidatedTokensMap.values()).forEach(t => {
+            const grade = getNumericClass(t.kelas);
+            if (!grade) return;
+
+            // Jika token tidak "force active" dan waktu selesainya sudah lewat, berarti sudah Nonaktif.
+            const isExpired = !t.isForceActive && (now >= new Date(t.endTime).getTime());
+            
+            if (!isExpired) {
+                if(upcomingOrActiveTokens[grade] !== undefined) upcomingOrActiveTokens[grade]++;
+            } else {
+                if(expiredTokens[grade] !== undefined) expiredTokens[grade]++;
+            }
         });
-        const activeTokenKeys = new Set(activeTokens.flatMap(t => Array.from(t.firebaseKeys)));
-        let onlineCount = 0;
-        for (const tokenKey in tokenAccessStatus) { Object.values(tokenAccessStatus[tokenKey]).forEach(s => { if(s?.isLoggedIn) onlineCount++; }); }
-        let submittedCount = 0;
-        for (const tokenKey in submittedExamsCache) { if (activeTokenKeys.has(tokenKey)) submittedCount += Object.keys(submittedExamsCache[tokenKey]).length; }
-        highlightCardsContainer.innerHTML = `<div class="highlight-card"><span class="icon active-exams"><i class="fas fa-play-circle"></i></span><div class="info"><h3>${activeTokens.length}</h3><p>Ujian Aktif</p></div></div><div class="highlight-card"><span class="icon online-users"><i class="fas fa-user-clock"></i></span><div class="info"><h3>${onlineCount}</h3><p>Online</p></div></div><div class="highlight-card"><span class="icon submitted-users"><i class="fas fa-check-double"></i></span><div class="info"><h3>${submittedCount}</h3><p>Submit</p></div></div><div class="highlight-card"><span class="icon total-users"><i class="fas fa-users"></i></span><div class="info"><h3>${studentCache.length}</h3><p>Total Peserta</p></div></div>`;
+
+        // 3. Hitung Total Peserta per kelas
+        let students = { '7': 0, '8': 0, '9': 0 };
+        studentCache.forEach(s => {
+            const grade = getNumericClass(s.class);
+            if (students[grade] !== undefined) students[grade]++;
+        });
+
+        // 4. Status Aturan Global
+        const locStatus = isLocationEnabledAdmin ? 'ON' : 'OFF';
+        const locColor = isLocationEnabledAdmin ? '#27ae60' : '#e74c3c';
+        
+        const soalStatus = shuffleSettingsCache.soal ? 'ON' : 'OFF';
+        const soalColor = shuffleSettingsCache.soal ? '#27ae60' : '#e74c3c';
+        
+        const pilganStatus = shuffleSettingsCache.pilgan ? 'ON' : 'OFF';
+        const pilganColor = shuffleSettingsCache.pilgan ? '#27ae60' : '#e74c3c';
+
+        const durasiStatus = isMinDurationEnabledAdmin ? 'ON' : 'OFF';
+        const durasiColor = isMinDurationEnabledAdmin ? '#27ae60' : '#e74c3c';
+
+        highlightCardsContainer.innerHTML = `
+            <div class="highlight-card" style="align-items: stretch; cursor: pointer;" onclick="showSection('tokenSection')" title="Buka Menu Token">
+                <span class="icon" style="background-color: #27ae60;"><i class="fas fa-play-circle"></i></span>
+                <div class="info" style="width: 100%; display: flex; flex-direction: column; justify-content: center;">
+                    <p style="font-weight:bold; margin: 0 0 8px 0; color:#2c3e50; font-size: 1.1em;">Jumlah Token</p>
+                    <div style="font-size: 0.9em; color:#34495e; display:grid; grid-template-columns: 1fr 1fr 1fr; gap:5px; text-align:center;">
+                        <div style="background:#f8f9fa; padding:5px 2px; border-radius:4px;">Kls 7<br><b style="font-size:1.3em; color:#27ae60;">${upcomingOrActiveTokens['7']}</b></div>
+                        <div style="background:#f8f9fa; padding:5px 2px; border-radius:4px;">Kls 8<br><b style="font-size:1.3em; color:#27ae60;">${upcomingOrActiveTokens['8']}</b></div>
+                        <div style="background:#f8f9fa; padding:5px 2px; border-radius:4px;">Kls 9<br><b style="font-size:1.3em; color:#27ae60;">${upcomingOrActiveTokens['9']}</b></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="highlight-card" style="align-items: stretch; cursor: pointer;" onclick="showSection('tokenSection')" title="Buka Menu Token">
+                <span class="icon" style="background-color: #7f8c8d;"><i class="fas fa-stop-circle"></i></span>
+                <div class="info" style="width: 100%; display: flex; flex-direction: column; justify-content: center;">
+                    <p style="font-weight:bold; margin: 0 0 8px 0; color:#2c3e50; font-size: 1.1em;">Token Kadaluarsa</p>
+                    <div style="font-size: 0.9em; color:#34495e; display:grid; grid-template-columns: 1fr 1fr 1fr; gap:5px; text-align:center;">
+                        <div style="background:#f8f9fa; padding:5px 2px; border-radius:4px;">Kls 7<br><b style="font-size:1.3em; color:#7f8c8d;">${expiredTokens['7']}</b></div>
+                        <div style="background:#f8f9fa; padding:5px 2px; border-radius:4px;">Kls 8<br><b style="font-size:1.3em; color:#7f8c8d;">${expiredTokens['8']}</b></div>
+                        <div style="background:#f8f9fa; padding:5px 2px; border-radius:4px;">Kls 9<br><b style="font-size:1.3em; color:#7f8c8d;">${expiredTokens['9']}</b></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="highlight-card" style="align-items: stretch; cursor: pointer;" onclick="showSection('studentSection')" title="Buka Menu Peserta">
+                <span class="icon" style="background-color: #3498db;"><i class="fas fa-users"></i></span>
+                <div class="info" style="width: 100%; display: flex; flex-direction: column; justify-content: center;">
+                    <p style="font-weight:bold; margin: 0 0 8px 0; color:#2c3e50; font-size: 1.1em;">Total Peserta</p>
+                    <div style="font-size: 0.9em; color:#34495e; display:grid; grid-template-columns: 1fr 1fr 1fr; gap:5px; text-align:center;">
+                        <div style="background:#f8f9fa; padding:5px 2px; border-radius:4px;">Kls 7<br><b style="font-size:1.2em; color:#3498db;">${students['7']}</b></div>
+                        <div style="background:#f8f9fa; padding:5px 2px; border-radius:4px;">Kls 8<br><b style="font-size:1.2em; color:#3498db;">${students['8']}</b></div>
+                        <div style="background:#f8f9fa; padding:5px 2px; border-radius:4px;">Kls 9<br><b style="font-size:1.2em; color:#3498db;">${students['9']}</b></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="highlight-card" style="align-items: stretch; cursor: pointer;" onclick="showSection('rulesSection')" title="Buka Menu Aturan Global">
+                <span class="icon" style="background-color: #f39c12;"><i class="fas fa-cogs"></i></span>
+                <div class="info" style="width: 100%; display: flex; flex-direction: column; justify-content: center;">
+                    <p style="font-weight:bold; margin: 0 0 8px 0; color:#2c3e50; font-size: 1.1em;">Status Aturan</p>
+                    <div style="font-size: 0.85em; color:#34495e; display:grid; grid-template-columns: 1fr 1fr; gap:5px; line-height: 1.2;">
+                        <div style="background:#f8f9fa; padding:4px 6px; border-radius:4px; display:flex; justify-content:space-between; align-items:center;"><span>Lokasi:</span> <b style="color:${locColor}; font-size:1.1em;">${locStatus}</b></div>
+                        <div style="background:#f8f9fa; padding:4px 6px; border-radius:4px; display:flex; justify-content:space-between; align-items:center;"><span>Durasi Kirim:</span> <b style="color:${durasiColor}; font-size:1.1em;">${durasiStatus}</b></div>
+                        <div style="background:#f8f9fa; padding:4px 6px; border-radius:4px; display:flex; justify-content:space-between; align-items:center;"><span>Acak Soal:</span> <b style="color:${soalColor}; font-size:1.1em;">${soalStatus}</b></div>
+                        <div style="background:#f8f9fa; padding:4px 6px; border-radius:4px; display:flex; justify-content:space-between; align-items:center;"><span>Acak Pilgan:</span> <b style="color:${pilganColor}; font-size:1.1em;">${pilganStatus}</b></div>
+                    </div>
+                </div>
+            </div>
+        `;
     }
 
     function renderProgressCards() {
@@ -3395,18 +3531,18 @@
                                  const answerData = studentAnswersCache[fbKey]?.[padStudentId(student.id)];
                                  const numericClass = getNumericClass(tokenInfo.kelas);
                                  
-                                 const bankSoalDataArray = bsBankSoalCache[numericClass] || [];
-                                 const bankSoalData = bankSoalDataArray.find(b => b.tahunAjaran === tokenInfo.tahunAjaran.replace(/\//g, '-') && b.ujian === tokenInfo.ujianName.replace(/\s+/g, '-') && b.mapel === tokenInfo.subject.replace(/\s+/g, '-'));
+                                 const bankSoalArray = bsBankSoalCache[numericClass] || [];
+                                 const targetTa = tokenInfo.tahunAjaran.replace(/\//g, '-');
+                                 const bankSoalData = bankSoalArray.find(b => b.tahunAjaran === targetTa && b.ujian === tokenInfo.ujianName && b.mapel === tokenInfo.subject);
                                  
-                                 let kunjab = null; // Assuming we would need to fetch exact keys if needed, for now we let calculateScore handle it if available.
-                                 
-                                 if (answerData && bankSoalData) {
-                                     // Since we might not have 'kunjab' pre-loaded in bsBankSoalCache in the same format, we just pass what we have.
-                                     // Note: Full correct answer validation requires loading the exact JSON of the bank soal which isn't cached by default.
-                                     // For demo purposes, we will assume score calculation is skipped or handled server-side if kunjab isn't present in cache.
+                                 let kunjab = bankSoalData?.kunjab;
+
+                                 if (answerData && kunjab) {
+                                     score = calculateScore(answerData.answers, kunjab);
+                                 } else {
                                      score = 'Tersimpan'; 
-                                     break;
                                  }
+                                 break;
                              }
                         }
                     }
@@ -3493,7 +3629,19 @@
                         const studentIdPadded = padStudentId(student.id);
                         if(submittedExamsCache[fbKey]?.[padStudentId(student.id)]?.isSubmitted) {
                             const answerData = studentAnswersCache[fbKey]?.[padStudentId(student.id)];
-                            score = 'Tersimpan'; // Simplified, calculation needs full kunjab JSON.
+                            const numericClass = getNumericClass(tokenInfo.kelas);
+                            
+                            const bankSoalArray = bsBankSoalCache[numericClass] || [];
+                            const targetTa = tokenInfo.tahunAjaran.replace(/\//g, '-');
+                            const bankSoalData = bankSoalArray.find(b => b.tahunAjaran === targetTa && b.ujian === tokenInfo.ujianName && b.mapel === tokenInfo.subject);
+                            
+                            let kunjab = bankSoalData?.kunjab;
+
+                            if (answerData && kunjab) {
+                                score = calculateScore(answerData.answers, kunjab);
+                            } else {
+                                score = 'Tersimpan'; 
+                            }
                             break;
                         }
                     }
