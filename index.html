@@ -579,6 +579,7 @@
                         <th>KELAS</th>
                         <th>RUANG</th>
                         <th>STATUS</th>
+                        <th>SISA WAKTU</th>
                         <th>AKSI</th>
                     </tr>
                 </thead>
@@ -2802,12 +2803,23 @@
             let status = 'Belum Login';
             const studentIdPadded = padStudentId(student.id);
             let isLoggedInAny = false, isSubmittedAny = false, hasAccessedAny = false;
+            
+            // Variabel untuk menampung data durasi siswa yang sedang mengerjakan
+            let activeFbKey = null;
+            let examStartTime = null;
+            let durationMinutes = null;
+
             tokenKeysForDisplay.forEach(fbKey => {
                 const token = tokenCache.find(t => t.key === fbKey);
                 if (token && getNumericClass(token.kelas) === getNumericClass(student.class)) {
                     const accessData = tokenAccessStatus[fbKey]?.[studentIdPadded];
                     if (submittedExamsCache[fbKey]?.[studentIdPadded]?.isSubmitted) isSubmittedAny = true;
-                    if (accessData?.isLoggedIn) isLoggedInAny = true;
+                    if (accessData?.isLoggedIn) {
+                        isLoggedInAny = true;
+                        activeFbKey = fbKey;
+                        examStartTime = accessData.examStartTime;
+                        durationMinutes = token.durationMinutes;
+                    }
                     if (accessData?.accessCount > 0) hasAccessedAny = true;
                 }
             });
@@ -2818,6 +2830,16 @@
             
             const statusColor = {'Sudah submit': '#27ae60', 'Sedang mengerjakan': '#f39c12', 'Belum Login (reset)': '#8e44ad', 'Belum Login': '#e74c3c'}[status] || 'black';
             const statusCellHtml = `<td style="color: ${statusColor}; font-weight: bold;">${status}</td>`;
+            
+            // HTML untuk Sisa Waktu
+            let sisaWaktuHtml = '<td style="text-align: center; color: #7f8c8d;">-</td>';
+            if (status === 'Sudah submit') {
+                sisaWaktuHtml = '<td style="text-align: center; color: #27ae60; font-weight: bold;">Selesai</td>';
+            } else if (status === 'Sedang mengerjakan' && examStartTime && durationMinutes) {
+                const targetEndTime = examStartTime + (durationMinutes * 60 * 1000);
+                sisaWaktuHtml = `<td style="text-align: center;"><span class="live-student-timer" data-endtime="${targetEndTime}" data-student-id="${student.id}" data-class="${student.class}" data-token-key="${activeFbKey}" style="font-family: monospace; font-size: 1.1em; font-weight: bold; color: #d35400;">--:--:--</span></td>`;
+            }
+
             const isWorking = status === 'Sedang mengerjakan';
             const isSubmitted = status === 'Sudah submit';
             const isResetStatus = status === 'Belum Login (reset)';
@@ -2826,7 +2848,7 @@
             const deleteDisabled = !isSubmitted;
             const actionButtonsHtml = `<button class="icon-button reset" onclick="promptResetStudent('${student.key}', '${student.id}', '${escape(student.name)}', '${student.class}')" title="Reset Status Login" ${resetDisabled ? 'disabled' : ''}><i class="fas fa-redo"></i></button><button class="icon-button submit" onclick="promptSubmitAnswer('${student.key}', '${student.id}', '${escape(student.name)}', '${student.class}')" title="Kirim Jawaban Manual" ${submitDisabled ? 'disabled' : ''}><i class="fas fa-paper-plane"></i></button><button class="icon-button erase" onclick="promptDeleteAnswer('${student.key}', '${student.id}', '${escape(student.name)}', '${student.class}')" title="Hapus Jawaban" ${deleteDisabled ? 'disabled' : ''}><i class="fas fa-eraser"></i></button>`;
             const isChecked = selectedStatusKeys.has(student.key);
-            row.innerHTML = `<td style="text-align: center;"><div style="display: flex; align-items: center; justify-content: center; gap: 5px;"><input type="checkbox" class="status-checkbox" value="${student.key}" style="margin: 0; width: 16px; height: 16px;" ${isChecked ? 'checked' : ''} onchange="toggleStudentStatusSelection('${student.key}')"><span>${(page - 1) * selectedItemsPerPage + index + 1}</span></div></td><td>${student.id}</td><td>${student.name}</td><td>${student.class}</td><td>${padRoomNumber(student.room)}</td>${statusCellHtml}<td><div class="action-buttons-group">${actionButtonsHtml}</div></td>`;
+            row.innerHTML = `<td style="text-align: center;"><div style="display: flex; align-items: center; justify-content: center; gap: 5px;"><input type="checkbox" class="status-checkbox" value="${student.key}" style="margin: 0; width: 16px; height: 16px;" ${isChecked ? 'checked' : ''} onchange="toggleStudentStatusSelection('${student.key}')"><span>${(page - 1) * selectedItemsPerPage + index + 1}</span></div></td><td>${student.id}</td><td>${student.name}</td><td>${student.class}</td><td>${padRoomNumber(student.room)}</td>${statusCellHtml}${sisaWaktuHtml}<td><div class="action-buttons-group">${actionButtonsHtml}</div></td>`;
             studentStatusTableBody.appendChild(row);
         });
         renderPaginationControls(studentStatusPaginationDiv, page, totalPages, 'renderStudentStatusTable');
@@ -3774,6 +3796,69 @@
     }
     setInterval(updateTime, 1000);
     updateTime();
+
+    // Set pencegah ganda agar auto-submit tidak tertrigger berkali-kali untuk siswa yang sama
+    const autoSubmitInProgress = new Set();
+
+    // MESIN PENGECEKAN SISA WAKTU SISWA (Berjalan setiap 1 detik)
+    setInterval(() => {
+        const timerElements = document.querySelectorAll('.live-student-timer');
+        const now = Date.now();
+
+        timerElements.forEach(el => {
+            const endTime = parseInt(el.getAttribute('data-endtime'), 10);
+            const studentId = el.getAttribute('data-student-id');
+            const sClass = el.getAttribute('data-class');
+            const tokenKey = el.getAttribute('data-token-key');
+
+            const remainingMs = endTime - now;
+
+            if (remainingMs <= 0) {
+                el.innerText = '00:00:00';
+                el.style.color = '#e74c3c'; // Merah (Habis)
+                el.classList.remove('live-student-timer'); // Berhenti menghitung elemen ini
+
+                const trackingKey = `${tokenKey}_${studentId}`;
+                
+                // Pemicu Auto-Submit jika belum sedang diproses
+                if (!autoSubmitInProgress.has(trackingKey)) {
+                    autoSubmitInProgress.add(trackingKey);
+                    executeAutoSubmitSiswa(studentId, sClass, tokenKey, trackingKey);
+                }
+            } else {
+                // Tampilkan Countdown
+                el.innerText = formatSecondsToHMS(Math.floor(remainingMs / 1000));
+                
+                // Jika kurang dari 5 menit (300.000 ms), ubah warna jadi merah sebagai peringatan
+                if (remainingMs <= 300000) {
+                    el.style.color = '#e74c3c';
+                }
+            }
+        });
+    }, 1000);
+
+    // Fungsi Auto Submit Latar Belakang (Tidak pakai alert/modal)
+    async function executeAutoSubmitSiswa(studentId, sClass, fbKeyToSubmit, trackingKey) {
+        const studentGrade = getNumericClass(sClass);
+        const targetDb = getDbForGrade(studentGrade);
+        const studentIdPadded = padStudentId(studentId);
+
+        const updates = {};
+        updates[`submitted_exams/${fbKeyToSubmit}/${studentIdPadded}`] = { isSubmitted: true, timestamp: Date.now() };
+        updates[`exam_access_status/${fbKeyToSubmit}/${studentIdPadded}/isLoggedIn`] = false;
+
+        try {
+            await update(ref(targetDb), updates);
+            // Notifikasi popup kecil di layar admin
+            showNotification(`Waktu habis! Jawaban siswa ID ${studentId} otomatis dikirim.`, false);
+            // Catatan: Listener Realtime otomatis akan me-refresh tabel sehingga status jadi "Selesai"
+        } catch (error) {
+            console.error(`Gagal auto-submit siswa ${studentId}:`, error);
+        } finally {
+            // Hapus dari set antrian setelah 5 detik untuk mencegah loop API tak terduga
+            setTimeout(() => { autoSubmitInProgress.delete(trackingKey); }, 5000);
+        }
+    }
 
     setInterval(() => {
         if (authAturan.currentUser && isLocationEnabledAdmin) loadSetlokasiSettings(); 
