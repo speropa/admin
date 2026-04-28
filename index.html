@@ -1294,7 +1294,14 @@
                 if (b) {
                     let kunjabStr = b.kunjab;
                     if (!kunjabStr && b.soal && Array.isArray(b.soal)) {
-                        kunjabStr = b.soal.filter(item => item && item.kunciJawaban).map(item => item.kunciJawaban).join(',');
+                        kunjabStr = b.soal.filter(item => item && item.kunciJawaban).map(item => {
+                            let kj = item.kunciJawaban;
+                            // Jika kunci mengandung koma (hybrid) dan belum dibungkus kurung siku, maka bungkus
+                            if (kj.includes(',') && !kj.startsWith('[')) {
+                                return `[${kj}]`;
+                            }
+                            return kj;
+                        }).join(',');
                     }
                     entries.push({ tahunAjaran: b.tahunAjaran || ta, ujian: b.namaUjian || uj.replace(/-/g, ' '), kelas: b.kelas || kl.replace('Kelas-', ''), mapel: b.mapel || mp.replace(/-/g, ' '), jmlSoal: b.jumlahSoal || 0, updateTerakhir: new Date(b.terakhirUpdate).toLocaleString('id-ID'), rawUpdateTimestamp: b.terakhirUpdate, keyTahun: ta, keyUjian: uj, keyKelas: kl, keyMapel: mp, originDbGrade: gradeKey, kunjab: kunjabStr });
                 }
@@ -2226,7 +2233,35 @@
         
         if (bankSoalData) { 
             const soalCount = bankSoalData.jmlSoal; 
-            infoDiv.innerHTML = `Bank soal ditemukan: <b>${soalCount} soal</b>.<br>Update: ${bankSoalData.updateTerakhir}`; 
+            
+            // Hitung rincian soal berdasarkan kunjab
+            let countPG = 0, countPGK = 0, countBS = 0;
+            if (bankSoalData.kunjab) {
+                const matches = bankSoalData.kunjab.match(/\[.*?\]|[^,]+/g) || [];
+                const keys = matches.map(m => m.replace(/\[|\]/g, ''));
+                
+                keys.forEach(k => {
+                    if (k.includes(',')) {
+                        const parts = k.split(',');
+                        const isBS = parts.every(p => p.trim().toUpperCase() === 'B' || p.trim().toUpperCase() === 'S');
+                        // Deteksi: Jika ada 3 bagian dan semuanya B/S -> Benar/Salah. Selain itu -> PG Kompleks
+                        if (isBS && parts.length === 3) {
+                            countBS++;
+                        } else {
+                            countPGK++;
+                        }
+                    } else {
+                        countPG++;
+                    }
+                });
+            }
+            
+            let detailHtml = '';
+            if (bankSoalData.kunjab) {
+                detailHtml = `<br><span style="font-size: 0.9em; color: #555;">(PG: <b>${countPG}</b> | PG Kompleks: <b>${countPGK}</b> | B/S: <b>${countBS}</b>)</span>`;
+            }
+            
+            infoDiv.innerHTML = `Bank soal ditemukan: <b>${soalCount} soal</b>${detailHtml}<br>Update: ${bankSoalData.updateTerakhir}`; 
             infoDiv.className = 'bank-soal-info found'; 
         } else { 
             infoDiv.textContent = 'Bank soal tidak ditemukan untuk pilihan ini.'; 
@@ -3804,7 +3839,10 @@
     function calculateScore(studentAnswersInput, answerKeyString) {
         if (!answerKeyString || !studentAnswersInput) return 0;
         try {
-            const correctAnswers = answerKeyString.split(',').filter(Boolean);
+            // Parsing kunci jawaban Hybrid menggunakan Regex (menangani koma di dalam kurung siku)
+            const matches = answerKeyString.match(/\[.*?\]|[^,]+/g) || [];
+            const correctAnswers = matches.map(m => m.replace(/\[|\]/g, ''));
+            
             let studentAnswers;
             if (typeof studentAnswersInput === 'string') {
                 studentAnswers = JSON.parse(studentAnswersInput);
@@ -3817,6 +3855,7 @@
             let correctCount = 0;
             const loopLimit = Math.min(correctAnswers.length, studentAnswers.length);
             for (let i = 0; i < loopLimit; i++) {
+                // Asumsinya jawabanSiswa dari frontend sudah dalam format string: "A,D" atau "B,S,B"
                 if (studentAnswers[i] && studentAnswers[i].trim().toUpperCase() === correctAnswers[i].trim().toUpperCase()) { 
                     correctCount++; 
                 }
