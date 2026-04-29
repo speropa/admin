@@ -60,8 +60,8 @@
     table { width: 100%; border-collapse: collapse; font-size: 14px; }
     th, td { border: 1px solid #e0e0e0; padding: 10px; word-wrap: break-word; text-align: left; vertical-align: middle; }
     th { background-color: #ecf0f1; text-align: center; font-weight: bold; color: #2c3e50; white-space: nowrap; }
-    th.vertical-header { height: 110px; vertical-align: bottom; padding: 10px 4px; text-align: center; line-height: 1.2; }
-    th.vertical-header .v-text { writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; display: inline-block; text-align: left; font-family: 'Inter', sans-serif; font-weight: bold; font-size: 13px; letter-spacing: 0.3px; max-height: 100px; }
+    th.vertical-header { height: 170px; vertical-align: bottom; padding: 10px 4px; text-align: center; line-height: 1.2; }
+    th.vertical-header .v-text { writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; display: inline-block; text-align: left; font-family: 'Inter', sans-serif; font-weight: bold; font-size: 13px; letter-spacing: 0.3px; max-height: 160px; overflow: hidden; text-overflow: ellipsis; }
     #scoreTable { width: 100% !important; margin: 0; border-bottom: 1px solid #e0e0e0; }
     #scoreSection .table-responsive { display: block; width: 100%; overflow-x: auto; background: white; text-align: left; }
     #scoreTable th:nth-child(2), #scoreTable td:nth-child(2) { min-width: 200px; max-width: none; white-space: normal; text-align: left; }
@@ -3677,20 +3677,34 @@
         } else if (currentTableIdToCopy === 'scoreTable') {
             let studentsForCopy = filteredScores;
             let relevantTokens = tokenCache.filter(t => getNumericClass(t.kelas) === window.currentScoreGradeFilter);
+            
             relevantTokens.sort((a, b) => {
-                const timeA = new Date(a.startTime).getTime();
-                const timeB = new Date(b.startTime).getTime();
-                if (timeA !== timeB) return timeA - timeB; 
-                return a.subject.localeCompare(b.subject);
+                if (a.tahunAjaran !== b.tahunAjaran) return (b.tahunAjaran || '').localeCompare(a.tahunAjaran || '');
+                if (a.ujianName !== b.ujianName) return (a.ujianName || '').localeCompare(b.ujianName || '');
+                return (a.subject || '').localeCompare(b.subject || '');
             });
-            const subjects = [...new Set(relevantTokens.map(t => t.subject))];
-            let header = `NO\tNAMA SISWA\tKELAS${subjects.map(s => `\t${generateSmartAbbreviation(s)}`).join('')}\n`;
+
+            const uniqueColsMap = new Map();
+            relevantTokens.forEach(t => {
+                const colId = `${t.tahunAjaran}_${t.ujianName}_${t.subject}`;
+                if (!uniqueColsMap.has(colId)) {
+                    uniqueColsMap.set(colId, { id: colId, ta: t.tahunAjaran, ujian: t.ujianName, mapel: t.subject });
+                }
+            });
+            const examColumns = Array.from(uniqueColsMap.values());
+
+            let header = `NO\tNAMA SISWA\tKELAS${examColumns.map(col => `\t${generateSmartAbbreviation(col.mapel)} (${col.ujian})`).join('')}\n`;
             let body = '';
             studentsForCopy.forEach((student, index) => {
                 let rowData = `${index + 1}\t${student.name}\t${student.class}`;
-                subjects.forEach(subject => {
+                examColumns.forEach(col => {
                     let score = '-';
-                    const tokenInfo = Array.from(consolidatedTokensMap.values()).find(t => t.subject === subject && getNumericClass(t.kelas) === getNumericClass(student.class));
+                    const tokenInfo = Array.from(consolidatedTokensMap.values()).find(t => 
+                        t.tahunAjaran === col.ta && 
+                        t.ujianName === col.ujian && 
+                        t.subject === col.mapel && 
+                        getNumericClass(t.kelas) === getNumericClass(student.class)
+                    );
                     if(tokenInfo){
                         for(const fbKey of Array.from(tokenInfo.firebaseKeys)){
                              const studentIdPadded = padStudentId(student.id);
@@ -3777,24 +3791,36 @@
         let relevantTokens = tokenCache.filter(t => getNumericClass(t.kelas) === window.currentScoreGradeFilter);
         
         relevantTokens.sort((a, b) => {
-            const timeA = new Date(a.startTime).getTime();
-            const timeB = new Date(b.startTime).getTime();
-            if (timeA !== timeB) return timeA - timeB; 
-            return a.subject.localeCompare(b.subject);
+            if (a.tahunAjaran !== b.tahunAjaran) return (b.tahunAjaran || '').localeCompare(a.tahunAjaran || ''); // TA terbaru dulu
+            if (a.ujianName !== b.ujianName) return (a.ujianName || '').localeCompare(b.ujianName || '');
+            return (a.subject || '').localeCompare(b.subject || '');
         });
 
-        const subjects = [...new Set(relevantTokens.map(t => t.subject))];
-        scoreTableHeader.innerHTML = `<tr><th>NO</th><th>NAMA SISWA</th><th>KELAS</th>${subjects.map(s => `<th class="vertical-header"><div class="v-text">${generateSmartAbbreviation(s)}</div></th>`).join('')}</tr>`;
+        const uniqueColsMap = new Map();
+        relevantTokens.forEach(t => {
+            const colId = `${t.tahunAjaran}_${t.ujianName}_${t.subject}`;
+            if (!uniqueColsMap.has(colId)) {
+                uniqueColsMap.set(colId, { id: colId, ta: t.tahunAjaran, ujian: t.ujianName, mapel: t.subject });
+            }
+        });
+        const examColumns = Array.from(uniqueColsMap.values());
+
+        scoreTableHeader.innerHTML = `<tr><th>NO</th><th>NAMA SISWA</th><th>KELAS</th>${examColumns.map(col => `<th class="vertical-header" title="${col.mapel} - ${col.ujian} (${col.ta})"><div class="v-text">${generateSmartAbbreviation(col.mapel)} <span style="font-weight:normal; font-size:0.9em;">(${col.ujian})</span></div></th>`).join('')}</tr>`;
         
         const scoresForPage = filteredScores.slice((page - 1) * selectedItemsPerPage, page * selectedItemsPerPage);
         scoreTableBody.innerHTML = '';
         scoresForPage.forEach((student, index) => {
             const row = document.createElement('tr');
             let rowContent = `<td>${(page - 1) * selectedItemsPerPage + index + 1}</td><td>${student.name}</td><td>${student.class}</td>`;
-            subjects.forEach(subject => {
+            examColumns.forEach(col => {
                 let score = '-';
                 let isExpired = false;
-                const tokenInfo = Array.from(consolidatedTokensMap.values()).find(t => t.subject === subject && getNumericClass(t.kelas) === getNumericClass(student.class));
+                const tokenInfo = Array.from(consolidatedTokensMap.values()).find(t => 
+                    t.tahunAjaran === col.ta && 
+                    t.ujianName === col.ujian && 
+                    t.subject === col.mapel && 
+                    getNumericClass(t.kelas) === getNumericClass(student.class)
+                );
                 if (tokenInfo) {
                     if (new Date() > new Date(tokenInfo.endTime)) { isExpired = true; }
                     for(const fbKey of Array.from(tokenInfo.firebaseKeys)) {
