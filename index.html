@@ -756,7 +756,12 @@
           <table id="studentTable">
             <thead>
               <tr>
-                <th>NO</th>
+                <th style="width: 50px;">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 5px;">
+                        <input type="checkbox" id="selectAllManagement" style="margin: 0; width: 16px; height: 16px;" onchange="toggleSelectAllManagement(this)">
+                        <span>NO</span>
+                    </div>
+                </th>
                 <th>ID SISWA</th>
                 <th>NAMA</th>
                 <th>KELAS</th>
@@ -826,6 +831,13 @@
       <button class="text-button red" onclick="initiateBulkDelete()" style="background-color: #e74c3c;"><i class="fas fa-eraser"></i> Hapus Jawaban</button>
       <button class="icon-button" onclick="clearSelection()" style="background: rgba(255,255,255,0.2); width: 30px; height: 30px;" title="Batalkan Pilihan"><i class="fas fa-times" style="color: white;"></i></button>
   </div>
+  
+  <div id="floatingManagementBulkActions" class="floating-bulk-actions">
+      <span id="selectedManagementCountDisplay">0 Terpilih</span>
+      <button class="text-button blue-gray" onclick="openBulkEditStudentModal()"><i class="fas fa-edit"></i> Edit Kelas/Ruang</button>
+      <button class="text-button red" onclick="openBulkDeleteStudentModal()"><i class="fas fa-trash-alt"></i> Hapus Peserta</button>
+      <button class="icon-button" onclick="clearManagementSelection()" style="background: rgba(255,255,255,0.2); width: 30px; height: 30px;" title="Batalkan Pilihan"><i class="fas fa-times" style="color: white;"></i></button>
+  </div>
 
   <div id="addTokenModal" class="modal">
       <div id="addTokenModalContainer" class="modal-container-flex"></div>
@@ -871,7 +883,7 @@
   <div id="setlokasiModal" class="modal"><div class="modal-content" style="text-align: center;"><h4>Pengaturan Lokasi</h4><button onclick="aktifkanLokasi()" class="confirm-button">Aktifkan</button><button onclick="openGantiRadiusModal()" class="warning-button">Ganti Radius</button><button onclick="nonaktifkanLokasi()" class="cancel-button">Nonaktifkan</button><button onclick="closeSetlokasiModal()" class="gray text-button" style="margin-top: 10px;">Batal</button></div></div>
   <div id="gantiRadiusModal" class="modal"><div class="modal-content"><h4>Ganti Radius Lokasi (meter)</h4><label for="radiusMeter">Radius (meter):</label><input type="number" id="radiusMeter" placeholder="Contoh: 75" required /><div style="text-align: center; margin-top: 10px;"><button onclick="closeGantiRadiusModal()" class="cancel-button">Batal</button><button onclick="gantiRadiusDanAktifkan()" class="confirm-button">Ganti & Aktifkan</button></div></div></div>
   <div id="accessDetailModal" class="modal"><div class="modal-content" style="max-width: 700px;"><h4 id="accessDetailTokenTitle">Detail Akses Token: [Token]</h4><div class="table-responsive"><table id="accessDetailTable"><thead><tr><th>NO</th><th>ID SISWA</th><th>NAMA SISWA</th><th>KELAS</th><th>STATUS AKSES</th><th>WAKTU AKSES PERTAMA</th></tr></thead><tbody id="accessDetailTableBody"></tbody></table></div><button onclick="closeAccessDetailModal()" style="margin-top: 20px;">Tutup</button></div></div>
-  <div id="editStudentModal" class="modal"><div class="modal-content"><h4>Edit Data Siswa</h4><p id="editStudentErrorMsg" class="error"></p><label for="modalStudentId">ID Siswa</label><input type="text" id="modalStudentId" required /><label for="modalStudentName">Nama Siswa</label><input type="text" id="modalStudentName" required /><label for="modalStudentClass">Kelas</label><input type="text" id="modalStudentClass" placeholder="Contoh: 7A, 7B, 7C" required /><label for="modalStudentRoom">Ruang</label><input type="text" id="modalStudentRoom" placeholder="Contoh: 01, 02, dsb" required /><div class="modal-buttons"><button type="button" onclick="closeEditStudentModal()" class="cancel-button">Batal</button><button onclick="confirmEditStudent()">Simpan</button></div></div></div>
+  <div id="editStudentModal" class="modal"><div class="modal-content"><h4>Edit Data Siswa</h4><p id="editStudentErrorMsg" class="error"></p><label for="modalStudentId">ID Siswa</label><input type="text" id="modalStudentId" required disabled style="background-color: #eee; cursor: not-allowed;" title="Edit ID melalui hapus dan tambah baru jika salah" /><label for="modalStudentName">Nama Siswa</label><input type="text" id="modalStudentName" required disabled style="background-color: #eee; cursor: not-allowed;" title="Edit Nama melalui hapus dan tambah baru jika salah" /><label for="modalStudentClass">Kelas</label><input type="text" id="modalStudentClass" placeholder="Contoh: 7A, 7B, 7C" required /><label for="modalStudentRoom">Ruang</label><input type="text" id="modalStudentRoom" placeholder="Contoh: 01, 02, dsb" required /><div class="modal-buttons"><button type="button" onclick="closeEditStudentModal()" class="cancel-button">Batal</button><button onclick="confirmEditStudent()">Simpan</button></div></div></div>
   <div id="deleteStudentConfirmModal" class="modal"><div class="modal-content"><h4 style="text-align:center;">Hapus Siswa</h4><p>Yakin ingin menghapus siswa ini?</p><div class="modal-buttons"><button onclick="closeDeleteStudentConfirmModal()" class="cancel-button">Batal</button><button onclick="confirmDeleteStudent()" class="confirm-button">Hapus</button></div></div></div>
   <div id="importStudentModal" class="modal"><div class="modal-content"><h4>Import Data Peserta dari CSV</h4><p style="font-size: 0.9em; color: #555; text-align: left;">Perhatikan hal-hal berikut!<br>1. Siapkan data peserta dengan 4 kolom: ID Peserta (angka), Nama Lengkap, Kelas, dan Ruang<br>2. Simpan file dengan format *.csv (comma delimited)<br>3. Pastikan tidak ada kolom tambahan</p><a href="https://drive.google.com/uc?export=download&id=16rzsLjQ3AVm0wIPqWnzsauzbrwGfO7An" target="_blank" style="display: block; text-align: center; margin: 15px 0; padding: 10px 20px; background-color: #28a745; color: white; text-decoration: none; border-radius: 5px;">Unduh Template CSV</a> <input type="file" id="csvFileInput" accept=".csv" style="margin-top: 15px; margin-bottom: 10px;" /><p id="importFileError" class="error"></p><div class="modal-buttons"><button onclick="closeImportStudentModal()" class="cancel-button">Batal</button><button onclick="processCsvFile()">Mulai Impor</button></div></div></div>
   <div id="importResultModal" class="modal"><div class="modal-content"><h4>Hasil Impor Data Siswa</h4><p id="importResultSummary"></p><ul id="importResultDetails" style="text-align: left; max-height: 200px; overflow-y: auto; border: 1px solid #eee; padding: 10px; border-radius: 5px;"></ul><button onclick="closeImportResultModal()">Tutup</button></div></div>
@@ -899,6 +911,34 @@
         </div>
         <div class="modal-buttons"><button onclick="closeBulkActionModal()" class="cancel-button">Batal</button><button id="confirmBulkActionButton" class="confirm-button" onclick="confirmBulkAction()">Konfirmasi</button></div>
     </div>
+  </div>
+
+  <div id="bulkEditStudentModal" class="modal">
+      <div class="modal-content">
+          <h4>Edit Massal Peserta</h4>
+          <p>Edit Kelas dan Ruang untuk <b id="bulkEditCount"></b> peserta terpilih.</p>
+          <p style="font-size: 0.85em; color: #e74c3c;">Kosongkan kolom input jika tidak ingin mengubah data tersebut.</p>
+          <label>Kelas Baru</label>
+          <input type="text" id="bulkEditClass" placeholder="Contoh: 7A, 8B (Kosongkan jika tidak ingin diubah)">
+          <label>Ruang Baru</label>
+          <input type="text" id="bulkEditRoom" placeholder="Contoh: 01, 02 (Kosongkan jika tidak ingin diubah)">
+          <div class="modal-buttons">
+              <button onclick="closeBulkEditStudentModal()" class="cancel-button">Batal</button>
+              <button onclick="confirmBulkEditStudent()" class="confirm-button">Simpan Perubahan</button>
+          </div>
+      </div>
+  </div>
+
+  <div id="bulkDeleteStudentModal" class="modal">
+      <div class="modal-content">
+          <h4>Hapus Massal Peserta</h4>
+          <p>Anda yakin ingin menghapus <b id="bulkDeleteCount"></b> peserta terpilih?</p>
+          <p style="font-size: 0.9em; color: #e74c3c; font-weight: bold;">Tindakan ini tidak dapat dibatalkan dan akan menghapus seluruh data siswa tersebut dari server terkait!</p>
+          <div class="modal-buttons">
+              <button onclick="closeBulkDeleteStudentModal()" class="cancel-button">Batal</button>
+              <button onclick="confirmBulkDeleteStudent()" class="confirm-button">Ya, Hapus Peserta</button>
+          </div>
+      </div>
   </div>
 
   <div id="loadingOverlay" class="loading-overlay" style="display: flex;"><div class="spinner"></div></div>
@@ -1062,6 +1102,7 @@
     let currentTableIdToCopy = '';
 
     let selectedStatusKeys = new Set();
+    let selectedManagementKeys = new Set(); // Set baru khusus menu Manajemen Peserta
     let pendingBulkActionType = null; 
     let pendingBulkActionStudents = [];
 
@@ -1149,7 +1190,9 @@
     const activeButtonsInfoList = document.getElementById('activeButtonsInfoList');
     
     const floatingBulkActions = document.getElementById('floatingBulkActions');
+    const floatingManagementBulkActions = document.getElementById('floatingManagementBulkActions');
     const selectedCountDisplay = document.getElementById('selectedCountDisplay');
+    const selectedManagementCountDisplay = document.getElementById('selectedManagementCountDisplay');
 
     let currentConfirmAction = null; 
 
@@ -2560,6 +2603,10 @@
         const activeBtn = document.querySelector(`.sidebar-nav button[data-section-id="${sectionId}"]`);
         if (activeBtn) activeBtn.classList.add('active');
         
+        // Membersihkan pilihan setiap pindah tab agar tombol massal tertutup
+        clearSelection(); 
+        clearManagementSelection();
+
         if (sectionId === 'scoreSection') {
             window.currentScoreGradeFilter = 'ALL';
             resetScoreTable();
@@ -2571,7 +2618,6 @@
             'tokenSection': renderTokenTable,
             'rulesSection': () => { updateSetlokasiStatusDisplay(); renderMinDurationSettingsTable(); renderShuffleSettingsTable(); },
             'setSelectClassSection': () => { renderPublicSettingsControls(); renderActiveButtonsInfo(); },
-            // 'examStatusSelectionSection' dihapus dari sini karena sekarang sudah jadi Modal
             'studentStatusSection': () => renderStudentStatusTable(currentPageStatus),
             'studentSection': () => renderStudentManagementTable(currentPageManagement),
             'scoreSection': () => { }
@@ -2742,6 +2788,163 @@
         } catch (err) { showNotification("Gagal menghapus: " + err.message, true); } finally { loadingOverlay.style.display = 'none'; closeDeleteModal(); }
     };
     
+    // --- FUNGSI BARU UNTUK SELEKSI MASSAL DI MANAJEMEN PESERTA ---
+    window.toggleStudentManagementSelection = (key) => {
+        if (selectedManagementKeys.has(key)) { selectedManagementKeys.delete(key); } else { selectedManagementKeys.add(key); }
+        updateManagementBulkControlVisibility();
+        const selectAllCheckbox = document.getElementById('selectAllManagement');
+        if (selectAllCheckbox) {
+             const studentsForPage = filteredStudentsManagement.slice((currentPageManagement - 1) * selectedItemsPerPage, currentPageManagement * selectedItemsPerPage);
+             const allSelected = studentsForPage.length > 0 && studentsForPage.every(s => selectedManagementKeys.has(s.key));
+             selectAllCheckbox.checked = allSelected;
+        }
+    };
+
+    window.toggleSelectAllManagement = (checkbox) => {
+        const isChecked = checkbox.checked;
+        const studentsForPage = filteredStudentsManagement.slice((currentPageManagement - 1) * selectedItemsPerPage, currentPageManagement * selectedItemsPerPage);
+        studentsForPage.forEach(student => {
+            if (isChecked) { selectedManagementKeys.add(student.key); } else { selectedManagementKeys.delete(student.key); }
+        });
+        updateManagementBulkControlVisibility();
+        renderStudentManagementTable(currentPageManagement);
+    };
+
+    window.clearManagementSelection = () => {
+        selectedManagementKeys.clear();
+        updateManagementBulkControlVisibility();
+        renderStudentManagementTable(currentPageManagement);
+    };
+
+    function updateManagementBulkControlVisibility() {
+        if (selectedManagementKeys.size > 0) { 
+            floatingManagementBulkActions.classList.add('visible'); 
+            selectedManagementCountDisplay.innerText = `${selectedManagementKeys.size} Terpilih`; 
+        } else { 
+            floatingManagementBulkActions.classList.remove('visible'); 
+        }
+    }
+
+    // Modal Edit Massal
+    window.openBulkEditStudentModal = () => {
+        document.getElementById('bulkEditCount').innerText = selectedManagementKeys.size;
+        document.getElementById('bulkEditClass').value = '';
+        document.getElementById('bulkEditRoom').value = '';
+        document.getElementById('bulkEditStudentModal').style.display = 'flex';
+    };
+
+    window.closeBulkEditStudentModal = () => {
+        document.getElementById('bulkEditStudentModal').style.display = 'none';
+    };
+
+    window.confirmBulkEditStudent = async () => {
+        const newClassRaw = document.getElementById('bulkEditClass').value.trim().toUpperCase();
+        const newRoomRaw = document.getElementById('bulkEditRoom').value.trim();
+
+        if (!newClassRaw && !newRoomRaw) {
+            showNotification('Tidak ada data yang diisi untuk diubah.', true);
+            return;
+        }
+
+        if (newClassRaw && !VALID_ROMBELS.includes(newClassRaw)) {
+            showNotification('Kelas tidak valid.', true);
+            return;
+        }
+
+        loadingOverlay.style.display = 'flex';
+        try {
+            const updates7 = {}, updates8 = {}, updates9 = {};
+
+            for (const key of selectedManagementKeys) {
+                const student = studentCache.find(s => s.key === key);
+                if (!student) continue;
+
+                const finalClass = newClassRaw || student.class;
+                const finalRoom = newRoomRaw ? padRoomNumber(newRoomRaw) : student.room;
+
+                const oldGrade = getNumericClass(student.class);
+                const newGrade = getNumericClass(finalClass);
+
+                const newData = { 
+                    id: student.id, 
+                    name: student.name, 
+                    class: finalClass, 
+                    room: finalRoom 
+                };
+
+                if (oldGrade === newGrade) {
+                    // Update di database yang sama
+                    if (newGrade === '7') updates7[`students/${key}`] = newData;
+                    if (newGrade === '8') updates8[`students/${key}`] = newData;
+                    if (newGrade === '9') updates9[`students/${key}`] = newData;
+                } else {
+                    // Pindah database: Hapus dari yang lama, set di yang baru dengan key yang sama
+                    if (oldGrade === '7') updates7[`students/${key}`] = null;
+                    if (oldGrade === '8') updates8[`students/${key}`] = null;
+                    if (oldGrade === '9') updates9[`students/${key}`] = null;
+
+                    if (newGrade === '7') updates7[`students/${key}`] = newData;
+                    if (newGrade === '8') updates8[`students/${key}`] = newData;
+                    if (newGrade === '9') updates9[`students/${key}`] = newData;
+                }
+            }
+
+            const promises = [];
+            if (Object.keys(updates7).length > 0) promises.push(update(ref(db7), updates7));
+            if (Object.keys(updates8).length > 0) promises.push(update(ref(db8), updates8));
+            if (Object.keys(updates9).length > 0) promises.push(update(ref(db9), updates9));
+
+            await Promise.all(promises);
+
+            showNotification(`Berhasil mengedit ${selectedManagementKeys.size} peserta.`);
+            closeBulkEditStudentModal();
+            clearManagementSelection();
+        } catch (e) {
+            showNotification("Gagal edit massal: " + e.message, true);
+        } finally {
+            loadingOverlay.style.display = 'none';
+        }
+    };
+
+    // Modal Hapus Massal
+    window.openBulkDeleteStudentModal = () => {
+        document.getElementById('bulkDeleteCount').innerText = selectedManagementKeys.size;
+        document.getElementById('bulkDeleteStudentModal').style.display = 'flex';
+    };
+
+    window.closeBulkDeleteStudentModal = () => {
+        document.getElementById('bulkDeleteStudentModal').style.display = 'none';
+    };
+
+    window.confirmBulkDeleteStudent = async () => {
+        loadingOverlay.style.display = 'flex';
+        try {
+            const updates7 = {}, updates8 = {}, updates9 = {};
+            for (const key of selectedManagementKeys) {
+                const student = studentCache.find(s => s.key === key);
+                if (!student) continue;
+                const grade = getNumericClass(student.class);
+                if (grade === '7') updates7[`students/${key}`] = null;
+                if (grade === '8') updates8[`students/${key}`] = null;
+                if (grade === '9') updates9[`students/${key}`] = null;
+            }
+            
+            const promises = [];
+            if (Object.keys(updates7).length > 0) promises.push(update(ref(db7), updates7));
+            if (Object.keys(updates8).length > 0) promises.push(update(ref(db8), updates8));
+            if (Object.keys(updates9).length > 0) promises.push(update(ref(db9), updates9));
+
+            await Promise.all(promises);
+            showNotification(`Berhasil menghapus ${selectedManagementKeys.size} peserta.`);
+            closeBulkDeleteStudentModal();
+            clearManagementSelection();
+        } catch (e) {
+            showNotification("Gagal hapus massal: " + e.message, true);
+        } finally {
+            loadingOverlay.style.display = 'none';
+        }
+    };
+
     window.renderStudentManagementTable = function(page = 1) {
         currentPageManagement = page;
         localStorage.setItem('currentPageManagement', currentPageManagement);
@@ -2761,9 +2964,33 @@
         const studentsForPage = filteredStudentsManagement.slice((page - 1) * selectedItemsPerPage, page * selectedItemsPerPage);
         
         studentTableBody.innerHTML = '';
+        
+        const allSelected = studentsForPage.length > 0 && studentsForPage.every(s => selectedManagementKeys.has(s.key));
+        const selectAllCheckbox = document.getElementById('selectAllManagement');
+        if(selectAllCheckbox) selectAllCheckbox.checked = allSelected;
+        updateManagementBulkControlVisibility();
+
         studentsForPage.forEach((student, index) => {
             const row = document.createElement('tr');
-            row.innerHTML = `<td>${(page - 1) * selectedItemsPerPage + index + 1}</td><td>${student.id}</td><td>${student.name}</td><td>${student.class}</td><td>${padRoomNumber(student.room)}</td><td><div class="action-buttons-group"><button class="icon-button edit" onclick="openEditStudentModal('${student.key}', '${student.firebaseGroup}')" title="Edit Data Siswa"><i class="fas fa-edit"></i></button><button class="icon-button delete" onclick="openDeleteStudentConfirmModal('${student.key}', '${student.firebaseGroup}')" title="Hapus Siswa"><i class="fas fa-trash-alt"></i></button></div></td>`;
+            const isChecked = selectedManagementKeys.has(student.key);
+            
+            row.innerHTML = `
+                <td style="text-align: center;">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 5px;">
+                        <input type="checkbox" class="management-checkbox" value="${student.key}" style="margin: 0; width: 16px; height: 16px;" ${isChecked ? 'checked' : ''} onchange="toggleStudentManagementSelection('${student.key}')">
+                        <span>${(page - 1) * selectedItemsPerPage + index + 1}</span>
+                    </div>
+                </td>
+                <td>${student.id}</td>
+                <td>${student.name}</td>
+                <td>${student.class}</td>
+                <td>${padRoomNumber(student.room)}</td>
+                <td>
+                    <div class="action-buttons-group">
+                        <button class="icon-button edit" onclick="openEditStudentModal('${student.key}', '${student.firebaseGroup}')" title="Edit Data Siswa"><i class="fas fa-edit"></i></button>
+                        <button class="icon-button delete" onclick="openDeleteStudentConfirmModal('${student.key}', '${student.firebaseGroup}')" title="Hapus Siswa"><i class="fas fa-trash-alt"></i></button>
+                    </div>
+                </td>`;
             studentTableBody.appendChild(row);
         });
         renderPaginationControls(studentPaginationDiv, page, totalPages, 'renderStudentManagementTable');
