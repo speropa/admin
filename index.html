@@ -557,6 +557,7 @@
                     <option value="ALL">Semua Status</option>
                     <option value="BELUM_LOGIN">Belum Login</option>
                     <option value="SEDANG_MENGERJAKAN">Sedang Mengerjakan</option>
+                    <option value="OFFLINE">Offline (Keluar aplikasi)</option>
                     <option value="SUDAH_SUBMIT">Sudah Submit</option>
                 </select>
             </div>
@@ -3046,58 +3047,10 @@
             studentsToDisplay = studentsToDisplay.filter(s => s.id.toUpperCase().includes(searchInput) || s.name.toUpperCase().includes(searchInput) || s.class.toUpperCase().includes(searchInput));
         }
         
-        const statusFilter = document.getElementById('studentStatusFilterStatus').value;
-        if (statusFilter !== 'ALL') {
-            studentsToDisplay = studentsToDisplay.filter(student => {
-                const studentIdPadded = padStudentId(student.id);
-                let isLoggedInAny = false, isSubmittedAny = false, hasAccessedAny = false;
-                tokenKeysForDisplay.forEach(fbKey => {
-                    const token = tokenCache.find(t => t.key === fbKey);
-                    if (token && getNumericClass(token.kelas) === getNumericClass(student.class)) {
-                        const accessData = tokenAccessStatus[fbKey]?.[studentIdPadded];
-                        if (submittedExamsCache[fbKey]?.[studentIdPadded]?.isSubmitted) isSubmittedAny = true;
-                        if (accessData?.isLoggedIn) isLoggedInAny = true;
-                        if (accessData?.accessCount > 0) hasAccessedAny = true;
-                    }
-                });
-                let computedStatus = 'Belum Login';
-                if (isSubmittedAny) computedStatus = 'Sudah submit';
-                else if (isLoggedInAny) computedStatus = 'Sedang mengerjakan';
-                else if (hasAccessedAny) computedStatus = 'Belum Login (reset)';
-
-                if (statusFilter === 'BELUM_LOGIN') { return computedStatus === 'Belum Login' || computedStatus === 'Belum Login (reset)'; } 
-                else if (statusFilter === 'SEDANG_MENGERJAKAN') { return computedStatus === 'Sedang mengerjakan'; } 
-                else if (statusFilter === 'SUDAH_SUBMIT') { return computedStatus === 'Sudah submit'; }
-                return true;
-            });
-        }
-
-        studentsToDisplay.sort((a,b) => {
-            const classComparison = a.class.toString().localeCompare(b.class.toString(), undefined, {numeric: true, sensitivity: 'base'});
-            if (classComparison !== 0) return classComparison;
-            return a.name.toString().localeCompare(b.name.toString(), undefined, {sensitivity: 'base'});
-        });
-        
-        filteredStudentsStatus = studentsToDisplay; 
-        const totalPages = Math.ceil(filteredStudentsStatus.length / selectedItemsPerPage);
-        const studentsForPage = filteredStudentsStatus.slice((page - 1) * selectedItemsPerPage, page * selectedItemsPerPage);
-        studentStatusTableBody.innerHTML = '';
-        const allSelected = studentsForPage.length > 0 && studentsForPage.every(s => selectedStatusKeys.has(s.key));
-        const selectAllCheckbox = document.getElementById('selectAllStatus');
-        if(selectAllCheckbox) selectAllCheckbox.checked = allSelected;
-        updateBulkControlVisibility();
-
-        studentsForPage.forEach((student, index) => {
-            const row = document.createElement('tr');
-            let status = 'Belum Login';
+        let studentsWithStatus = studentsToDisplay.map(student => {
             const studentIdPadded = padStudentId(student.id);
             let isLoggedInAny = false, isSubmittedAny = false, hasAccessedAny = false;
-            
-            // Variabel untuk menampung data durasi siswa yang sedang mengerjakan
-            let activeFbKey = null;
-            let examStartTime = null;
-            let durationMinutes = null;
-            let lastResetTime = null;
+            let activeFbKey = null, examStartTime = null, durationMinutes = null, lastResetTime = null, lastAccessTimestamp = 0;
 
             tokenKeysForDisplay.forEach(fbKey => {
                 const token = tokenCache.find(t => t.key === fbKey);
@@ -3113,36 +3066,88 @@
                         if (accessData.lastResetTime) lastResetTime = accessData.lastResetTime;
                         if (accessData.isLoggedIn) isLoggedInAny = true;
                         if (accessData.accessCount > 0) hasAccessedAny = true;
+                        if (accessData.lastAccessTimestamp) lastAccessTimestamp = Math.max(lastAccessTimestamp, accessData.lastAccessTimestamp);
                     }
                 }
             });
+
+            let computedStatus = 'Belum Login';
+            if (isSubmittedAny) computedStatus = 'Sudah submit';
+            else if (isLoggedInAny) {
+                if (lastAccessTimestamp > 0 && (Date.now() - lastAccessTimestamp > 30000)) {
+                    computedStatus = 'Offline (Keluar aplikasi)';
+                } else {
+                    computedStatus = 'Sedang mengerjakan';
+                }
+            }
+            else if (hasAccessedAny) computedStatus = 'Belum Login (reset)';
+
+            return {
+                ...student,
+                _computedStatus: computedStatus,
+                _activeFbKey: activeFbKey,
+                _examStartTime: examStartTime,
+                _durationMinutes: durationMinutes,
+                _lastResetTime: lastResetTime,
+                _lastAccessTimestamp: lastAccessTimestamp
+            };
+        });
+
+        const statusFilter = document.getElementById('studentStatusFilterStatus').value;
+        if (statusFilter !== 'ALL') {
+            studentsWithStatus = studentsWithStatus.filter(s => {
+                if (statusFilter === 'BELUM_LOGIN') return s._computedStatus === 'Belum Login' || s._computedStatus === 'Belum Login (reset)';
+                if (statusFilter === 'SEDANG_MENGERJAKAN') return s._computedStatus === 'Sedang mengerjakan';
+                if (statusFilter === 'OFFLINE') return s._computedStatus === 'Offline (Keluar aplikasi)';
+                if (statusFilter === 'SUDAH_SUBMIT') return s._computedStatus === 'Sudah submit';
+                return true;
+            });
+        }
+
+        studentsWithStatus.sort((a,b) => {
+            const isOfflineA = a._computedStatus === 'Offline (Keluar aplikasi)' ? 1 : 0;
+            const isOfflineB = b._computedStatus === 'Offline (Keluar aplikasi)' ? 1 : 0;
+            if (isOfflineA !== isOfflineB) return isOfflineB - isOfflineA; // Offline muncul paling atas
+
+            const classComparison = a.class.toString().localeCompare(b.class.toString(), undefined, {numeric: true, sensitivity: 'base'});
+            if (classComparison !== 0) return classComparison;
+            return a.name.toString().localeCompare(b.name.toString(), undefined, {sensitivity: 'base'});
+        });
+        
+        window.filteredStudentsStatus = studentsWithStatus; 
+        const totalPages = Math.ceil(studentsWithStatus.length / selectedItemsPerPage);
+        const studentsForPage = studentsWithStatus.slice((page - 1) * selectedItemsPerPage, page * selectedItemsPerPage);
+        studentStatusTableBody.innerHTML = '';
+        const allSelected = studentsForPage.length > 0 && studentsForPage.every(s => selectedStatusKeys.has(s.key));
+        const selectAllCheckbox = document.getElementById('selectAllStatus');
+        if(selectAllCheckbox) selectAllCheckbox.checked = allSelected;
+        updateBulkControlVisibility();
+
+        studentsForPage.forEach((student, index) => {
+            const row = document.createElement('tr');
+            const status = student._computedStatus;
             
-            if (isSubmittedAny) status = 'Sudah submit';
-            else if (isLoggedInAny) status = 'Sedang mengerjakan';
-            else if (hasAccessedAny) status = 'Belum Login (reset)';
-            
-            const statusColor = {'Sudah submit': '#27ae60', 'Sedang mengerjakan': '#f39c12', 'Belum Login (reset)': '#8e44ad', 'Belum Login': '#e74c3c'}[status] || 'black';
+            const statusColor = {'Sudah submit': '#27ae60', 'Sedang mengerjakan': '#f39c12', 'Offline (Keluar aplikasi)': '#c0392b', 'Belum Login (reset)': '#8e44ad', 'Belum Login': '#e74c3c'}[status] || 'black';
             const statusCellHtml = `<td style="color: ${statusColor}; font-weight: bold;">${status}</td>`;
             
             // HTML untuk Sisa Waktu
             let sisaWaktuHtml = '<td style="text-align: center; color: #7f8c8d;">-</td>';
             if (status === 'Sudah submit') {
                 sisaWaktuHtml = '<td style="text-align: center; color: #27ae60; font-weight: bold;">Selesai</td>';
-            } else if (status === 'Belum Login (reset)' && examStartTime && durationMinutes && lastResetTime) {
-                // Tampilkan waktu yang di-pause (Kuning) dan TIDAK masuk ke interval auto-submit
-                const targetEndTime = examStartTime + (durationMinutes * 60 * 1000);
-                const remainingMs = targetEndTime - lastResetTime;
+            } else if (status === 'Belum Login (reset)' && student._examStartTime && student._durationMinutes && student._lastResetTime) {
+                const targetEndTime = student._examStartTime + (student._durationMinutes * 60 * 1000);
+                const remainingMs = targetEndTime - student._lastResetTime;
                 if (remainingMs > 0) {
                     sisaWaktuHtml = `<td style="text-align: center; color: #f39c12; font-weight: bold;" title="Waktu Dijeda">${formatSecondsToHMS(Math.floor(remainingMs / 1000))} (Jeda)</td>`;
                 } else {
                     sisaWaktuHtml = `<td style="text-align: center; color: #e74c3c; font-weight: bold;">00:00:00</td>`;
                 }
-            } else if (status === 'Sedang mengerjakan' && examStartTime && durationMinutes) {
-                const targetEndTime = examStartTime + (durationMinutes * 60 * 1000);
-                sisaWaktuHtml = `<td style="text-align: center;"><span class="live-student-timer" data-endtime="${targetEndTime}" data-student-id="${student.id}" data-class="${student.class}" data-token-key="${activeFbKey}" style="font-family: monospace; font-size: 1.1em; font-weight: bold; color: #d35400;">--:--:--</span></td>`;
+            } else if ((status === 'Sedang mengerjakan' || status === 'Offline (Keluar aplikasi)') && student._examStartTime && student._durationMinutes) {
+                const targetEndTime = student._examStartTime + (student._durationMinutes * 60 * 1000);
+                sisaWaktuHtml = `<td style="text-align: center;"><span class="live-student-timer" data-endtime="${targetEndTime}" data-student-id="${student.id}" data-class="${student.class}" data-token-key="${student._activeFbKey}" style="font-family: monospace; font-size: 1.1em; font-weight: bold; color: ${status === 'Offline (Keluar aplikasi)' ? '#c0392b' : '#d35400'};">--:--:--</span></td>`;
             }
 
-            const isWorking = status === 'Sedang mengerjakan';
+            const isWorking = status === 'Sedang mengerjakan' || status === 'Offline (Keluar aplikasi)';
             const isSubmitted = status === 'Sudah submit';
             const isResetStatus = status === 'Belum Login (reset)';
             const resetDisabled = !isWorking;
@@ -3219,22 +3224,29 @@
             let status = 'Belum Login';
             const studentIdPadded = padStudentId(student.id);
             let isLoggedInAny = false, isSubmittedAny = false, hasAccessedAny = false;
+            let lastAccessTimestamp = 0;
             tokenKeysForDisplay.forEach(fbKey => {
                 const token = tokenCache.find(t => t.key === fbKey);
                 if(token && getNumericClass(token.kelas) === getNumericClass(student.class)) {
                     const accessData = tokenAccessStatus[fbKey]?.[studentIdPadded];
                     if (submittedExamsCache[fbKey]?.[studentIdPadded]?.isSubmitted) isSubmittedAny = true;
-                    if (accessData?.isLoggedIn) isLoggedInAny = true;
-                    if (accessData?.accessCount > 0) hasAccessedAny = true;
+                    if (accessData) {
+                        if (accessData.isLoggedIn) isLoggedInAny = true;
+                        if (accessData.accessCount > 0) hasAccessedAny = true;
+                        if (accessData.lastAccessTimestamp) lastAccessTimestamp = Math.max(lastAccessTimestamp, accessData.lastAccessTimestamp);
+                    }
                 }
             });
             if (isSubmittedAny) status = 'Sudah submit';
-            else if (isLoggedInAny) status = 'Sedang mengerjakan';
+            else if (isLoggedInAny) {
+                if (lastAccessTimestamp > 0 && (Date.now() - lastAccessTimestamp > 30000)) status = 'Offline (Keluar aplikasi)';
+                else status = 'Sedang mengerjakan';
+            }
             else if (hasAccessedAny) status = 'Belum Login (reset)';
 
             let isValid = false;
-            if (actionType === 'RESET') { if (status === 'Sedang mengerjakan') isValid = true; } 
-            else if (actionType === 'SUBMIT') { if (status === 'Sedang mengerjakan' || status === 'Belum Login (reset)') isValid = true; } 
+            if (actionType === 'RESET') { if (status === 'Sedang mengerjakan' || status === 'Offline (Keluar aplikasi)') isValid = true; } 
+            else if (actionType === 'SUBMIT') { if (status === 'Sedang mengerjakan' || status === 'Belum Login (reset)' || status === 'Offline (Keluar aplikasi)') isValid = true; } 
             else if (actionType === 'DELETE') { if (status === 'Sudah submit') isValid = true; }
             if (isValid) { pendingBulkActionStudents.push({ student: student, status: status }); }
         });
@@ -4173,6 +4185,25 @@
                 }
             }
         });
+
+        // Cek secara berkala apakah ada siswa yang berubah menjadi offline karena tidak ada heartbeat
+        if (document.getElementById('studentStatusSection').style.display === 'block') {
+            let shouldRefresh = false;
+            if (window.filteredStudentsStatus) {
+                for (let i = 0; i < window.filteredStudentsStatus.length; i++) {
+                    let s = window.filteredStudentsStatus[i];
+                    if (s._computedStatus === 'Sedang mengerjakan' && s._lastAccessTimestamp > 0) {
+                        if (now - s._lastAccessTimestamp > 30000) {
+                            shouldRefresh = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (shouldRefresh) {
+                renderStudentStatusTable(currentPageStatus);
+            }
+        }
     }, 1000);
 
     // Fungsi Auto Submit Latar Belakang (Tidak pakai alert/modal)
