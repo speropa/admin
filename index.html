@@ -1102,6 +1102,8 @@
     let studentClassForAction = null;
     let currentTableIdToCopy = '';
 
+    const localHeartbeatTracker = {}; // Menyimpan rekam jejak kedatangan sinyal lokal (mencegah isu perbedaan jam HP & PC)
+
     let selectedStatusKeys = new Set();
     let selectedManagementKeys = new Set(); // Set baru khusus menu Manajemen Peserta
     let pendingBulkActionType = null; 
@@ -1651,6 +1653,16 @@
 
         const neededKeys = new Set(activeTokens.map(t => t.key));
 
+        function triggerDebouncedUIUpdate() {
+            if (!window.realtimeUIThrottle) {
+                window.realtimeUIThrottle = setTimeout(() => {
+                    if(window.requestAnimationFrame) window.requestAnimationFrame(updateAllDependentUI);
+                    else updateAllDependentUI();
+                    window.realtimeUIThrottle = null;
+                }, 300);
+            }
+        }
+
         activeTokens.forEach(token => {
             const group = token.firebaseGroup; 
             const key = token.key;
@@ -1661,12 +1673,24 @@
                 const callback = onValue(r, (snapshot) => {
                     const val = snapshot.val() || {};
                     
-                    // --- TAMBAHAN: Logika Auto-Resume Waktu Ujian ---
                     let autoUpdates = {};
                     let hasAutoUpdates = false;
                     for (const stuId in val) {
                         const data = val[stuId];
-                        // Jika siswa sudah login lagi, tapi masih punya status lastResetTime (habis direset)
+                        
+                        // TRACK HEARTBEAT LOKAL (Mengatasi perbedaan jam HP siswa dan PC Admin)
+                        if (data.lastAccessTimestamp) {
+                            const trackingKey = `${key}_${stuId}`;
+                            // Jika data heartbeat berubah, catat waktu lokal Admin saat ini
+                            if (!localHeartbeatTracker[trackingKey] || localHeartbeatTracker[trackingKey].lastTimestampValue !== data.lastAccessTimestamp) {
+                                localHeartbeatTracker[trackingKey] = {
+                                    lastTimestampValue: data.lastAccessTimestamp,
+                                    localTimeReceived: Date.now()
+                                };
+                            }
+                        }
+
+                        // Logika Auto-Resume Waktu Ujian
                         if (data.isLoggedIn && data.lastResetTime && data.examStartTime) {
                             const timeOffline = Date.now() - data.lastResetTime;
                             // Geser examStartTime ke depan agar waktu yang ditinggalkan tidak hilang
@@ -1688,8 +1712,7 @@
                     // ------------------------------------------------
 
                     tokenAccessStatus[key] = val;
-                    if(window.requestAnimationFrame) window.requestAnimationFrame(updateAllDependentUI);
-                    else updateAllDependentUI();
+                    triggerDebouncedUIUpdate();
                 });
                 activeListeners[group].access[key] = { ref: r, cb: callback };
             }
@@ -1699,8 +1722,7 @@
                 const callback = onValue(r, (snapshot) => {
                     const val = snapshot.val() || {};
                     submittedExamsCache[key] = val;
-                    if(window.requestAnimationFrame) window.requestAnimationFrame(updateAllDependentUI);
-                    else updateAllDependentUI();
+                    triggerDebouncedUIUpdate();
                 });
                 activeListeners[group].submitted[key] = { ref: r, cb: callback };
             }
@@ -3070,11 +3092,29 @@
                     }
                 }
             });
+            
+            // Hitung selisih waktu menggunakan Tracker Lokal
+            let timeSinceLastPing = 0;
+            if (lastAccessTimestamp > 0 && activeFbKey) {
+                const trackingKey = `${activeFbKey}_${studentIdPadded}`;
+                const localTracker = localHeartbeatTracker[trackingKey];
+                
+                if (localTracker) {
+                    timeSinceLastPing = Date.now() - localTracker.localTimeReceived;
+                } else {
+                    timeSinceLastPing = Date.now() - lastAccessTimestamp;
+                }
+                
+                // Jika selisih jam sangat brutal (misal > 5 menit) karena admin baru buka aplikasi, gunakan waktu mentah
+                if ((Date.now() - lastAccessTimestamp) > 300000) {
+                    timeSinceLastPing = Date.now() - lastAccessTimestamp;
+                }
+            }
 
             let computedStatus = 'Belum Login';
             if (isSubmittedAny) computedStatus = 'Sudah submit';
             else if (isLoggedInAny) {
-                if (lastAccessTimestamp > 0 && (Date.now() - lastAccessTimestamp > 30000)) {
+                if (lastAccessTimestamp > 0 && timeSinceLastPing > 60000) {
                     computedStatus = 'Offline (Keluar aplikasi)';
                 } else {
                     computedStatus = 'Sedang mengerjakan';
@@ -3089,7 +3129,8 @@
                 _examStartTime: examStartTime,
                 _durationMinutes: durationMinutes,
                 _lastResetTime: lastResetTime,
-                _lastAccessTimestamp: lastAccessTimestamp
+                _lastAccessTimestamp: lastAccessTimestamp,
+                _timeSinceLastPing: timeSinceLastPing
             };
         });
 
@@ -3117,47 +3158,70 @@
         window.filteredStudentsStatus = studentsWithStatus; 
         const totalPages = Math.ceil(studentsWithStatus.length / selectedItemsPerPage);
         const studentsForPage = studentsWithStatus.slice((page - 1) * selectedItemsPerPage, page * selectedItemsPerPage);
-        studentStatusTableBody.innerHTML = '';
+        
+        const fragment = document.createDocumentFragment();
         const allSelected = studentsForPage.length > 0 && studentsForPage.every(s => selectedStatusKeys.has(s.key));
         const selectAllCheckbox = document.getElementById('selectAllStatus');
         if(selectAllCheckbox) selectAllCheckbox.checked = allSelected;
         updateBulkControlVisibility();
 
         studentsForPage.forEach((student, index) => {
-            const row = document.createElement('tr');
             const status = student._computedStatus;
-            
-            const statusColor = {'Sudah submit': '#27ae60', 'Sedang mengerjakan': '#f39c12', 'Offline (Keluar aplikasi)': '#c0392b', 'Belum Login (reset)': '#8e44ad', 'Belum Login': '#e74c3c'}[status] || 'black';
-            const statusCellHtml = `<td style="color: ${statusColor}; font-weight: bold;">${status}</td>`;
-            
-            // HTML untuk Sisa Waktu
-            let sisaWaktuHtml = '<td style="text-align: center; color: #7f8c8d;">-</td>';
-            if (status === 'Sudah submit') {
-                sisaWaktuHtml = '<td style="text-align: center; color: #27ae60; font-weight: bold;">Selesai</td>';
-            } else if (status === 'Belum Login (reset)' && student._examStartTime && student._durationMinutes && student._lastResetTime) {
-                const targetEndTime = student._examStartTime + (student._durationMinutes * 60 * 1000);
-                const remainingMs = targetEndTime - student._lastResetTime;
-                if (remainingMs > 0) {
-                    sisaWaktuHtml = `<td style="text-align: center; color: #f39c12; font-weight: bold;" title="Waktu Dijeda">${formatSecondsToHMS(Math.floor(remainingMs / 1000))} (Jeda)</td>`;
-                } else {
-                    sisaWaktuHtml = `<td style="text-align: center; color: #e74c3c; font-weight: bold;">00:00:00</td>`;
-                }
-            } else if ((status === 'Sedang mengerjakan' || status === 'Offline (Keluar aplikasi)') && student._examStartTime && student._durationMinutes) {
-                const targetEndTime = student._examStartTime + (student._durationMinutes * 60 * 1000);
-                sisaWaktuHtml = `<td style="text-align: center;"><span class="live-student-timer" data-endtime="${targetEndTime}" data-student-id="${student.id}" data-class="${student.class}" data-token-key="${student._activeFbKey}" style="font-family: monospace; font-size: 1.1em; font-weight: bold; color: ${status === 'Offline (Keluar aplikasi)' ? '#c0392b' : '#d35400'};">--:--:--</span></td>`;
-            }
-
-            const isWorking = status === 'Sedang mengerjakan' || status === 'Offline (Keluar aplikasi)';
-            const isSubmitted = status === 'Sudah submit';
-            const isResetStatus = status === 'Belum Login (reset)';
-            const resetDisabled = !isWorking;
-            const submitDisabled = !(isWorking || isResetStatus);
-            const deleteDisabled = !isSubmitted;
-            const actionButtonsHtml = `<button class="icon-button reset" onclick="promptResetStudent('${student.key}', '${student.id}', '${escape(student.name)}', '${student.class}')" title="Reset Status Login" ${resetDisabled ? 'disabled' : ''}><i class="fas fa-redo"></i></button><button class="icon-button submit" onclick="promptSubmitAnswer('${student.key}', '${student.id}', '${escape(student.name)}', '${student.class}')" title="Kirim Jawaban Manual" ${submitDisabled ? 'disabled' : ''}><i class="fas fa-paper-plane"></i></button><button class="icon-button erase" onclick="promptDeleteAnswer('${student.key}', '${student.id}', '${escape(student.name)}', '${student.class}')" title="Hapus Jawaban" ${deleteDisabled ? 'disabled' : ''}><i class="fas fa-eraser"></i></button>`;
             const isChecked = selectedStatusKeys.has(student.key);
-            row.innerHTML = `<td style="text-align: center;"><div style="display: flex; align-items: center; justify-content: center; gap: 5px;"><input type="checkbox" class="status-checkbox" value="${student.key}" style="margin: 0; width: 16px; height: 16px;" ${isChecked ? 'checked' : ''} onchange="toggleStudentStatusSelection('${student.key}')"><span>${(page - 1) * selectedItemsPerPage + index + 1}</span></div></td><td>${student.id}</td><td>${student.name}</td><td>${student.class}</td><td>${padRoomNumber(student.room)}</td>${statusCellHtml}${sisaWaktuHtml}<td><div class="action-buttons-group">${actionButtonsHtml}</div></td>`;
-            studentStatusTableBody.appendChild(row);
+            const stateHash = `${status}_${student._examStartTime}_${student._lastResetTime}_${isChecked}_${index}`;
+            
+            let row = document.getElementById(`status-row-${student.key}`);
+            
+            if (row && row.getAttribute('data-state-hash') === stateHash) {
+                // Gunakan ulang baris (Mencegah berkedip)
+                fragment.appendChild(row);
+            } else {
+                if (!row) {
+                    row = document.createElement('tr');
+                    row.id = `status-row-${student.key}`;
+                }
+                row.setAttribute('data-state-hash', stateHash);
+                
+                let currentTimerValue = '--:--:--';
+                const existingTimer = row.querySelector('.live-student-timer');
+                if (existingTimer && existingTimer.innerText !== '--:--:--') {
+                     currentTimerValue = existingTimer.innerText;
+                }
+
+                const statusColor = {'Sudah submit': '#27ae60', 'Sedang mengerjakan': '#f39c12', 'Offline (Keluar aplikasi)': '#c0392b', 'Belum Login (reset)': '#8e44ad', 'Belum Login': '#e74c3c'}[status] || 'black';
+                const statusCellHtml = `<td style="color: ${statusColor}; font-weight: bold;">${status}</td>`;
+                
+                let sisaWaktuHtml = '<td style="text-align: center; color: #7f8c8d;">-</td>';
+                if (status === 'Sudah submit') {
+                    sisaWaktuHtml = '<td style="text-align: center; color: #27ae60; font-weight: bold;">Selesai</td>';
+                } else if (status === 'Belum Login (reset)' && student._examStartTime && student._durationMinutes && student._lastResetTime) {
+                    const targetEndTime = student._examStartTime + (student._durationMinutes * 60 * 1000);
+                    const remainingMs = targetEndTime - student._lastResetTime;
+                    if (remainingMs > 0) {
+                        sisaWaktuHtml = `<td style="text-align: center; color: #f39c12; font-weight: bold;" title="Waktu Dijeda">${formatSecondsToHMS(Math.floor(remainingMs / 1000))} (Jeda)</td>`;
+                    } else {
+                        sisaWaktuHtml = `<td style="text-align: center; color: #e74c3c; font-weight: bold;">00:00:00</td>`;
+                    }
+                } else if ((status === 'Sedang mengerjakan' || status === 'Offline (Keluar aplikasi)') && student._examStartTime && student._durationMinutes) {
+                    const targetEndTime = student._examStartTime + (student._durationMinutes * 60 * 1000);
+                    sisaWaktuHtml = `<td style="text-align: center;"><span class="live-student-timer" data-endtime="${targetEndTime}" data-student-id="${student.id}" data-class="${student.class}" data-token-key="${student._activeFbKey}" style="font-family: monospace; font-size: 1.1em; font-weight: bold; color: ${status === 'Offline (Keluar aplikasi)' ? '#c0392b' : '#d35400'};">${currentTimerValue}</span></td>`;
+                }
+
+                const isWorking = status === 'Sedang mengerjakan' || status === 'Offline (Keluar aplikasi)';
+                const isSubmitted = status === 'Sudah submit';
+                const isResetStatus = status === 'Belum Login (reset)';
+                const resetDisabled = !isWorking;
+                const submitDisabled = !(isWorking || isResetStatus);
+                const deleteDisabled = !isSubmitted;
+                const actionButtonsHtml = `<button class="icon-button reset" onclick="promptResetStudent('${student.key}', '${student.id}', '${escape(student.name)}', '${student.class}')" title="Reset Status Login" ${resetDisabled ? 'disabled' : ''}><i class="fas fa-redo"></i></button><button class="icon-button submit" onclick="promptSubmitAnswer('${student.key}', '${student.id}', '${escape(student.name)}', '${student.class}')" title="Kirim Jawaban Manual" ${submitDisabled ? 'disabled' : ''}><i class="fas fa-paper-plane"></i></button><button class="icon-button erase" onclick="promptDeleteAnswer('${student.key}', '${student.id}', '${escape(student.name)}', '${student.class}')" title="Hapus Jawaban" ${deleteDisabled ? 'disabled' : ''}><i class="fas fa-eraser"></i></button>`;
+                
+                row.innerHTML = `<td style="text-align: center;"><div style="display: flex; align-items: center; justify-content: center; gap: 5px;"><input type="checkbox" class="status-checkbox" value="${student.key}" style="margin: 0; width: 16px; height: 16px;" ${isChecked ? 'checked' : ''} onchange="toggleStudentStatusSelection('${student.key}')"><span>${(page - 1) * selectedItemsPerPage + index + 1}</span></div></td><td>${student.id}</td><td>${student.name}</td><td>${student.class}</td><td>${padRoomNumber(student.room)}</td>${statusCellHtml}${sisaWaktuHtml}<td><div class="action-buttons-group">${actionButtonsHtml}</div></td>`;
+                fragment.appendChild(row);
+            }
         });
+        
+        studentStatusTableBody.innerHTML = '';
+        studentStatusTableBody.appendChild(fragment);
         renderPaginationControls(studentStatusPaginationDiv, page, totalPages, 'renderStudentStatusTable');
     }
 
@@ -3225,21 +3289,34 @@
             const studentIdPadded = padStudentId(student.id);
             let isLoggedInAny = false, isSubmittedAny = false, hasAccessedAny = false;
             let lastAccessTimestamp = 0;
+            let activeFbKeyBulk = null;
+            
             tokenKeysForDisplay.forEach(fbKey => {
                 const token = tokenCache.find(t => t.key === fbKey);
                 if(token && getNumericClass(token.kelas) === getNumericClass(student.class)) {
                     const accessData = tokenAccessStatus[fbKey]?.[studentIdPadded];
                     if (submittedExamsCache[fbKey]?.[studentIdPadded]?.isSubmitted) isSubmittedAny = true;
                     if (accessData) {
+                        activeFbKeyBulk = fbKey;
                         if (accessData.isLoggedIn) isLoggedInAny = true;
                         if (accessData.accessCount > 0) hasAccessedAny = true;
                         if (accessData.lastAccessTimestamp) lastAccessTimestamp = Math.max(lastAccessTimestamp, accessData.lastAccessTimestamp);
                     }
                 }
             });
+            
+            let timeSinceLastPing = 0;
+            if (lastAccessTimestamp > 0 && activeFbKeyBulk) {
+                 const trackingKey = `${activeFbKeyBulk}_${studentIdPadded}`;
+                 const localTracker = localHeartbeatTracker[trackingKey];
+                 if (localTracker) timeSinceLastPing = Date.now() - localTracker.localTimeReceived;
+                 else timeSinceLastPing = Date.now() - lastAccessTimestamp;
+                 if ((Date.now() - lastAccessTimestamp) > 300000) timeSinceLastPing = Date.now() - lastAccessTimestamp;
+            }
+
             if (isSubmittedAny) status = 'Sudah submit';
             else if (isLoggedInAny) {
-                if (lastAccessTimestamp > 0 && (Date.now() - lastAccessTimestamp > 30000)) status = 'Offline (Keluar aplikasi)';
+                if (lastAccessTimestamp > 0 && timeSinceLastPing > 60000) status = 'Offline (Keluar aplikasi)';
                 else status = 'Sedang mengerjakan';
             }
             else if (hasAccessedAny) status = 'Belum Login (reset)';
@@ -4193,7 +4270,17 @@
                 for (let i = 0; i < window.filteredStudentsStatus.length; i++) {
                     let s = window.filteredStudentsStatus[i];
                     if (s._computedStatus === 'Sedang mengerjakan' && s._lastAccessTimestamp > 0) {
-                        if (now - s._lastAccessTimestamp > 30000) {
+                        let currentPingGap = 0;
+                        const trackingKey = `${s._activeFbKey}_${padStudentId(s.id)}`;
+                        const localTracker = localHeartbeatTracker[trackingKey];
+                        
+                        if (localTracker) {
+                            currentPingGap = now - localTracker.localTimeReceived;
+                        } else {
+                            currentPingGap = now - s._lastAccessTimestamp;
+                        }
+                        
+                        if (currentPingGap > 60000) {
                             shouldRefresh = true;
                             break;
                         }
