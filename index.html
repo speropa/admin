@@ -581,6 +581,7 @@
                         <th>RUANG</th>
                         <th>STATUS</th>
                         <th>SISA WAKTU</th>
+                        <th title="Jumlah soal yang sudah tersimpan ke server">PROGRES</th>
                         <th>AKSI</th>
                     </tr>
                 </thead>
@@ -1050,6 +1051,19 @@
     const ONE_WEEK_IN_MS = 7 * 24 * 60 * 60 * 1000;
     const VALID_ROMBELS = ['7A', '7B', '7C', '7D', '7E', '7F', '8A', '8B', '8C', '8D', '8E', '8F', '9A', '9B', '9C', '9D', '9E', '9F'];
     const DASHBOARD_DISPLAY_GRACE_MS = 30 * 60 * 1000; 
+    const PROGRESS_STUCK_ZERO_MS = 10 * 60 * 1000; // Dianggap "macet" kalau 0/soal selama > 10 menit sejak mulai mengerjakan
+    const PROGRESS_STUCK_MOVING_MS = 15 * 60 * 1000; // Dianggap "macet" kalau progresnya sudah jalan tapi tidak nambah lagi > 15 menit
+
+    // Hanya berlaku saat status "Sedang mengerjakan". Pakai ambang beda tergantung sudah pernah menjawab atau belum.
+    function computeIsStuck(computedStatus, jumlahDijawab, examStartTime, lastAnswerSaveTimestamp) {
+        if (computedStatus !== 'Sedang mengerjakan') return false;
+        const belumAdaJawaban = (jumlahDijawab === null || jumlahDijawab === undefined || jumlahDijawab <= 0);
+        if (belumAdaJawaban) {
+            return !!(examStartTime && (Date.now() - examStartTime) > PROGRESS_STUCK_ZERO_MS);
+        }
+        const refTime = lastAnswerSaveTimestamp > 0 ? lastAnswerSaveTimestamp : examStartTime;
+        return !!(refTime && (Date.now() - refTime) > PROGRESS_STUCK_MOVING_MS);
+    }
     
     // Variabel Global untuk URL Bank Soal
     let globalBankSoalUrl = '';
@@ -3073,6 +3087,7 @@
             const studentIdPadded = padStudentId(student.id);
             let isLoggedInAny = false, isSubmittedAny = false, hasAccessedAny = false;
             let activeFbKey = null, examStartTime = null, durationMinutes = null, lastResetTime = null, lastAccessTimestamp = 0;
+            let jumlahDijawab = null, totalSoal = null, lastAnswerSaveTimestamp = 0;
 
             tokenKeysForDisplay.forEach(fbKey => {
                 const token = tokenCache.find(t => t.key === fbKey);
@@ -3089,6 +3104,9 @@
                         if (accessData.isLoggedIn) isLoggedInAny = true;
                         if (accessData.accessCount > 0) hasAccessedAny = true;
                         if (accessData.lastAccessTimestamp) lastAccessTimestamp = Math.max(lastAccessTimestamp, accessData.lastAccessTimestamp);
+                        if (accessData.jumlahDijawab !== undefined) jumlahDijawab = accessData.jumlahDijawab;
+                        if (accessData.totalSoal !== undefined) totalSoal = accessData.totalSoal;
+                        if (accessData.lastAnswerSaveTimestamp) lastAnswerSaveTimestamp = Math.max(lastAnswerSaveTimestamp, accessData.lastAnswerSaveTimestamp);
                     }
                 }
             });
@@ -3122,6 +3140,10 @@
             }
             else if (hasAccessedAny) computedStatus = 'Belum Login (reset)';
 
+            // [DETEKSI PROGRES MACET] - device masih login (status "Sedang mengerjakan") tapi jawabannya
+            // tidak nambah-nambah. 10 menit kalau belum satupun terjawab, 15 menit kalau progresnya mandek.
+            const isStuck = computeIsStuck(computedStatus, jumlahDijawab, examStartTime, lastAnswerSaveTimestamp);
+
             return {
                 ...student,
                 _computedStatus: computedStatus,
@@ -3130,7 +3152,11 @@
                 _durationMinutes: durationMinutes,
                 _lastResetTime: lastResetTime,
                 _lastAccessTimestamp: lastAccessTimestamp,
-                _timeSinceLastPing: timeSinceLastPing
+                _timeSinceLastPing: timeSinceLastPing,
+                _jumlahDijawab: jumlahDijawab,
+                _totalSoal: totalSoal,
+                _lastAnswerSaveTimestamp: lastAnswerSaveTimestamp,
+                _isStuck: isStuck
             };
         });
 
@@ -3146,6 +3172,10 @@
         }
 
         studentsWithStatus.sort((a,b) => {
+            const isStuckA = a._isStuck ? 1 : 0;
+            const isStuckB = b._isStuck ? 1 : 0;
+            if (isStuckA !== isStuckB) return isStuckB - isStuckA; // Yang macet muncul paling atas
+
             const isOfflineA = a._computedStatus === 'Offline (Keluar aplikasi)' ? 1 : 0;
             const isOfflineB = b._computedStatus === 'Offline (Keluar aplikasi)' ? 1 : 0;
             if (isOfflineA !== isOfflineB) return isOfflineB - isOfflineA; // Offline muncul paling atas
@@ -3168,7 +3198,7 @@
         studentsForPage.forEach((student, index) => {
             const status = student._computedStatus;
             const isChecked = selectedStatusKeys.has(student.key);
-            const stateHash = `${status}_${student._examStartTime}_${student._lastResetTime}_${isChecked}_${index}`;
+            const stateHash = `${status}_${student._examStartTime}_${student._lastResetTime}_${isChecked}_${index}_${student._jumlahDijawab}_${student._totalSoal}_${student._isStuck}`;
             
             let row = document.getElementById(`status-row-${student.key}`);
             
@@ -3214,8 +3244,27 @@
                 const submitDisabled = !(isWorking || isResetStatus);
                 const deleteDisabled = !isSubmitted;
                 const actionButtonsHtml = `<button class="icon-button reset" onclick="promptResetStudent('${student.key}', '${student.id}', '${escape(student.name)}', '${student.class}')" title="Reset Status Login" ${resetDisabled ? 'disabled' : ''}><i class="fas fa-redo"></i></button><button class="icon-button submit" onclick="promptSubmitAnswer('${student.key}', '${student.id}', '${escape(student.name)}', '${student.class}')" title="Kirim Jawaban Manual" ${submitDisabled ? 'disabled' : ''}><i class="fas fa-paper-plane"></i></button><button class="icon-button erase" onclick="promptDeleteAnswer('${student.key}', '${student.id}', '${escape(student.name)}', '${student.class}')" title="Hapus Jawaban" ${deleteDisabled ? 'disabled' : ''}><i class="fas fa-eraser"></i></button>`;
+
+                // [KOLOM PROGRES] - jumlah soal yang sudah tersimpan ke server.
+                // Warna angka mengikuti warna status: 0=warna "Belum Login", 1..n-1=warna "Sedang mengerjakan", penuh=warna "Sudah submit".
+                // Ikon segitiga ditambahkan terpisah kalau kondisinya terdeteksi macet (lihat computeIsStuck).
+                let progresHtml = '<td style="text-align: center; color: #bdc3c7;">-</td>';
+                const stuckBadge = student._isStuck ? ` <i class="fas fa-triangle-exclamation" style="color:#c0392b;" title="Progres macet! Sudah lama tidak ada jawaban baru masuk padahal siswa masih tercatat mengerjakan. Cek koneksi/device siswa ini."></i>` : '';
+                if (isSubmitted) {
+                    progresHtml = '<td style="text-align: center; color: #27ae60;">Terkirim</td>';
+                } else if (isWorking) {
+                    const jd = student._jumlahDijawab;
+                    const ts = student._totalSoal;
+                    if (jd !== null && jd !== undefined && ts) {
+                        const progresColor = jd <= 0 ? '#e74c3c' : (jd >= ts ? '#27ae60' : '#f39c12');
+                        progresHtml = `<td style="text-align: center; font-weight: bold; color: ${progresColor};">${jd}/${ts}${stuckBadge}</td>`;
+                    } else {
+                        // Sudah login/mengerjakan tapi belum ada satupun data progres masuk dari device-nya
+                        progresHtml = `<td style="text-align: center; font-weight: bold; color: #e74c3c;" title="Belum ada data progres masuk dari device siswa">-/-${stuckBadge}</td>`;
+                    }
+                }
                 
-                row.innerHTML = `<td style="text-align: center;"><div style="display: flex; align-items: center; justify-content: center; gap: 5px;"><input type="checkbox" class="status-checkbox" value="${student.key}" style="margin: 0; width: 16px; height: 16px;" ${isChecked ? 'checked' : ''} onchange="toggleStudentStatusSelection('${student.key}')"><span>${(page - 1) * selectedItemsPerPage + index + 1}</span></div></td><td>${student.id}</td><td>${student.name}</td><td>${student.class}</td><td>${padRoomNumber(student.room)}</td>${statusCellHtml}${sisaWaktuHtml}<td><div class="action-buttons-group">${actionButtonsHtml}</div></td>`;
+                row.innerHTML = `<td style="text-align: center;"><div style="display: flex; align-items: center; justify-content: center; gap: 5px;"><input type="checkbox" class="status-checkbox" value="${student.key}" style="margin: 0; width: 16px; height: 16px;" ${isChecked ? 'checked' : ''} onchange="toggleStudentStatusSelection('${student.key}')"><span>${(page - 1) * selectedItemsPerPage + index + 1}</span></div></td><td>${student.id}</td><td>${student.name}</td><td>${student.class}</td><td>${padRoomNumber(student.room)}</td>${statusCellHtml}${sisaWaktuHtml}${progresHtml}<td><div class="action-buttons-group">${actionButtonsHtml}</div></td>`;
                 fragment.appendChild(row);
             }
         });
@@ -4281,6 +4330,14 @@
                         }
                         
                         if (currentPingGap > 60000) {
+                            shouldRefresh = true;
+                            break;
+                        }
+
+                        // [CEK PROGRES MACET] - device masih login (status "Sedang mengerjakan") tapi data jawaban
+                        // tidak nambah-nambah. Cuma trigger refresh sekali saat statusnya BARU berubah jadi
+                        // macet (menghindari render ulang tabel tiap detik terus-menerus).
+                        if (!s._isStuck && computeIsStuck(s._computedStatus, s._jumlahDijawab, s._examStartTime, s._lastAnswerSaveTimestamp)) {
                             shouldRefresh = true;
                             break;
                         }
