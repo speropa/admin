@@ -21,6 +21,19 @@
     .sidebar-nav button .menu-text { transition: opacity 0.3s ease; }
     .sidebar-nav button:hover { background-color: #34495e; transform: translateX(5px); }
     .sidebar-nav button.active { background-color: #3498db; font-weight: bold; box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+    /* Submenu dropdown (Bank Soal) */
+    .sidebar-nav button .submenu-caret { margin-left: auto; width: auto; font-size: 0.85em; transition: transform 0.3s ease; }
+    .sidebar-nav button .submenu-caret.rotated { transform: rotate(180deg); }
+    .sidebar-submenu { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; margin-bottom: 0; }
+    .sidebar-submenu.open { max-height: 300px; margin-bottom: 10px; }
+    .sidebar-nav .sidebar-submenu button.submenu-item { padding: 9px 20px 9px 52px; margin-bottom: 4px; font-size: 14px; color: #ecf0f1; background-color: rgba(255,255,255,0.05); }
+    .sidebar-nav .sidebar-submenu button.submenu-item:hover { background-color: #34495e; }
+    .sidebar-nav .sidebar-submenu button.submenu-item.active { background-color: #2980b9; font-weight: bold; box-shadow: none; }
+    /* Badge jumlah siswa bermasalah di menu Status Peserta */
+    #studentStatusMenuBtn { position: relative; }
+    .menu-badge { margin-left: auto; background-color: #e74c3c; color: white; font-size: 12px; font-weight: bold; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; display: none; align-items: center; justify-content: center; box-sizing: border-box; animation: badgePulse 1.5s infinite; }
+    .menu-badge.show { display: inline-flex; }
+    @keyframes badgePulse { 0% { box-shadow: 0 0 0 0 rgba(231,76,60,0.7); } 70% { box-shadow: 0 0 0 6px rgba(231,76,60,0); } 100% { box-shadow: 0 0 0 0 rgba(231,76,60,0); } }
     .flex-column-full { display: flex; flex-direction: column; flex: 1; min-height: 0; }
     input, select, textarea { padding: 12px; margin: 8px 0; width: 100%; box-sizing: border-box; font-size: 16px; border: 1px solid #ccc; border-radius: 6px; transition: border-color 0.3s ease, box-shadow 0.3s ease; }
     input:focus, select:focus, textarea:focus { border-color: #3498db; box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2); outline: none; }
@@ -310,6 +323,8 @@
       .sidebar-nav button:hover { transform: none; }
       .sidebar-nav button .menu-text { display: none; }
       .sidebar-nav button i { font-size: 1.2rem; width: auto; margin: 0; }
+      .sidebar-submenu, .sidebar-nav button .submenu-caret { display: none !important; }
+      .menu-badge { position: absolute; top: -3px; right: -3px; margin-left: 0; min-width: 16px; height: 16px; font-size: 10px; padding: 0 4px; }
       .main-content { padding: 10px; width: calc(100% - 60px); height: 100vh; overflow-y: auto; }
       .container { padding: 10px; }
       h1 { font-size: 1.2rem; }
@@ -359,14 +374,21 @@
       <button id="dashboardMenuBtn" data-section-id="dashboardSection" onclick="handleMenuClick(this)" title="Dashboard">
           <i class="fas fa-tachometer-alt"></i><span class="menu-text">Dashboard</span>
       </button>
-      <button id="bankSoalMenuBtn" data-section-id="bankSoalSection" onclick="handleMenuClick(this)" title="Bank Soal">
-          <i class="fas fa-book"></i><span class="menu-text">Bank Soal</span>
+      <button id="bankSoalMenuBtn" data-section-id="bankSoalSection" onclick="toggleBankSoalSubmenu(this)" title="Bank Soal">
+          <i class="fas fa-book"></i><span class="menu-text">Bank Soal</span><i class="fas fa-chevron-down submenu-caret" id="bankSoalCaret"></i>
       </button>
+      <div class="sidebar-submenu" id="bankSoalSubmenu">
+          <button class="submenu-item" id="sidebar-bs-tab-mata-pelajaran" onclick="handleBankSoalSubmenuClick('mata-pelajaran')"><span class="menu-text">Mata Pelajaran</span></button>
+          <button class="submenu-item" id="sidebar-bs-tab-daftar-guru" onclick="handleBankSoalSubmenuClick('daftar-guru')"><span class="menu-text">Daftar Guru</span></button>
+          <button class="submenu-item" id="sidebar-bs-tab-topik-ujian" onclick="handleBankSoalSubmenuClick('topik-ujian')"><span class="menu-text">Topik Ujian</span></button>
+          <button class="submenu-item" id="sidebar-bs-tab-akses-guru" onclick="handleBankSoalSubmenuClick('akses-guru')"><span class="menu-text">Akses Guru</span></button>
+          <button class="submenu-item" id="sidebar-bs-tab-bank-soal" onclick="handleBankSoalSubmenuClick('bank-soal')"><span class="menu-text">Bank Soal</span></button>
+      </div>
       <button id="tokenMenuBtn" data-section-id="tokenSection" onclick="handleMenuClick(this)" title="Token">
           <i class="fas fa-key"></i><span class="menu-text">Token</span>
       </button>
       <button id="studentStatusMenuBtn" data-section-id="studentStatusSection" onclick="handleMenuClick(this)" title="Status Peserta">
-          <i class="fas fa-user-check"></i><span class="menu-text">Status Peserta</span>
+          <i class="fas fa-user-check"></i><span class="menu-text">Status Peserta</span><span class="menu-badge" id="stuckStudentBadge" title="Jumlah siswa yang perlu dicek (tidak ada aktivitas)"></span>
       </button>
       <button id="pesertaMenuBtn" data-section-id="studentSection" onclick="handleMenuClick(this)" title="Peserta">
           <i class="fas fa-users"></i><span class="menu-text">Peserta</span>
@@ -381,7 +403,7 @@
           <i class="fas fa-gavel"></i><span class="menu-text">Aturan</span>
       </button>
       <button id="setSelectClassMenuBtn" data-section-id="setSelectClassSection" onclick="handleMenuClick(this)" title="Set Pilih Kelas">
-          <i class="fas fa-list-ol"></i><span class="menu-text">Set PilihKelas</span>
+          <i class="fas fa-list-ol"></i><span class="menu-text">Set Pilih Kelas</span>
       </button>
       <button data-action="promptLogout" onclick="handleMenuClick(this)" title="Keluar">
           <i class="fas fa-sign-out-alt"></i><span class="menu-text">Keluar</span>
@@ -1055,14 +1077,18 @@
     const PROGRESS_STUCK_MOVING_MS = 15 * 60 * 1000; // Dianggap "macet" kalau progresnya sudah jalan tapi tidak nambah lagi > 15 menit
 
     // Hanya berlaku saat status "Sedang mengerjakan". Pakai ambang beda tergantung sudah pernah menjawab atau belum.
-    function computeIsStuck(computedStatus, jumlahDijawab, examStartTime, lastAnswerSaveTimestamp) {
+    // Mengembalikan: false (aman), atau angka menit (10/15) sesuai ambang mana yang kena - dipakai buat teks peringatan dinamis.
+    function computeStuckThresholdMinutes(computedStatus, jumlahDijawab, totalSoal, examStartTime, lastAnswerSaveTimestamp) {
         if (computedStatus !== 'Sedang mengerjakan') return false;
+        // Sudah menjawab semua soal (mis. lagi review sebelum submit) -> jangan pernah ditandai macet
+        if (totalSoal && jumlahDijawab !== null && jumlahDijawab !== undefined && jumlahDijawab >= totalSoal) return false;
+
         const belumAdaJawaban = (jumlahDijawab === null || jumlahDijawab === undefined || jumlahDijawab <= 0);
         if (belumAdaJawaban) {
-            return !!(examStartTime && (Date.now() - examStartTime) > PROGRESS_STUCK_ZERO_MS);
+            return (examStartTime && (Date.now() - examStartTime) > PROGRESS_STUCK_ZERO_MS) ? 10 : false;
         }
         const refTime = lastAnswerSaveTimestamp > 0 ? lastAnswerSaveTimestamp : examStartTime;
-        return !!(refTime && (Date.now() - refTime) > PROGRESS_STUCK_MOVING_MS);
+        return (refTime && (Date.now() - refTime) > PROGRESS_STUCK_MOVING_MS) ? 15 : false;
     }
     
     // Variabel Global untuk URL Bank Soal
@@ -1175,6 +1201,40 @@
         document.querySelectorAll('.bs-content-view').forEach(v => v.classList.remove('active'));
         document.getElementById(`bs-tab-${tabId}`).classList.add('active');
         document.getElementById(`${tabId}-view`).classList.add('active');
+        // Sinkronkan sorotan di submenu sidebar
+        document.querySelectorAll('.submenu-item').forEach(b => b.classList.remove('active'));
+        document.getElementById(`sidebar-bs-tab-${tabId}`)?.classList.add('active');
+    };
+
+    // Menyorot submenu sidebar sesuai tab Bank Soal yang sedang aktif (dipanggil setelah showSection membersihkan sorotan)
+    function syncBankSoalSubmenuActive() {
+        document.querySelectorAll('.submenu-item').forEach(b => b.classList.remove('active'));
+        const activeLink = document.querySelector('.bs-nav-link.active');
+        if (activeLink) document.getElementById(`sidebar-${activeLink.id}`)?.classList.add('active');
+    }
+
+    // Klik tombol "Bank Soal" di sidebar: buka halamannya + buka/tutup dropdown.
+    // Kalau halamannya belum terbuka -> pasti buka dropdown. Kalau sudah terbuka -> buka/tutup bergantian.
+    window.toggleBankSoalSubmenu = (buttonElement) => {
+        const section = document.getElementById('bankSoalSection');
+        const wasVisible = !!section && section.style.display !== 'none' && section.style.display !== '';
+        window.handleMenuClick(buttonElement);
+        const submenu = document.getElementById('bankSoalSubmenu');
+        const caret = document.getElementById('bankSoalCaret');
+        const shouldOpen = wasVisible ? !submenu.classList.contains('open') : true;
+        submenu.classList.toggle('open', shouldOpen);
+        if (caret) caret.classList.toggle('rotated', shouldOpen);
+    };
+
+    // Klik salah satu item dropdown: langsung ke halaman Bank Soal + tab yang dipilih
+    window.handleBankSoalSubmenuClick = (tabId) => {
+        window.showSection('bankSoalSection');
+        window.bsSwitchTab(tabId);
+        const submenu = document.getElementById('bankSoalSubmenu');
+        if (submenu && !submenu.classList.contains('open')) {
+            submenu.classList.add('open');
+            document.getElementById('bankSoalCaret')?.classList.add('rotated');
+        }
     };
     // ==========================================
 
@@ -1758,7 +1818,48 @@
         });
     }
 
+    // Menghitung jumlah siswa "macet" di SEMUA ujian aktif (tidak terpengaruh filter tabel / halaman yang sedang dibuka),
+    // lalu menampilkannya sebagai lencana merah di tombol "Status Peserta" pada sidebar.
+    function updateStuckBadge() {
+        const badge = document.getElementById('stuckStudentBadge');
+        if (!badge) return;
+        const now = Date.now();
+        let count = 0;
+        Object.keys(tokenAccessStatus).forEach(fbKey => {
+            const perStudent = tokenAccessStatus[fbKey] || {};
+            Object.keys(perStudent).forEach(studentIdPadded => {
+                const a = perStudent[studentIdPadded];
+                if (!a || !a.isLoggedIn) return;
+                if (submittedExamsCache[fbKey]?.[studentIdPadded]?.isSubmitted) return;
+
+                // Status "Sedang mengerjakan" vs "Offline" ditentukan sama persis seperti di tabel Status Peserta
+                const last = a.lastAccessTimestamp || 0;
+                let gap = 0;
+                if (last > 0) {
+                    const tracker = localHeartbeatTracker[`${fbKey}_${studentIdPadded}`];
+                    gap = tracker ? now - tracker.localTimeReceived : now - last;
+                    if ((now - last) > 300000) gap = now - last;
+                }
+                const status = (last > 0 && gap > 60000) ? 'Offline (Keluar aplikasi)' : 'Sedang mengerjakan';
+
+                const jd = (a.jumlahDijawab === undefined) ? null : a.jumlahDijawab;
+                const ts = (a.totalSoal === undefined) ? null : a.totalSoal;
+                if (computeStuckThresholdMinutes(status, jd, ts, a.examStartTime, a.lastAnswerSaveTimestamp || 0)) count++;
+            });
+        });
+
+        if (count > 0) {
+            badge.textContent = count > 99 ? '99+' : String(count);
+            badge.classList.add('show');
+            badge.title = `${count} siswa lebih dari 10/15 menit tidak ada aktivitas, perlu dicek!`;
+        } else {
+            badge.classList.remove('show');
+            badge.textContent = '';
+        }
+    }
+
     function updateAllDependentUI() {
+        updateStuckBadge(); // Selalu diperbarui, apa pun halaman yang sedang dibuka admin
         const visibleSection = document.querySelector('#dashboardContent > .container[style*="display: block"], #dashboardContent > div > .container[style*="display: block"]');
         if (!visibleSection) return;
         
@@ -2639,7 +2740,7 @@
         document.querySelectorAll('.sidebar-nav button').forEach(b => b.classList.remove('active'));
         const activeBtn = document.querySelector(`.sidebar-nav button[data-section-id="${sectionId}"]`);
         if (activeBtn) activeBtn.classList.add('active');
-        
+        if (sectionId === 'bankSoalSection') syncBankSoalSubmenuActive();
         // Membersihkan pilihan setiap pindah tab agar tombol massal tertutup
         clearSelection(); 
         clearManagementSelection();
@@ -3142,7 +3243,9 @@
 
             // [DETEKSI PROGRES MACET] - device masih login (status "Sedang mengerjakan") tapi jawabannya
             // tidak nambah-nambah. 10 menit kalau belum satupun terjawab, 15 menit kalau progresnya mandek.
-            const isStuck = computeIsStuck(computedStatus, jumlahDijawab, examStartTime, lastAnswerSaveTimestamp);
+            // 30/30 (semua terjawab) dikecualikan - lihat computeStuckThresholdMinutes.
+            const stuckMinutes = computeStuckThresholdMinutes(computedStatus, jumlahDijawab, totalSoal, examStartTime, lastAnswerSaveTimestamp);
+            const isStuck = !!stuckMinutes;
 
             return {
                 ...student,
@@ -3156,7 +3259,8 @@
                 _jumlahDijawab: jumlahDijawab,
                 _totalSoal: totalSoal,
                 _lastAnswerSaveTimestamp: lastAnswerSaveTimestamp,
-                _isStuck: isStuck
+                _isStuck: isStuck,
+                _stuckMinutes: stuckMinutes
             };
         });
 
@@ -3198,7 +3302,7 @@
         studentsForPage.forEach((student, index) => {
             const status = student._computedStatus;
             const isChecked = selectedStatusKeys.has(student.key);
-            const stateHash = `${status}_${student._examStartTime}_${student._lastResetTime}_${isChecked}_${index}_${student._jumlahDijawab}_${student._totalSoal}_${student._isStuck}`;
+            const stateHash = `${status}_${student._examStartTime}_${student._lastResetTime}_${isChecked}_${index}_${student._jumlahDijawab}_${student._totalSoal}_${student._stuckMinutes}`;
             
             let row = document.getElementById(`status-row-${student.key}`);
             
@@ -3218,8 +3322,9 @@
                      currentTimerValue = existingTimer.innerText;
                 }
 
-                const statusColor = {'Sudah submit': '#27ae60', 'Sedang mengerjakan': '#f39c12', 'Offline (Keluar aplikasi)': '#c0392b', 'Belum Login (reset)': '#8e44ad', 'Belum Login': '#e74c3c'}[status] || 'black';
-                const statusCellHtml = `<td style="color: ${statusColor}; font-weight: bold;">${status}</td>`;
+                const statusColor = student._isStuck ? '#c0392b' : ({'Sudah submit': '#27ae60', 'Sedang mengerjakan': '#f39c12', 'Offline (Keluar aplikasi)': '#c0392b', 'Belum Login (reset)': '#8e44ad', 'Belum Login': '#e74c3c'}[status] || 'black');
+                const statusDisplayText = student._isStuck ? `Lebih ${student._stuckMinutes} menit tidak ada aktivitas (Server Terputus), Perlu dicek!` : status;
+                const statusCellHtml = `<td style="color: ${statusColor}; font-weight: bold;" ${student._isStuck ? `title="Status tercatat sistem: ${status}. Tidak ada progres jawaban baru masuk, kemungkinan device siswa terputus dari server."` : ''}>${statusDisplayText}</td>`;
                 
                 let sisaWaktuHtml = '<td style="text-align: center; color: #7f8c8d;">-</td>';
                 if (status === 'Sudah submit') {
@@ -3247,9 +3352,9 @@
 
                 // [KOLOM PROGRES] - jumlah soal yang sudah tersimpan ke server.
                 // Warna angka mengikuti warna status: 0=warna "Belum Login", 1..n-1=warna "Sedang mengerjakan", penuh=warna "Sudah submit".
-                // Ikon segitiga ditambahkan terpisah kalau kondisinya terdeteksi macet (lihat computeIsStuck).
+                // Ikon segitiga ditambahkan terpisah kalau kondisinya terdeteksi macet (lihat computeStuckThresholdMinutes).
                 let progresHtml = '<td style="text-align: center; color: #bdc3c7;">-</td>';
-                const stuckBadge = student._isStuck ? ` <i class="fas fa-triangle-exclamation" style="color:#c0392b;" title="Progres macet! Sudah lama tidak ada jawaban baru masuk padahal siswa masih tercatat mengerjakan. Cek koneksi/device siswa ini."></i>` : '';
+                const stuckBadge = student._isStuck ? ` <i class="fas fa-triangle-exclamation" style="color:#c0392b;" title="Lebih ${student._stuckMinutes} menit tidak ada aktivitas. Cek koneksi/device siswa ini."></i>` : '';
                 if (isSubmitted) {
                     progresHtml = '<td style="text-align: center; color: #27ae60;">Terkirim</td>';
                 } else if (isWorking) {
@@ -4276,6 +4381,9 @@
     // Set pencegah ganda agar auto-submit tidak tertrigger berkali-kali untuk siswa yang sama
     const autoSubmitInProgress = new Set();
 
+    // Perbarui lencana "siswa macet" di sidebar secara berkala (supaya muncul sendiri saat batas 10/15 menit terlewati)
+    setInterval(updateStuckBadge, 5000);
+
     // MESIN PENGECEKAN SISA WAKTU SISWA (Berjalan setiap 1 detik)
     setInterval(() => {
         const timerElements = document.querySelectorAll('.live-student-timer');
@@ -4337,7 +4445,7 @@
                         // [CEK PROGRES MACET] - device masih login (status "Sedang mengerjakan") tapi data jawaban
                         // tidak nambah-nambah. Cuma trigger refresh sekali saat statusnya BARU berubah jadi
                         // macet (menghindari render ulang tabel tiap detik terus-menerus).
-                        if (!s._isStuck && computeIsStuck(s._computedStatus, s._jumlahDijawab, s._examStartTime, s._lastAnswerSaveTimestamp)) {
+                        if (!s._isStuck && computeStuckThresholdMinutes(s._computedStatus, s._jumlahDijawab, s._totalSoal, s._examStartTime, s._lastAnswerSaveTimestamp)) {
                             shouldRefresh = true;
                             break;
                         }
